@@ -1,0 +1,12 @@
+TestModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Int32U ::= INTEGER (0..4294967295)
+
+FileEntry ::= SEQUENCE {
+    fileName       [0] IMPLICIT VisibleString129,
+    fileSize       [1] IMPLICIT Int32U,
+    lastModified   [2] IMPLICIT UtcTime,
+    checkSum       [3] IMPLICIT Int32U
+}
+
+END

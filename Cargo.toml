@@ -1,0 +1,10 @@
+[package]
+name = "csasn1"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rasn = "0.28"
+
+[build-dependencies]
+rasn-compiler = "0.16"

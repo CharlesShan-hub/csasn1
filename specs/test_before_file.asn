@@ -1,0 +1,178 @@
+--
+-- DL/T 2811 Data Types ? ASN.1 Module
+--
+-- Generated from Cms* Java classes in com.ysh.dlt2811bean.datatypes
+-- All type names correspond to ASN.1 type definitions from GB/T 45906.3.
+-- Java prefix "Cms" is stripped for ASN.1 type names.
+--
+
+DLT2811-DataTypes { 1 2 156 2811 1 } DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+-- ======================================================================
+-- 7.1.1 BOOLEAN
+-- ======================================================================
+
+-- PER encoding: constrained integer (0..1), 1 bit
+Boolean ::= INTEGER (0..1)
+
+-- ======================================================================
+-- 7.1.2 Integer Types
+-- ======================================================================
+
+-- PER encoding: constrained integer, 8 bits aligned
+Int8  ::= INTEGER (-128..127)
+
+-- PER encoding: constrained integer, 8 bits aligned
+Int8U ::= INTEGER (0..255)
+
+-- PER encoding: constrained integer, 16 bits aligned
+Int16 ::= INTEGER (-32768..32767)
+
+-- PER encoding: constrained integer, 16 bits aligned
+Int16U ::= INTEGER (0..65535)
+
+-- PER encoding: constrained integer, 24 bits aligned
+Int24U ::= INTEGER (0..16777215)
+
+-- PER encoding: constrained integer, 32 bits aligned
+Int32  ::= INTEGER (-2147483648..2147483647)
+
+-- PER encoding: constrained integer, 32 bits aligned
+Int32U ::= INTEGER (0..4294967295)
+
+-- PER encoding: length determinant + content bytes
+Int64  ::= INTEGER (-9223372036854775808..9223372036854775807)
+
+-- PER encoding: length determinant + content bytes
+Int64U ::= INTEGER (0..18446744073709551615)
+
+-- ======================================================================
+-- 7.1.4 Floating-Point Types
+-- ======================================================================
+
+Float32 ::= OCTET STRING (SIZE (4))
+
+Float64 ::= OCTET STRING (SIZE (8))
+
+-- ======================================================================
+-- 7.1.5 String Types
+-- ======================================================================
+
+-- PER encoding: length prefix + 8-bit characters
+-- VisibleString ::= VisibleString
+-- VisibleString129::=VisibleString (SIZE (0..129))
+-- VisibleString255::=VisibleString (SIZE (0..255))
+
+-- VisibleString constrained variants (used throughout the spec)
+VisibleString129 ::= VisibleString (SIZE (0..129))
+VisibleString255 ::= VisibleString (SIZE (0..255))
+
+-- PER encoding: length prefix + UTF-8 bytes
+-- UTF8String ::= UTF8String
+
+-- PER encoding: length prefix + raw bytes
+OctetString ::= OCTET STRING
+
+BitString ::= BIT STRING
+
+-- ======================================================================
+-- 7.1.6 ENUMERATED
+-- ======================================================================
+
+-- ENUMERATED ::= Int8
+-- ENUMERATED ::= Int16 (>128)
+
+-- ======================================================================
+-- 7.1.7 CODED ENUM
+-- ======================================================================
+
+-- CODEDENUM ::= BIT STRING (SIZE(0..n))
+
+-- ======================================================================
+-- 7.1.8 Packed List
+-- ======================================================================
+
+-- PackedList ::= BIT STRING (SIZE(0..n))
+
+-- ======================================================================
+-- 7.2.1 UtcTime
+-- ======================================================================
+
+UtcTime ::= OCTET STRING (SIZE(8))
+
+TimeQuality ::= BIT STRING {
+    leap-second-known            (0),
+    clock-failure                (1),
+    clock-not-synchronized       (2)
+} (SIZE(8))
+
+-- ======================================================================
+-- 7.2.2 BinaryTime / EntryTime
+-- ======================================================================
+
+BinaryTime ::= OCTET STRING (SIZE(6))
+
+EntryTime ::= BinaryTime
+
+-- ======================================================================
+-- 7.3.1 ObjectName
+-- ======================================================================
+
+-- PER encoding: VisibleString with max length 64
+ObjectName ::= VisibleString (SIZE(0..64))
+
+-- ======================================================================
+-- 7.3.2 ObjectReference
+-- ======================================================================
+
+-- Format: LDName/LNName[.Name[....]]
+-- PER encoding: VisibleString with max length 129
+ObjectReference ::= VisibleString (SIZE(0..129))
+
+-- ======================================================================
+-- 7.3.3 SubReference
+-- ======================================================================
+
+SubReference ::= VisibleString (SIZE(0..129))
+
+-- ======================================================================
+-- 7.3.4 TimeStamp
+-- ======================================================================
+
+TimeStamp ::= UtcTime
+
+-- ======================================================================
+-- 7.3.5 Dbpos
+-- ======================================================================
+
+Dbpos ::= BIT STRING (SIZE(2))
+
+-- ======================================================================
+-- 7.3.6 Quality
+-- ======================================================================
+
+Quality ::= BIT STRING (SIZE(13))
+
+-- ======================================================================
+-- 7.3.7 Tcmd
+-- ======================================================================
+
+Tcmd ::= BIT STRING (SIZE(2))
+
+-- ======================================================================
+-- 7.3.8 EntryID
+-- ======================================================================
+
+EntryID ::= OCTET STRING (SIZE(8))
+
+-- ======================================================================
+-- 7.3.9 EntryTime
+-- ======================================================================
+
+EntryTime ::= BinaryTime
+
+-- ======================================================================
+-- 7.3.10 FileEntry
+-- ======================================================================
+
+END

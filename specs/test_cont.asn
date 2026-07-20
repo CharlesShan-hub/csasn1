@@ -1,0 +1,15 @@
+TestModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+UtcTime ::= OCTET STRING (SIZE(8))
+
+TimeQuality ::= BIT STRING {
+    leap-second-known            (0),
+    clock-failure                (1),
+    clock-not-synchronized       (2)
+} (SIZE(8))
+
+BinaryTime ::= OCTET STRING (SIZE(6))
+
+EntryTime ::= BinaryTime
+
+END
