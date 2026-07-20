@@ -1,99 +1,102 @@
--- --
--- DL/T 2811 Data Types ? ASN.1 Module--
--- --
--- Generated from Cms* Java classes in com.ysh.dlt2811bean.datatypes --
--- All type names correspond to ASN.1 type definitions from GB/T 45906.3. --
--- Java prefix "Cms" is stripped for ASN.1 type names. --
--- --
+--
+-- DL/T 2811 Data Types ? ASN.1 Module
+--
+-- Generated from Cms* Java classes in com.ysh.dlt2811bean.datatypes
+-- All type names correspond to ASN.1 type definitions from GB/T 45906.3.
+-- Java prefix "Cms" is stripped for ASN.1 type names.
+--
 
 DLT2811-DataTypes { 1 2 156 2811 1 } DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
--- ====================================================================== --
--- 7.1.1 BOOLEAN --
--- ====================================================================== --
+-- ======================================================================
+-- 7.1.1 BOOLEAN
+-- ======================================================================
 
--- PER encoding: constrained integer (0..1), 1 bit --
+-- PER encoding: constrained integer (0..1), 1 bit
 Boolean ::= INTEGER (0..1)
 
--- ====================================================================== --
--- 7.1.2 Integer Types --
--- ====================================================================== --
+-- ======================================================================
+-- 7.1.2 Integer Types
+-- ======================================================================
 
--- PER encoding: constrained integer, 8 bits aligned --
+-- PER encoding: constrained integer, 8 bits aligned
 Int8  ::= INTEGER (-128..127)
 
--- PER encoding: constrained integer, 8 bits aligned --
+-- PER encoding: constrained integer, 8 bits aligned
 Int8U ::= INTEGER (0..255)
 
--- PER encoding: constrained integer, 16 bits aligned --
+-- PER encoding: constrained integer, 16 bits aligned
 Int16 ::= INTEGER (-32768..32767)
 
--- PER encoding: constrained integer, 16 bits aligned --
+-- PER encoding: constrained integer, 16 bits aligned
 Int16U ::= INTEGER (0..65535)
 
--- PER encoding: constrained integer, 24 bits aligned --
+-- PER encoding: constrained integer, 24 bits aligned
 Int24U ::= INTEGER (0..16777215)
 
--- PER encoding: constrained integer, 32 bits aligned --
+-- PER encoding: constrained integer, 32 bits aligned
 Int32  ::= INTEGER (-2147483648..2147483647)
 
--- PER encoding: constrained integer, 32 bits aligned --
+-- PER encoding: constrained integer, 32 bits aligned
 Int32U ::= INTEGER (0..4294967295)
 
--- PER encoding: length determinant + content bytes --
+-- PER encoding: length determinant + content bytes
 Int64  ::= INTEGER (-9223372036854775808..9223372036854775807)
 
--- PER encoding: length determinant + content bytes --
+-- PER encoding: length determinant + content bytes
 Int64U ::= INTEGER (0..18446744073709551615)
 
--- ====================================================================== --
+-- ======================================================================
 -- 7.1.4 Floating-Point Types
--- ====================================================================== --
+-- ======================================================================
 
 Float32 ::= OCTET STRING (SIZE (4))
 
 Float64 ::= OCTET STRING (SIZE (8))
 
--- ====================================================================== --
+-- ======================================================================
 -- 7.1.5 String Types
--- ====================================================================== --
+-- ======================================================================
 
--- PER encoding: length prefix + 8-bit characters --
--- VisibleString ::= VisibleString --
--- VisibleString constrained variants (used throughout the spec) --
--- VisibleString129 ::= VisibleString (SIZE (0..129)) --
--- VisibleString255 ::= VisibleString (SIZE (0..255)) --
+-- PER encoding: length prefix + 8-bit characters
+-- VisibleString ::= VisibleString
+-- VisibleString129::=VisibleString (SIZE (0..129))
+-- VisibleString255::=VisibleString (SIZE (0..255))
 
--- PER encoding: length prefix + UTF-8 bytes --
--- UTF8String ::= UTF8String --
+-- VisibleString constrained variants (used throughout the spec)
+VisibleString129 ::= VisibleString (SIZE (0..129))
+VisibleString255 ::= VisibleString (SIZE (0..255))
 
--- PER encoding: length prefix + raw bytes --
--- OctetString ::= OCTET STRING --
+-- PER encoding: length prefix + UTF-8 bytes
+-- UTF8String ::= UTF8String
 
--- BitString ::= BIT STRING --
+-- PER encoding: length prefix + raw bytes
+OctetString ::= OCTET STRING
 
--- ====================================================================== --
--- 7.1.6 ENUMERATED --
--- ====================================================================== --
+BitString ::= BIT STRING
 
--- ENUMERATED ::= Int8 --
--- ENUMERATED ::= Int16 (>128) --
+-- ======================================================================
+-- 7.1.6 ENUMERATED
+-- ======================================================================
 
--- ====================================================================== --
--- 7.1.7 CODED ENUM --
--- ====================================================================== --
+-- ENUMERATED ::= Int8
+-- ENUMERATED ::= Int16 (>128)
 
--- CODEDENUM ::= BIT STRING (SIZE(0..n)) --
+-- ======================================================================
+-- 7.1.7 CODED ENUM
+-- ======================================================================
 
--- ====================================================================== --
--- 7.1.8 Packed List --
--- ====================================================================== --
+-- CODEDENUM ::= BIT STRING (SIZE(0..n))
 
--- PackedList ::= BIT STRING (SIZE(0..n)) --
+-- ======================================================================
+-- 7.1.8 Packed List
+-- ======================================================================
 
--- ====================================================================== --
--- 7.2.1 UtcTime --
--- ====================================================================== --
+-- PackedList ::= BIT STRING (SIZE(0..n))
+
+-- ======================================================================
+-- 7.2.1 UtcTime
+-- ======================================================================
 
 UtcTime ::= OCTET STRING (SIZE(8))
 
@@ -103,89 +106,89 @@ TimeQuality ::= BIT STRING {
     clock-not-synchronized       (2)
 } (SIZE(8))
 
--- ====================================================================== --
--- 7.2.2 BinaryTime / EntryTime --
--- ====================================================================== --
+-- ======================================================================
+-- 7.2.2 BinaryTime / EntryTime
+-- ======================================================================
 
 BinaryTime ::= OCTET STRING (SIZE(6))
--- BinaryTime ::= SEQUENCE {     --                
---     msOfDay       Int32U,    milliseconds since midnight (0..86399999) --
---     daysSince1984 Int16U     days since 1984-01-01 --
--- } --
+-- BinaryTime ::= SEQUENCE {                    
+--     msOfDay       Int32U,                    -- milliseconds since midnight (0..86399999)
+--     daysSince1984 Int16U                     -- days since 1984-01-01
+-- }
 
 EntryTime ::= BinaryTime
 
--- ====================================================================== --
--- 7.3.1 ObjectName --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.1 ObjectName
+-- ======================================================================
 
--- PER encoding: VisibleString with max length 64 --
+-- PER encoding: VisibleString with max length 64
 ObjectName ::= VisibleString (SIZE(0..64))
 
--- ====================================================================== --
--- 7.3.2 ObjectReference --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.2 ObjectReference
+-- ======================================================================
 
--- Format: LDName/LNName[.Name[....]] --
--- PER encoding: VisibleString with max length 129 --
+-- Format: LDName/LNName[.Name[....]]
+-- PER encoding: VisibleString with max length 129
 ObjectReference ::= VisibleString (SIZE(0..129))
 
--- ====================================================================== --
--- 7.3.3 SubReference --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.3 SubReference
+-- ======================================================================
 
 SubReference ::= VisibleString (SIZE(0..129))
 
--- ====================================================================== --
--- 7.3.4 TimeStamp --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.4 TimeStamp
+-- ======================================================================
 
 TimeStamp ::= UtcTime
 
--- ====================================================================== --
--- 7.3.5 Dbpos --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.5 Dbpos
+-- ======================================================================
 
 Dbpos ::= BIT STRING (SIZE(2))
 
--- ====================================================================== --
--- 7.3.6 Quality --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.6 Quality
+-- ======================================================================
 
 Quality ::= BIT STRING (SIZE(13))
 
--- ====================================================================== --
--- 7.3.7 Tcmd --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.7 Tcmd
+-- ======================================================================
 
 Tcmd ::= BIT STRING (SIZE(2))
 
--- ====================================================================== --
--- 7.3.8 EntryID --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.8 EntryID
+-- ======================================================================
 
 EntryID ::= OCTET STRING (SIZE(8))
 
--- ====================================================================== --
--- 7.3.9 EntryTime --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.9 EntryTime
+-- ======================================================================
 
 EntryTime ::= BinaryTime
 
--- ====================================================================== --
--- 7.3.10 FileEntry --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.10 FileEntry
+-- ======================================================================
 
 FileEntry ::= SEQUENCE {
-    fileName       [0] IMPLICIT VisibleString (SIZE(0..129)),
-    fileSize       [1] IMPLICIT Int32U,
+    fileName       [0] IMPLICIT VisibleString129,
+    fileSize       [1] IMPLICIT INT32U,
     lastModified   [2] IMPLICIT UtcTime,
-    checkSum       [3] IMPLICIT Int32U
+    checkSum       [3] IMPLICIT INT32U
 }
 
--- ====================================================================== --
--- 7.3.11 ServiceError --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.11 ServiceError
+-- ======================================================================
 
 ServiceError ::= INTEGER {
     no-error                                      (0),
@@ -203,9 +206,9 @@ ServiceError ::= INTEGER {
     failed-due-to-server-constraint               (12)
 } (0..12)
 
--- ====================================================================== --
--- 7.3.12 PhyComAddr --
--- ====================================================================== --
+-- ======================================================================
+-- 7.3.12 PhyComAddr
+-- ======================================================================
 
 PhyComAddr ::= SEQUENCE {
     addr        [0] IMPLICIT OCTET STRING (SIZE(6)),
@@ -214,20 +217,20 @@ PhyComAddr ::= SEQUENCE {
     appid       [3] IMPLICIT Int16U
 }
 
--- ====================================================================== --
--- 7.4 FC --
--- ====================================================================== --
+-- ======================================================================
+-- 7.4 FC
+-- ======================================================================
 
 FunctionalConstraint ::= VisibleString (SIZE (2))
 
 
--- ====================================================================== --
--- 7.5.1 Control Blocks Attributes --
--- ====================================================================== --
+-- ======================================================================
+-- 7.5.1 Control Blocks Attributes
+-- ======================================================================
 
--- ====================================================================== --
--- 7.5.2 Originator --
--- ====================================================================== --
+-- ======================================================================
+-- 7.5.2 Originator
+-- ======================================================================
 
 Originator ::= SEQUENCE {
     orCat        [0] IMPLICIT INTEGER {
@@ -244,18 +247,18 @@ Originator ::= SEQUENCE {
     orIdent      [1] IMPLICIT OCTET STRING (SIZE(0..64))
 }
 
--- ====================================================================== --
--- 7.5.3 Check --
--- ====================================================================== --
+-- ======================================================================
+-- 7.5.3 Check
+-- ======================================================================
 
 Check ::= BIT STRING {
     syncheck          (0),
     interlock-check   (1)
 } (SIZE (2))
 
--- ====================================================================== --
--- 7.5.4 AddCause --
--- ====================================================================== --
+-- ======================================================================
+-- 7.5.4 AddCause
+-- ======================================================================
 
 AddCause ::= INTEGER {
     unknown                              (0),
@@ -288,20 +291,20 @@ AddCause ::= INTEGER {
     inconsistent-parameters              (27)
 } (0..27)
 
--- ====================================================================== --
--- 7.6.1 Control Blocks --
--- ====================================================================== --
+-- ======================================================================
+-- 7.6.1 Control Blocks
+-- ======================================================================
 
--- SGCB  -> 8.6.6  --
--- BRCB  -> 8.7.2  --
--- URCB  -> 8.7.4  --
--- LCB   -> 8.8.2  --
--- GoCB  -> 8.9.4  --
--- MSVCB -> 8.10.2 --
+-- SGCB  -> 8.6.6
+-- BRCB  -> 8.7.2
+-- URCB  -> 8.7.4
+-- LCB   -> 8.8.2
+-- GoCB  -> 8.9.4
+-- MSVCB -> 8.10.2
 
--- ====================================================================== --
--- 7.6.2 TriggerConditions --
--- ====================================================================== --
+-- ======================================================================
+-- 7.6.2 TriggerConditions
+-- ======================================================================
 
 TriggerConditions ::= BIT STRING {
     reserved                    (0),
@@ -312,9 +315,9 @@ TriggerConditions ::= BIT STRING {
     general-interrogation       (5)
 } (SIZE(6))
 
--- ====================================================================== --
--- 7.6.3 ReasonCode --
--- ====================================================================== --
+-- ======================================================================
+-- 7.6.3 ReasonCode
+-- ======================================================================
 
 ReasonCode ::= BIT STRING {
     reserved                    (0),
@@ -326,9 +329,9 @@ ReasonCode ::= BIT STRING {
     application-trigger         (6)
 } (SIZE(7))
 
--- ====================================================================== --
--- 7.6.4 RcbOptFlds --
--- ====================================================================== --
+-- ======================================================================
+-- 7.6.4 RcbOptFlds
+-- ======================================================================
 
 RcbOptFlds ::= BIT STRING {
     reserved                    (0),
@@ -343,15 +346,15 @@ RcbOptFlds ::= BIT STRING {
     segmentation                (9)
 } (SIZE(10))
 
--- ====================================================================== --
--- 7.6.5 LcbOptFlds --
--- ====================================================================== --
+-- ======================================================================
+-- 7.6.5 LcbOptFlds
+-- ======================================================================
 
 LcbOptFlds ::= BIT STRING (SIZE(1))
 
--- ====================================================================== --
--- 7.6.6 MsvcbOptFlds --
--- ====================================================================== --
+-- ======================================================================
+-- 7.6.6 MsvcbOptFlds
+-- ======================================================================
 
 MsvcbOptFlds ::= BIT STRING {
     refresh-time                (0),
@@ -361,9 +364,9 @@ MsvcbOptFlds ::= BIT STRING {
     security                    (4)
 } (SIZE(5))
 
--- ====================================================================== --
--- 7.6.7 SmpMod --
--- ====================================================================== --
+-- ======================================================================
+-- 7.6.7 SmpMod
+-- ======================================================================
 
 SmpMod ::= INTEGER {
     samples-per-nominal-period    (0),
@@ -371,9 +374,9 @@ SmpMod ::= INTEGER {
     seconds-per-sample            (2)
 } (0..2)
 
--- ====================================================================== --
--- 7.7 Data (CHOICE of 24 alternatives) --
--- ====================================================================== --
+-- ======================================================================
+-- 7.7 Data (CHOICE of 24 alternatives)
+-- ======================================================================
 
 Data ::= CHOICE {
     error              [0] IMPLICIT ServiceError,
@@ -402,9 +405,9 @@ Data ::= CHOICE {
     check              [23] IMPLICIT Check
 }
 
--- ====================================================================== --
--- 7.8 DataDefinition --
--- ====================================================================== --
+-- ======================================================================
+-- 7.8 DataDefinition
+-- ======================================================================
 
 DataDefinition ::= CHOICE {
     error              [0] IMPLICIT ServiceError,
@@ -445,15 +448,15 @@ DataDefinition ::= CHOICE {
 
 
 
---  --
--- DL/T 2811 Protocol Layer ? APCH / ASDU definitions --
--- --
--- This is the foundation layer for all services. --
---  --
+--
+-- DL/T 2811 Protocol Layer ? APCH / ASDU definitions
+--
+-- This is the foundation layer for all services.
+--
 
--- ====================================================================== --
--- APCH ? Application Protocol Control Header (4 bytes) --
--- ====================================================================== --
+-- ======================================================================
+-- APCH ? Application Protocol Control Header (4 bytes)
+-- ======================================================================
 
 Apch ::= SEQUENCE {
     cc          ControlCode,
@@ -468,43 +471,38 @@ ControlCode ::= SEQUENCE {
     pi          Int8U
 }
 
--- ====================================================================== --
--- ASDU ? Application Service Data Unit (base for all services) --
--- ====================================================================== --
+-- ======================================================================
+-- ASDU ? Application Service Data Unit (base for all services)
+-- ======================================================================
 
--- reqId is the first field in every ASDU --
+-- reqId is the first field in every ASDU
 Asdu ::= SEQUENCE {
     reqId       Int16U
 }
 
--- ====================================================================== --
--- APDU ? Complete application-layer frame --
--- ====================================================================== --
+-- ======================================================================
+-- APDU ? Complete application-layer frame
+-- ======================================================================
 
 Apdu ::= SEQUENCE {
     apch        Apch,
     asdu        OCTET STRING (SIZE(0..65531))
 }
 
+--
+-- DL/T 2811 Association Services ? Associate / Release / Abort
+--
 
+-- ======================================================================
+-- 8.2.1 Associate (Service Code 0x01)
+-- ======================================================================
 
-
-
-
--- --
--- DL/T 2811 Association Services ? Associate / Release / Abort --
--- --
-
--- ====================================================================== --
--- 8.2.1 Associate (Service Code 0x01) --
--- ====================================================================== --
-
--- Request: serverAccessPointReference + authenticationParameter --
--- Response+: associationId + serviceError + authenticationParameter --
--- Response-: serviceError --
+-- Request: serverAccessPointReference + authenticationParameter
+-- Response+: associationId + serviceError + authenticationParameter
+-- Response-: serviceError
 
 Associate-RequestPDU ::= SEQUENCE {
-    serverAccessPointReference    [0] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
+    serverAccessPointReference    [0] IMPLICIT VisibleString129 OPTIONAL,
     authenticationParameter       [1] IMPLICIT SEQUENCE {
         signatureCertificate        [0] IMPLICIT OCTET STRING,
         signedTime                  [1] IMPLICIT UtcTime,
@@ -524,13 +522,13 @@ Associate-ResponsePDU ::= SEQUENCE {
 
 Associate-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.2.2 Release (Service Code 0x02) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.2.2 Release (Service Code 0x02)
+-- ======================================================================
 
--- Release-RequestPDU: associationId --
--- Release-ResponsePDU: associationId + serviceError --
--- Release-ErrorPDU: serviceError --
+-- Release-RequestPDU: associationId
+-- Release-ResponsePDU: associationId + serviceError
+-- Release-ErrorPDU: serviceError
 
 Release-RequestPDU ::= SEQUENCE {
     associationId    [0] IMPLICIT OCTET STRING (SIZE (0..64))
@@ -543,9 +541,9 @@ Release-ResponsePDU ::= SEQUENCE {
 
 Release-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.2.3 Abort (Service Code 0x03) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.2.3 Abort (Service Code 0x03)
+-- ======================================================================
 
 Abort-RequestPDU ::= SEQUENCE {
     associationId    [0] IMPLICIT OCTET STRING (SIZE (0..64)),
@@ -559,9 +557,9 @@ Abort-RequestPDU ::= SEQUENCE {
     } (0..5)
 }
 
--- ====================================================================== --
--- 8.3.1 GetServerDirectory (Service Code 0x51) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.3.1 GetServerDirectory (Service Code 0x51)
+-- ======================================================================
 
 GetServerDirectory-RequestPDU ::= SEQUENCE {
     objectClass      [0] IMPLICIT INTEGER {
@@ -579,9 +577,9 @@ GetServerDirectory-ResponsePDU ::= SEQUENCE {
 
 GetServerDirectory-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.3.2 GetLogicalDeviceDirectory (Service Code 0x52) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.3.2 GetLogicalDeviceDirectory (Service Code 0x52)
+-- ======================================================================
 
 GetLogicalDeviceDirectory-RequestPDU ::= SEQUENCE {
     ldName            [0] IMPLICIT ObjectName OPTIONAL,
@@ -595,9 +593,9 @@ GetLogicalDeviceDirectory-ResponsePDU ::= SEQUENCE {
 
 GetLogicalDeviceDirectory-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.3.3 GetLogicalNodeDirectory (Service Code 0x53) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.3.3 GetLogicalNodeDirectory (Service Code 0x53)
+-- ======================================================================
 
 ACSIClass ::= INTEGER {
     reserved       (0),
@@ -628,9 +626,9 @@ GetLogicalNodeDirectory-ResponsePDU ::= SEQUENCE {
 
 GetLogicalNodeDirectory-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.3.4 GetAllDataValues (Service Code 0x54) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.3.4 GetAllDataValues (Service Code 0x54)
+-- ======================================================================
 
 GetAllDataValues-RequestPDU ::= SEQUENCE {
     reference        [0] IMPLICIT CHOICE {
@@ -651,9 +649,9 @@ GetAllDataValues-ResponsePDU ::= SEQUENCE {
 
 GetAllDataValues-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.3.5 GetAllDataDefinition (Service Code 0x55) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.3.5 GetAllDataDefinition (Service Code 0x55)
+-- ======================================================================
 
 GetAllDataDefinition-RequestPDU ::= SEQUENCE {
     reference        [0] IMPLICIT CHOICE {
@@ -675,9 +673,9 @@ GetAllDataDefinition-ResponsePDU ::= SEQUENCE {
 
 GetAllDataDefinition-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.3.6 GetAllCBValues (Service Code 0x56) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.3.6 GetAllCBValues (Service Code 0x56)
+-- ======================================================================
 
 
 GetAllCBValues-RequestPDU ::= SEQUENCE {
@@ -697,7 +695,7 @@ GetAllCBValues-ResponsePDU ::= SEQUENCE {
             urcb        [1] IMPLICIT URCB,
             lcb         [2] IMPLICIT LCB,
             sgecb       [3] IMPLICIT SGECB,
-            gocb        [4] IMPLICIT GoCB,
+            gocb        [4] IMPLICIT GOCB,
             msvcb       [5] IMPLICIT MSVCB
         }
     },
@@ -706,9 +704,9 @@ GetAllCBValues-ResponsePDU ::= SEQUENCE {
 
 GetAllCBValues-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.4.1 GetDataValues (Service Code 0x11) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.4.1 GetDataValues (Service Code 0x11)
+-- ======================================================================
 
 GetDataValues-RequestPDU ::= SEQUENCE {
     data             [0] IMPLICIT SEQUENCE OF SEQUENCE {
@@ -724,9 +722,9 @@ GetDataValues-ResponsePDU ::= SEQUENCE {
 
 GetDataValues-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.4.2 SetDataValues (Service Code 0x12) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.4.2 SetDataValues (Service Code 0x12)
+-- ======================================================================
 
 SetDataValues-RequestPDU ::= SEQUENCE {
     data             [0] IMPLICIT SEQUENCE OF SEQUENCE {
@@ -742,9 +740,9 @@ SetDataValues-ErrorPDU ::= SEQUENCE {
     result           [0] IMPLICIT SEQUENCE OF ServiceError
 }
 
--- ====================================================================== --
--- 8.4.3 GetDataDirectory (Service Code 0x14) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.4.3 GetDataDirectory (Service Code 0x14)
+-- ======================================================================
 
 
 GetDataDirectory-RequestPDU ::= SEQUENCE {
@@ -763,9 +761,9 @@ GetDataDirectory-ResponsePDU ::= SEQUENCE {
 GetDataDirectory-ErrorPDU ::= ServiceError
 
 
--- ====================================================================== --
--- 8.4.4 GetDataDefinition (Service Code 0x13) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.4.4 GetDataDefinition (Service Code 0x13)
+-- ======================================================================
 
 GetDataDefinition-RequestPDU ::= SEQUENCE {
     data             [0] IMPLICIT SEQUENCE OF SEQUENCE {
@@ -784,9 +782,9 @@ GetDataDefinition-ResponsePDU ::= SEQUENCE {
 
 GetDataDefinition-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 6.5.1 GetDataSetValues (Service Code 0x44) --
--- ====================================================================== --
+-- ======================================================================
+-- 6.5.1 GetDataSetValues (Service Code 0x44)
+-- ======================================================================
 
 GetDataSetValues-RequestPDU ::= SEQUENCE {
     datasetReference    [0] IMPLICIT ObjectReference,
@@ -800,9 +798,9 @@ GetDataSetValues-ResponsePDU ::= SEQUENCE {
 
 GetDataSetValues-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.5.2 SetDataSetValues (Service Code 0x45) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.5.2 SetDataSetValues (Service Code 0x45)
+-- ======================================================================
 
 SetDataSetValues-RequestPDU ::= SEQUENCE {
     datasetReference    [0] IMPLICIT ObjectReference,
@@ -816,9 +814,9 @@ SetDataSetValues-ErrorPDU ::= SEQUENCE {
     result              [0] IMPLICIT SEQUENCE OF ServiceError
 }
 
--- ====================================================================== --
--- 8.5.3 CreateDataSet (Service Code 0x41) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.5.3 CreateDataSet (Service Code 0x41)
+-- ======================================================================
 
 CreateDataSet-RequestPDU ::= SEQUENCE {
     datasetReference    [0] IMPLICIT ObjectReference,
@@ -833,9 +831,9 @@ CreateDataSet-ResponsePDU ::= NULL
 
 CreateDataSet-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.5.4 DeleteDataSet (Service Code 0x42) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.5.4 DeleteDataSet (Service Code 0x42)
+-- ======================================================================
 
 DeleteDataSet-RequestPDU ::= SEQUENCE {
     datasetReference    [0] IMPLICIT ObjectReference
@@ -845,9 +843,9 @@ DeleteDataSet-ResponsePDU ::= NULL
 
 DeleteDataSet-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.5.5 GetDataSetDirectory (Service Code 0x43) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.5.5 GetDataSetDirectory (Service Code 0x43)
+-- ======================================================================
 
 GetDataSetDirectory-RequestPDU ::= SEQUENCE {
     datasetReference    [0] IMPLICIT ObjectReference,
@@ -864,13 +862,13 @@ GetDataSetDirectory-ResponsePDU ::= SEQUENCE {
 
 GetDataSetDirectory-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.6.1 SelectActiveSG (Service Code 0x62) --
--- ====================================================================== --
+-- ======================================================================
+-- 8.6.1 SelectActiveSG (Service Code 0x62)
+-- ======================================================================
 
 SelectActiveSG-RequestPDU ::= SEQUENCE {
     sgcbReference       [0] IMPLICIT ObjectReference,
-    settingGroupNumber  [1] IMPLICIT Int8U
+    settingGroupNumber  [1] IMPLICIT INT8U
 }
 
 SelectActiveSG-ResponsePDU ::= NULL
@@ -883,7 +881,7 @@ SelectActiveSG-ErrorPDU ::= ServiceError
 
 SelectEditSG-RequestPDU ::= SEQUENCE {
     sgcbReference       [0] IMPLICIT ObjectReference,
-    settingGroupNumber  [1] IMPLICIT Int8U
+    settingGroupNumber  [1] IMPLICIT INT8U
 }
 
 SelectEditSG-ResponsePDU ::= NULL
@@ -942,11 +940,11 @@ GetEditSGValue-ErrorPDU ::= ServiceError
 -- ======================================================================
 
 SGCB ::= SEQUENCE {
-    numOfSG       [1] IMPLICIT Int8U,
-    actSG         [2] IMPLICIT Int8U,
-    editSG        [3] IMPLICIT Int8U,
+    numOfSG       [1] IMPLICIT INT8U,
+    actSG         [2] IMPLICIT INT8U,
+    editSG        [3] IMPLICIT INT8U,
     tActEdt       [4] IMPLICIT TimeStamp,
-    resvTms       [5] IMPLICIT Int16U OPTIONAL
+    resvTms       [5] IMPLICIT INT16U OPTIONAL
 }
 
 GetSGCBValues-RequestPDU ::= SEQUENCE {
@@ -968,21 +966,21 @@ GetSGCBValues-ErrorPDU ::= ServiceError
 -- ======================================================================
 
 ReportPDU ::= SEQUENCE {
-    rptID           [0] IMPLICIT VisibleString (SIZE (0..129)),
-    optFlds         [1] IMPLICIT RcbOptFlds,
-    sqNum           [2] IMPLICIT Int16U OPTIONAL,
-    subSeqNum       [3] IMPLICIT Int16U OPTIONAL,
+    rptID           [0] IMPLICIT VisibleString129,
+    optFlds         [1] IMPLICIT RCBOptFlds,
+    sqNum           [2] IMPLICIT INT16U OPTIONAL,
+    subSeqNum       [3] IMPLICIT INT16U OPTIONAL,
     moreSegmentsFollow [4] IMPLICIT BOOLEAN OPTIONAL,
     dataSet         [5] IMPLICIT ObjectReference OPTIONAL,
     bufOvfl         [6] IMPLICIT BOOLEAN OPTIONAL,
-    confRev         [7] IMPLICIT Int32U OPTIONAL,
+    confRev         [7] IMPLICIT INT32U OPTIONAL,
     entry           [8] IMPLICIT SEQUENCE {
         timeOfEntry     [0] IMPLICIT EntryTime OPTIONAL,
         entryID         [1] IMPLICIT EntryID OPTIONAL,
         entryData       [2] IMPLICIT SEQUENCE OF SEQUENCE {
             reference   [0] IMPLICIT ObjectReference OPTIONAL,
             fc          [1] IMPLICIT FunctionalConstraint OPTIONAL,
-            id          [2] IMPLICIT Int16U,
+            id          [2] IMPLICIT INT16U,
             value       [3] IMPLICIT Data,
             reason      [4] IMPLICIT ReasonCode OPTIONAL
         }
@@ -994,20 +992,20 @@ ReportPDU ::= SEQUENCE {
 -- ======================================================================
 
 BRCB ::= SEQUENCE {
-    rptID           [1] IMPLICIT VisibleString (SIZE (0..129)),
+    rptID           [1] IMPLICIT VisibleString129,
     rptEna          [2] IMPLICIT BOOLEAN,
     datSet          [3] IMPLICIT ObjectReference,
-    confRev         [4] IMPLICIT Int32U,
-    optFlds         [5] IMPLICIT RcbOptFlds,
-    bufTm           [6] IMPLICIT Int32U,
-    sqNum           [7] IMPLICIT Int16U,
+    confRev         [4] IMPLICIT INT32U,
+    optFlds         [5] IMPLICIT RCBOptFlds,
+    bufTm           [6] IMPLICIT INT32U,
+    sqNum           [7] IMPLICIT INT16U,
     trgOps          [8] IMPLICIT TriggerConditions,
-    intgPd          [9] IMPLICIT Int32U,
+    intgPd          [9] IMPLICIT INT32U,
     gi              [10] IMPLICIT BOOLEAN,
     purgeBuf        [11] IMPLICIT BOOLEAN,
     entryID         [12] IMPLICIT EntryID,
     timeOfEntry     [13] IMPLICIT EntryTime,
-    resvTms         [14] IMPLICIT Int16 OPTIONAL,
+    resvTms         [14] IMPLICIT INT16 OPTIONAL,
     owner           [15] IMPLICIT OCTET STRING (SIZE (0..64)) OPTIONAL
 }
 
@@ -1032,17 +1030,17 @@ GetBRCBValues-ErrorPDU ::= ServiceError
 SetBRCBValues-RequestPDU ::= SEQUENCE {
     brcb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
-        rptID       [1] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
+        rptID       [1] IMPLICIT VisibleString129 OPTIONAL,
         rptEna      [2] IMPLICIT BOOLEAN OPTIONAL,
         datSet      [3] IMPLICIT ObjectReference OPTIONAL,
-        optFlds     [5] IMPLICIT RcbOptFlds OPTIONAL,
-        bufTm       [6] IMPLICIT Int32U OPTIONAL,
+        optFlds     [5] IMPLICIT RCBOptFlds OPTIONAL,
+        bufTm       [6] IMPLICIT INT32U OPTIONAL,
         trgOps      [8] IMPLICIT TriggerConditions OPTIONAL,
-        intgPd      [9] IMPLICIT Int32U OPTIONAL,
+        intgPd      [9] IMPLICIT INT32U OPTIONAL,
         gi          [10] IMPLICIT BOOLEAN OPTIONAL,
         purgeBuf    [11] IMPLICIT BOOLEAN OPTIONAL,
         entryID     [12] IMPLICIT EntryID OPTIONAL,
-        resvTms     [13] IMPLICIT Int16 OPTIONAL
+        resvTms     [13] IMPLICIT INT16 OPTIONAL
     }
 }
 
@@ -1070,15 +1068,15 @@ SetBRCBValues-ErrorPDU ::= SEQUENCE {
 -- ======================================================================
 
 URCB ::= SEQUENCE {
-    rptID           [1] IMPLICIT VisibleString (SIZE (0..129)),
+    rptID           [1] IMPLICIT VisibleString129,
     rptEna          [2] IMPLICIT BOOLEAN,
     datSet          [3] IMPLICIT ObjectReference,
-    confRev         [4] IMPLICIT Int32U,
-    optFlds         [5] IMPLICIT RcbOptFlds,
-    bufTm           [6] IMPLICIT Int32U,
-    sqNum           [7] IMPLICIT Int16U,
+    confRev         [4] IMPLICIT INT32U,
+    optFlds         [5] IMPLICIT RCBOptFlds,
+    bufTm           [6] IMPLICIT INT32U,
+    sqNum           [7] IMPLICIT INT16U,
     trgOps          [8] IMPLICIT TriggerConditions,
-    intgPd          [9] IMPLICIT Int32U,
+    intgPd          [9] IMPLICIT INT32U,
     gi              [10] IMPLICIT BOOLEAN,
     resv            [14] IMPLICIT BOOLEAN,
     owner           [15] IMPLICIT OCTET STRING (SIZE (0..64)) OPTIONAL
@@ -1105,13 +1103,13 @@ GetURCBValues-ErrorPDU ::= ServiceError
 SetURCBValues-RequestPDU ::= SEQUENCE {
     urcb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
-        rptID       [1] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
+        rptID       [1] IMPLICIT VisibleString129 OPTIONAL,
         rptEna      [2] IMPLICIT BOOLEAN OPTIONAL,
         datSet      [3] IMPLICIT ObjectReference OPTIONAL,
-        optFlds     [5] IMPLICIT RcbOptFlds OPTIONAL,
-        bufTm       [6] IMPLICIT Int32U OPTIONAL,
+        optFlds     [5] IMPLICIT RCBOptFlds OPTIONAL,
+        bufTm       [6] IMPLICIT INT32U OPTIONAL,
         trgOps      [8] IMPLICIT TriggerConditions OPTIONAL,
-        intgPd      [9] IMPLICIT Int32U OPTIONAL,
+        intgPd      [9] IMPLICIT INT32U OPTIONAL,
         gi          [10] IMPLICIT BOOLEAN OPTIONAL,
         resv        [13] IMPLICIT BOOLEAN OPTIONAL
     }
@@ -1157,10 +1155,10 @@ LCB ::= SEQUENCE {
     logEna          [1] IMPLICIT BOOLEAN,
     datSet          [2] IMPLICIT ObjectReference,
     trgOps          [3] IMPLICIT TriggerConditions,
-    intgPd          [4] IMPLICIT Int32U,
+    intgPd          [4] IMPLICIT INT32U,
     logRef          [5] IMPLICIT ObjectReference,
-    optFlds         [6] IMPLICIT LcbOptFlds OPTIONAL,
-    bufTm           [7] IMPLICIT Int32U OPTIONAL
+    optFlds         [6] IMPLICIT LCBOptFlds OPTIONAL,
+    bufTm           [7] IMPLICIT INT32U OPTIONAL
 }
 
 GetLCBValues-RequestPDU ::= SEQUENCE {
@@ -1187,10 +1185,10 @@ SetLCBValues-RequestPDU ::= SEQUENCE {
         logEna      [1] IMPLICIT BOOLEAN OPTIONAL,
         datSet      [2] IMPLICIT ObjectReference OPTIONAL,
         trgOps      [3] IMPLICIT TriggerConditions OPTIONAL,
-        intgPd      [4] IMPLICIT Int32U OPTIONAL,
+        intgPd      [4] IMPLICIT INT32U OPTIONAL,
         logRef      [5] IMPLICIT ObjectReference OPTIONAL,
-        optFlds     [6] IMPLICIT LcbOptFlds OPTIONAL,
-        bufTm       [7] IMPLICIT Int32U OPTIONAL
+        optFlds     [6] IMPLICIT LCBOptFlds OPTIONAL,
+        bufTm       [7] IMPLICIT INT32U OPTIONAL
     }
 }
 
@@ -1272,14 +1270,14 @@ GetLogStatusValues-ErrorPDU ::= ServiceError
 -- ======================================================================
 
 SendGOOSEMessage-PDU ::= SEQUENCE {
-    goID            [0] IMPLICIT VisibleString (SIZE (0..129)),
+    goID            [0] IMPLICIT VisibleString129,
     datSet          [1] IMPLICIT ObjectReference OPTIONAL,
     goRef           [2] IMPLICIT ObjectReference OPTIONAL,
     t               [3] IMPLICIT TimeStamp,
-    stNum           [4] IMPLICIT Int32U,
-    sqNum           [5] IMPLICIT Int32U,
+    stNum           [4] IMPLICIT INT32U,
+    sqNum           [5] IMPLICIT INT32U,
     simulation      [6] IMPLICIT BOOLEAN,
-    confRev         [7] IMPLICIT Int32U,
+    confRev         [7] IMPLICIT INT32U,
     ndsCom          [8] IMPLICIT BOOLEAN,
     data            [9] IMPLICIT SEQUENCE OF Data
 }
@@ -1290,12 +1288,12 @@ SendGOOSEMessage-PDU ::= SEQUENCE {
 
 GetGoReference-RequestPDU ::= SEQUENCE {
     gocbReference   [0] IMPLICIT ObjectReference,
-    memberOfs       [1] IMPLICIT SEQUENCE OF Int16U
+    memberOfs       [1] IMPLICIT SEQUENCE OF INT16U
 }
 
 GetGoReference-ResponsePDU ::= SEQUENCE {
     gocbReference   [0] IMPLICIT ObjectReference,
-    confRev         [1] IMPLICIT Int32U,
+    confRev         [1] IMPLICIT INT32U,
     datSet          [2] IMPLICIT ObjectReference,
     memberData      [3] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
@@ -1319,9 +1317,9 @@ GetGOOSEElementNumber-RequestPDU ::= SEQUENCE {
 
 GetGOOSEElementNumber-ResponsePDU ::= SEQUENCE {
     gocbReference   [0] IMPLICIT ObjectReference,
-    confRev         [1] IMPLICIT Int32U,
+    confRev         [1] IMPLICIT INT32U,
     datSet          [2] IMPLICIT ObjectReference,
-    memberOffset    [3] IMPLICIT SEQUENCE OF Int16U
+    memberOffset    [3] IMPLICIT SEQUENCE OF INT16U
 }
 
 GetGOOSEElementNumber-ErrorPDU ::= ServiceError
@@ -1332,11 +1330,11 @@ GetGOOSEElementNumber-ErrorPDU ::= ServiceError
 
 GoCB ::= SEQUENCE {
     goEna           [1] IMPLICIT BOOLEAN,
-    goID            [2] IMPLICIT VisibleString (SIZE (0..129)),
+    goID            [2] IMPLICIT VisibleString129,
     datSet          [3] IMPLICIT ObjectReference,
-    confRev         [4] IMPLICIT Int32U,
+    confRev         [4] IMPLICIT INT32U,
     ndsCom          [5] IMPLICIT BOOLEAN,
-    dstAddress      [6] IMPLICIT PhyComAddr OPTIONAL
+    dstAddress      [6] IMPLICIT PHYCOMADDR OPTIONAL
 }
 
 GetGoCbValues-RequestPDU ::= SEQUENCE {
@@ -1361,7 +1359,7 @@ SetGoCBValues-RequestPDU ::= SEQUENCE {
     gocb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
         goEna       [1] IMPLICIT BOOLEAN OPTIONAL,
-        goID        [2] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
+        goID        [2] IMPLICIT VisibleString129 OPTIONAL,
         datSet      [3] IMPLICIT ObjectReference OPTIONAL
     }
 }
@@ -1382,13 +1380,13 @@ SetGoCBValues-ErrorPDU ::= SEQUENCE {
 -- ======================================================================
 
 SendMSVMessage-PDU ::= SEQUENCE {
-    msvID           [0] IMPLICIT VisibleString (SIZE (0..129)),
+    msvID           [0] IMPLICIT VisibleString129,
     datSet          [1] IMPLICIT ObjectReference OPTIONAL,
-    smpCnt          [2] IMPLICIT Int16U,
-    confRev         [3] IMPLICIT Int32U,
+    smpCnt          [2] IMPLICIT INT16U,
+    confRev         [3] IMPLICIT INT32U,
     refTm           [4] IMPLICIT TimeStamp OPTIONAL,
-    smpSynch        [5] IMPLICIT Int8U,
-    smpRate         [6] IMPLICIT Int16U OPTIONAL,
+    smpSynch        [5] IMPLICIT INT8U,
+    smpRate         [6] IMPLICIT INT16U OPTIONAL,
     simulation      [7] IMPLICIT BOOLEAN,
     sample          [8] IMPLICIT SEQUENCE OF Data,
     smpMod          [9] IMPLICIT SmpMod OPTIONAL
@@ -1400,13 +1398,13 @@ SendMSVMessage-PDU ::= SEQUENCE {
 
 MSVCB ::= SEQUENCE {
     svEna           [1] IMPLICIT BOOLEAN,
-    msvID           [2] IMPLICIT VisibleString (SIZE (0..129)),
+    msvID           [2] IMPLICIT VisibleString129,
     datSet          [3] IMPLICIT ObjectReference,
-    confRev         [4] IMPLICIT Int32U,
+    confRev         [4] IMPLICIT INT32U,
     smpMod          [5] IMPLICIT SmpMod OPTIONAL,
-    smpRate         [6] IMPLICIT Int16U,
-    optFlds         [7] IMPLICIT MsvcbOptFlds,
-    dstAddress      [8] IMPLICIT PhyComAddr OPTIONAL
+    smpRate         [6] IMPLICIT INT16U,
+    optFlds         [7] IMPLICIT MSVCBOptFlds,
+    dstAddress      [8] IMPLICIT PHYCOMADDR OPTIONAL
 }
 
 GetMSVCBValues-RequestPDU ::= SEQUENCE {
@@ -1431,11 +1429,11 @@ SetMSVCBValues-RequestPDU ::= SEQUENCE {
     msvcb           [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
         svEna       [1] IMPLICIT BOOLEAN OPTIONAL,
-        msvID       [2] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
+        msvID       [2] IMPLICIT VisibleString129 OPTIONAL,
         datSet      [3] IMPLICIT ObjectReference OPTIONAL,
         smpMod      [5] IMPLICIT SmpMod OPTIONAL,
-        smpRate     [6] IMPLICIT Int16U OPTIONAL,
-        optFlds     [7] IMPLICIT MsvcbOptFlds OPTIONAL
+        smpRate     [6] IMPLICIT INT16U OPTIONAL,
+        optFlds     [7] IMPLICIT MSVCBOptFlds OPTIONAL
     }
 }
 
@@ -1478,7 +1476,7 @@ SelectWithValue-RequestPDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp OPTIONAL,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check
@@ -1489,7 +1487,7 @@ SelectWithValue-ResponsePDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp OPTIONAL,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check
@@ -1500,7 +1498,7 @@ SelectWithValue-ErrorPDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp OPTIONAL,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check,
@@ -1515,7 +1513,7 @@ Operate-RequestPDU ::= SEQUENCE {
     reference       [0] IMPLICIT ObjectReference,
     ctlVal          [1] IMPLICIT Data,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check
@@ -1529,7 +1527,7 @@ Operate-ErrorPDU ::= SEQUENCE {
     reference       [0] IMPLICIT ObjectReference,
     ctlVal          [1] IMPLICIT Data,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check,
@@ -1545,7 +1543,7 @@ Cancel-RequestPDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp OPTIONAL,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN
 }
@@ -1555,7 +1553,7 @@ Cancel-ResponsePDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp OPTIONAL,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN
 }
@@ -1565,7 +1563,7 @@ Cancel-ErrorPDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp OPTIONAL,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     addCause        [8] IMPLICIT AddCause
@@ -1580,7 +1578,7 @@ CommandTermination-RequestPDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp OPTIONAL,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check,
@@ -1596,7 +1594,7 @@ TimeActivatedOperate-RequestPDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check
@@ -1607,7 +1605,7 @@ TimeActivatedOperate-ResponsePDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check
@@ -1618,7 +1616,7 @@ TimeActivatedOperate-ErrorPDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check,
@@ -1634,7 +1632,7 @@ TimeActivatedOperateTermination-RequestPDU ::= SEQUENCE {
     ctlVal          [1] IMPLICIT Data,
     operTm          [2] IMPLICIT TimeStamp,
     origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
+    ctlNum          [4] IMPLICIT INT8U,
     t               [5] IMPLICIT TimeStamp,
     test            [6] IMPLICIT BOOLEAN,
     check           [7] IMPLICIT Check,
@@ -1647,7 +1645,7 @@ TimeActivatedOperateTermination-RequestPDU ::= SEQUENCE {
 
 GetFile-RequestPDU ::= SEQUENCE {
     filename        [0] IMPLICIT VisibleString255,
-    startPosition   [1] IMPLICIT Int32U
+    startPosition   [1] IMPLICIT INT32U
 }
 
 GetFile-ResponsePDU ::= SEQUENCE {
@@ -1663,7 +1661,7 @@ GetFile-ErrorPDU ::= ServiceError
 
 SetFile-RequestPDU ::= SEQUENCE {
     filename        [0] IMPLICIT VisibleString255,
-    startPosition   [1] IMPLICIT Int32U,
+    startPosition   [1] IMPLICIT INT32U,
     fileData        [2] IMPLICIT OCTET STRING,
     endOfFile       [3] IMPLICIT BOOLEAN DEFAULT FALSE
 }
@@ -1763,8 +1761,8 @@ GetRpcInterfaceDefinition-RequestPDU ::= SEQUENCE {
 GetRpcInterfaceDefinition-ResponsePDU ::= SEQUENCE {
     method          [0] IMPLICIT SEQUENCE OF SEQUENCE {
         name        [0] IMPLICIT VisibleString,
-        version     [1] IMPLICIT Int32U,
-        timeout     [2] IMPLICIT Int32U,
+        version     [1] IMPLICIT INT32U,
+        timeout     [2] IMPLICIT INT32U,
         request     [3] IMPLICIT DataDefinition,
         response    [4] IMPLICIT DataDefinition
     },
@@ -1785,8 +1783,8 @@ GetRpcMethodDefinition-ResponsePDU ::= SEQUENCE {
     reference       [0] IMPLICIT SEQUENCE OF CHOICE {
         error       [0] IMPLICIT ServiceError,
         method      [1] IMPLICIT SEQUENCE {
-            version     [0] IMPLICIT Int32U,
-            timeout     [1] IMPLICIT Int32U,
+            version     [0] IMPLICIT INT32U,
+            timeout     [1] IMPLICIT INT32U,
             request     [2] IMPLICIT DataDefinition,
             response    [3] IMPLICIT DataDefinition
         }
@@ -1826,15 +1824,15 @@ RpcCall-ErrorPDU ::= ServiceError
 -- ======================================================================
 
 AssociateNegotiate-RequestPDU ::= SEQUENCE {
-    apduSize        [0] IMPLICIT Int16U,
-    asduSize        [1] IMPLICIT Int32U,
-    protocolVersion [2] IMPLICIT Int32U
+    apduSize        [0] IMPLICIT INT16U,
+    asduSize        [1] IMPLICIT INT32U,
+    protocolVersion [2] IMPLICIT INT32U
 }
 
 AssociateNegotiate-ResponsePDU ::= SEQUENCE {
-    apduSize        [0] IMPLICIT Int16U,
-    asduSize        [1] IMPLICIT Int32U,
-    protocolVersion [2] IMPLICIT Int32U,
+    apduSize        [0] IMPLICIT INT16U,
+    asduSize        [1] IMPLICIT INT32U,
+    protocolVersion [2] IMPLICIT INT32U,
     modelVersion    [3] IMPLICIT VisibleString
 }
 

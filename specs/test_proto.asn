@@ -1,0 +1,491 @@
+--
+-- DL/T 2811 Data Types ? ASN.1 Module
+--
+-- Generated from Cms* Java classes in com.ysh.dlt2811bean.datatypes
+-- All type names correspond to ASN.1 type definitions from GB/T 45906.3.
+-- Java prefix "Cms" is stripped for ASN.1 type names.
+--
+
+DLT2811-DataTypes { 1 2 156 2811 1 } DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+-- ======================================================================
+-- 7.1.1 BOOLEAN
+-- ======================================================================
+
+-- PER encoding: constrained integer (0..1), 1 bit
+Boolean ::= INTEGER (0..1)
+
+-- ======================================================================
+-- 7.1.2 Integer Types
+-- ======================================================================
+
+-- PER encoding: constrained integer, 8 bits aligned
+INT8  ::= INTEGER (-128..127)
+
+-- PER encoding: constrained integer, 8 bits aligned
+INT8U ::= INTEGER (0..255)
+
+-- PER encoding: constrained integer, 16 bits aligned
+INT16 ::= INTEGER (-32768..32767)
+
+-- PER encoding: constrained integer, 16 bits aligned
+INT16U ::= INTEGER (0..65535)
+
+-- PER encoding: constrained integer, 24 bits aligned
+INT24U ::= INTEGER (0..16777215)
+
+-- PER encoding: constrained integer, 32 bits aligned
+INT32  ::= INTEGER (-2147483648..2147483647)
+
+-- PER encoding: constrained integer, 32 bits aligned
+INT32U ::= INTEGER (0..4294967295)
+
+-- PER encoding: length determinant + content bytes
+INT64  ::= INTEGER (-9223372036854775808..9223372036854775807)
+
+-- PER encoding: length determinant + content bytes
+INT64U ::= INTEGER (0..18446744073709551615)
+
+-- ======================================================================
+-- 7.1.4 Floating-Point Types
+-- ======================================================================
+
+Float32 ::= OCTET STRING (SIZE (4))
+
+Float64 ::= OCTET STRING (SIZE (8))
+
+-- ======================================================================
+-- 7.1.5 String Types
+-- ======================================================================
+
+-- PER encoding: length prefix + 8-bit characters
+-- VisibleString ::= VisibleString
+-- VisibleString129::=VisibleString (SIZE (0..129))
+-- VisibleString255::=VisibleString (SIZE (0..255))
+
+-- VisibleString constrained variants (used throughout the spec)
+VisibleString129 ::= VisibleString (SIZE (0..129))
+VisibleString255 ::= VisibleString (SIZE (0..255))
+
+-- PER encoding: length prefix + UTF-8 bytes
+-- UTF8String ::= UTF8String
+
+-- PER encoding: length prefix + raw bytes
+OctetString ::= OCTET STRING
+
+BitString ::= BIT STRING
+
+-- ======================================================================
+-- 7.1.6 ENUMERATED
+-- ======================================================================
+
+-- ENUMERATED ::= INT8
+-- ENUMERATED ::= INT16 (>128)
+
+-- ======================================================================
+-- 7.1.7 CODED ENUM
+-- ======================================================================
+
+-- CODEDENUM ::= BIT STRING (SIZE(0..n))
+
+-- ======================================================================
+-- 7.1.8 Packed List
+-- ======================================================================
+
+-- PackedList ::= BIT STRING (SIZE(0..n))
+
+-- ======================================================================
+-- 7.2.1 UtcTime
+-- ======================================================================
+
+UtcTime ::= OCTET STRING (SIZE(8))
+
+TimeQuality ::= BIT STRING {
+    leap-second-known            (0),
+    clock-failure                (1),
+    clock-not-synchronized       (2)
+} (SIZE(8))
+
+-- ======================================================================
+-- 7.2.2 BinaryTime / EntryTime
+-- ======================================================================
+
+BinaryTime ::= OCTET STRING (SIZE(6))
+-- BinaryTime ::= SEQUENCE {                    
+--     msOfDay       INT32U,                    -- milliseconds since midnight (0..86399999)
+--     daysSince1984 INT16U                     -- days since 1984-01-01
+-- }
+
+EntryTime ::= BinaryTime
+
+-- ======================================================================
+-- 7.3.1 ObjectName
+-- ======================================================================
+
+-- PER encoding: VisibleString with max length 64
+ObjectName ::= VisibleString (SIZE(0..64))
+
+-- ======================================================================
+-- 7.3.2 ObjectReference
+-- ======================================================================
+
+-- Format: LDName/LNName[.Name[....]]
+-- PER encoding: VisibleString with max length 129
+ObjectReference ::= VisibleString (SIZE(0..129))
+
+-- ======================================================================
+-- 7.3.3 SubReference
+-- ======================================================================
+
+SubReference ::= VisibleString (SIZE(0..129))
+
+-- ======================================================================
+-- 7.3.4 TimeStamp
+-- ======================================================================
+
+TimeStamp ::= UtcTime
+
+-- ======================================================================
+-- 7.3.5 Dbpos
+-- ======================================================================
+
+Dbpos ::= BIT STRING (SIZE(2))
+
+-- ======================================================================
+-- 7.3.6 Quality
+-- ======================================================================
+
+Quality ::= BIT STRING (SIZE(13))
+
+-- ======================================================================
+-- 7.3.7 Tcmd
+-- ======================================================================
+
+Tcmd ::= BIT STRING (SIZE(2))
+
+-- ======================================================================
+-- 7.3.8 EntryID
+-- ======================================================================
+
+EntryID ::= OCTET STRING (SIZE(8))
+
+-- ======================================================================
+-- 7.3.9 EntryTime
+-- ======================================================================
+
+EntryTime ::= BinaryTime
+
+-- ======================================================================
+-- 7.3.10 FileEntry
+-- ======================================================================
+
+FileEntry ::= SEQUENCE {
+    fileName       [0] IMPLICIT VisibleString129,
+    fileSize       [1] IMPLICIT INT32U,
+    lastModified   [2] IMPLICIT UtcTime,
+    checkSum       [3] IMPLICIT INT32U
+}
+
+-- ======================================================================
+-- 7.3.11 ServiceError
+-- ======================================================================
+
+ServiceError ::= INTEGER {
+    no-error                                      (0),
+    instance-not-available                        (1),
+    instance-in-use                               (2),
+    access-violation                              (3),
+    access-not-allowed-in-current-state            (4),
+    parameter-value-inappropriate                 (5),
+    parameter-value-inconsistent                  (6),
+    class-not-supported                           (7),
+    instance-locked-by-other-client               (8),
+    control-must-be-selected                      (9),
+    type-conflict                                 (10),
+    failed-due-to-communications-constraint       (11),
+    failed-due-to-server-constraint               (12)
+} (0..12)
+
+-- ======================================================================
+-- 7.3.12 PhyComAddr
+-- ======================================================================
+
+PhyComAddr ::= SEQUENCE {
+    addr        [0] IMPLICIT OCTET STRING (SIZE(6)),
+    priority    [1] IMPLICIT INT8U,
+    vid         [2] IMPLICIT INT16U,
+    appid       [3] IMPLICIT INT16U
+}
+
+-- ======================================================================
+-- 7.4 FC
+-- ======================================================================
+
+FunctionalConstraint ::= VisibleString (SIZE (2))
+
+
+-- ======================================================================
+-- 7.5.1 Control Blocks Attributes
+-- ======================================================================
+
+-- ======================================================================
+-- 7.5.2 Originator
+-- ======================================================================
+
+Originator ::= SEQUENCE {
+    orCat        [0] IMPLICIT INTEGER {
+        notSupported      (0),
+        bayControl        (1),
+        stationControl    (2),
+        remoteControl     (3),
+        automaticBay      (4),
+        automaticStation  (5),
+        automaticRemote   (6),
+        maintenance       (7),
+        process           (8)
+    } (0..8),
+    orIdent      [1] IMPLICIT OCTET STRING (SIZE(0..64))
+}
+
+-- ======================================================================
+-- 7.5.3 Check
+-- ======================================================================
+
+Check ::= BIT STRING {
+    syncheck          (0),
+    interlock-check   (1)
+} (SIZE (2))
+
+-- ======================================================================
+-- 7.5.4 AddCause
+-- ======================================================================
+
+AddCause ::= INTEGER {
+    unknown                              (0),
+    not-supported                        (1),
+    blocked-by-switching-hierarchy       (2),
+    select-failed                        (3),
+    invalid-position                     (4),
+    position-reached                     (5),
+    parameter-change-in-execution        (6),
+    step-limit                           (7),
+    blocked-by-mode                      (8),
+    blocked-by-process                   (9),
+    blocked-by-interlocking              (10),
+    blocked-by-syncheck                  (11),
+    command-already-in-execution         (12),
+    blocked-by-health                    (13),
+    one-of-a-control                     (14),
+    abortion-by-cancel                   (15),
+    time-limit-over                      (16),
+    abortion-by-trip                     (17),
+    object-not-selected                  (18),
+    object-already-selected              (19),
+    no-access-authority                  (20),
+    ended-with-overshoot                 (21),
+    abortion-due-to-deviation            (22),
+    abortion-by-communication-loss       (23),
+    blocked-by-command                   (24),
+    none                                 (25),
+    locked-by-other-client               (26),
+    inconsistent-parameters              (27)
+} (0..27)
+
+-- ======================================================================
+-- 7.6.1 Control Blocks
+-- ======================================================================
+
+-- SGCB  -> 8.6.6
+-- BRCB  -> 8.7.2
+-- URCB  -> 8.7.4
+-- LCB   -> 8.8.2
+-- GoCB  -> 8.9.4
+-- MSVCB -> 8.10.2
+
+-- ======================================================================
+-- 7.6.2 TriggerConditions
+-- ======================================================================
+
+TriggerConditions ::= BIT STRING {
+    reserved                    (0),
+    data-change                 (1),
+    quality-change              (2),
+    data-update                 (3),
+    integrity                   (4),
+    general-interrogation       (5)
+} (SIZE(6))
+
+-- ======================================================================
+-- 7.6.3 ReasonCode
+-- ======================================================================
+
+ReasonCode ::= BIT STRING {
+    reserved                    (0),
+    data-change                 (1),
+    quality-change              (2),
+    data-update                 (3),
+    integrity                   (4),
+    general-interrogation       (5),
+    application-trigger         (6)
+} (SIZE(7))
+
+-- ======================================================================
+-- 7.6.4 RcbOptFlds
+-- ======================================================================
+
+RcbOptFlds ::= BIT STRING {
+    reserved                    (0),
+    sequence-number             (1),
+    report-time-stamp           (2),
+    reason-for-inclusion        (3),
+    data-set-name               (4),
+    data-reference              (5),
+    buffer-overflow             (6),
+    entryID                     (7),
+    conf-revision               (8),
+    segmentation                (9)
+} (SIZE(10))
+
+-- ======================================================================
+-- 7.6.5 LcbOptFlds
+-- ======================================================================
+
+LcbOptFlds ::= BIT STRING (SIZE(1))
+
+-- ======================================================================
+-- 7.6.6 MsvcbOptFlds
+-- ======================================================================
+
+MsvcbOptFlds ::= BIT STRING {
+    refresh-time                (0),
+    reserved                    (1),
+    sample-rate                 (2),
+    data-set-name               (3),
+    security                    (4)
+} (SIZE(5))
+
+-- ======================================================================
+-- 7.6.7 SmpMod
+-- ======================================================================
+
+SmpMod ::= INTEGER {
+    samples-per-nominal-period    (0),
+    samples-per-second            (1),
+    seconds-per-sample            (2)
+} (0..2)
+
+-- ======================================================================
+-- 7.7 Data (CHOICE of 24 alternatives)
+-- ======================================================================
+
+Data ::= CHOICE {
+    error              [0] IMPLICIT ServiceError,
+    array              [1] IMPLICIT SEQUENCE OF Data,
+    structure          [2] IMPLICIT SEQUENCE OF Data,
+    boolean            [3] IMPLICIT BOOLEAN,
+    int8               [4] IMPLICIT INT8,
+    int16              [5] IMPLICIT INT16,
+    int32              [6] IMPLICIT INT32,
+    int64              [7] IMPLICIT INT64,
+    int8u              [8] IMPLICIT INT8U,
+    int16u             [9] IMPLICIT INT16U,
+    int32u             [10] IMPLICIT INT32U,
+    int64u             [11] IMPLICIT INT64U,
+    float32            [12] IMPLICIT Float32,
+    float64            [13] IMPLICIT Float64,
+    bit-string         [14] IMPLICIT BIT STRING,
+    octet-string       [15] IMPLICIT OCTET STRING,
+    visible-string     [16] IMPLICIT VisibleString,
+    unicode-string     [17] IMPLICIT UTF8String,
+    utc-time           [18] IMPLICIT UtcTime,
+    binary-time        [19] IMPLICIT BinaryTime,
+    quality            [20] IMPLICIT Quality,
+    dbpos              [21] IMPLICIT Dbpos,
+    tcmd               [22] IMPLICIT Tcmd,
+    check              [23] IMPLICIT Check
+}
+
+-- ======================================================================
+-- 7.8 DataDefinition
+-- ======================================================================
+
+DataDefinition ::= CHOICE {
+    error              [0] IMPLICIT ServiceError,
+    array              [1] IMPLICIT SEQUENCE {
+        numberOfElement  [1] IMPLICIT INT32,
+        elementType      [2] DataDefinition
+    },
+    structure          [2] IMPLICIT SEQUENCE OF SEQUENCE {
+        name             [0] IMPLICIT ObjectName,
+        fc               [1] IMPLICIT FunctionalConstraint OPTIONAL,
+        type             [2] DataDefinition
+    },
+    boolean            [3] IMPLICIT NULL,
+    int8               [4] IMPLICIT NULL,
+    int16              [5] IMPLICIT NULL,
+    int32              [6] IMPLICIT NULL,
+    int64              [7] IMPLICIT NULL,
+    int8u              [8] IMPLICIT NULL,
+    int16u             [9] IMPLICIT NULL,
+    int32u             [10] IMPLICIT NULL,
+    int64u             [11] IMPLICIT NULL,
+    float32            [12] IMPLICIT NULL,
+    float64            [13] IMPLICIT NULL,
+    bit-string         [14] IMPLICIT INTEGER,
+    octet-string       [15] IMPLICIT INTEGER,
+    visible-string     [16] IMPLICIT INTEGER,
+    unicode-string     [17] IMPLICIT INTEGER,
+    utc-time           [18] IMPLICIT NULL,
+    binary-time        [19] IMPLICIT NULL,
+    quality            [20] IMPLICIT NULL,
+    dbpos              [21] IMPLICIT NULL,
+    tcmd               [22] IMPLICIT NULL,
+    check              [23] IMPLICIT NULL
+}
+
+
+
+
+
+
+--
+-- DL/T 2811 Protocol Layer ? APCH / ASDU definitions
+--
+-- This is the foundation layer for all services.
+--
+
+-- ======================================================================
+-- APCH ? Application Protocol Control Header (4 bytes)
+-- ======================================================================
+
+Apch ::= SEQUENCE {
+    cc          ControlCode,
+    sc          INT8U,
+    fl          INT16U
+}
+
+ControlCode ::= SEQUENCE {
+    next        BOOLEAN,
+    resp        BOOLEAN,
+    err         BOOLEAN,
+    pi          INT8U
+}
+
+-- ======================================================================
+-- ASDU ? Application Service Data Unit (base for all services)
+-- ======================================================================
+
+-- reqId is the first field in every ASDU
+Asdu ::= SEQUENCE {
+    reqId       INT16U
+}
+
+-- ======================================================================
+-- APDU ? Complete application-layer frame
+-- ======================================================================
+
+Apdu ::= SEQUENCE {
+    apch        Apch,
+    asdu        OCTET STRING (SIZE(0..65531))
+}
+END

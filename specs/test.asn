@@ -1,4 +1,4 @@
--- --
+
 -- DL/T 2811 Data Types ? ASN.1 Module--
 -- --
 -- Generated from Cms* Java classes in com.ysh.dlt2811bean.datatypes --
@@ -170,14 +170,14 @@ EntryID ::= OCTET STRING (SIZE(8))
 -- 7.3.9 EntryTime --
 -- ====================================================================== --
 
-EntryTime ::= BinaryTime
+-- EntryTime ::= BinaryTime --
 
 -- ====================================================================== --
 -- 7.3.10 FileEntry --
 -- ====================================================================== --
 
 FileEntry ::= SEQUENCE {
-    fileName       [0] IMPLICIT VisibleString (SIZE(0..129)),
+    fileName       [0] IMPLICIT VisibleString (SIZE (0..129)),
     fileSize       [1] IMPLICIT Int32U,
     lastModified   [2] IMPLICIT UtcTime,
     checkSum       [3] IMPLICIT Int32U
@@ -202,6 +202,7 @@ ServiceError ::= INTEGER {
     failed-due-to-communications-constraint       (11),
     failed-due-to-server-constraint               (12)
 } (0..12)
+
 
 -- ====================================================================== --
 -- 7.3.12 PhyComAddr --
@@ -349,6 +350,7 @@ RcbOptFlds ::= BIT STRING {
 
 LcbOptFlds ::= BIT STRING (SIZE(1))
 
+
 -- ====================================================================== --
 -- 7.6.6 MsvcbOptFlds --
 -- ====================================================================== --
@@ -439,6 +441,7 @@ DataDefinition ::= CHOICE {
     tcmd               [22] IMPLICIT NULL,
     check              [23] IMPLICIT NULL
 }
+
 
 
 
@@ -864,82 +867,36 @@ GetDataSetDirectory-ResponsePDU ::= SEQUENCE {
 
 GetDataSetDirectory-ErrorPDU ::= ServiceError
 
--- ====================================================================== --
--- 8.6.1 SelectActiveSG (Service Code 0x62) --
--- ====================================================================== --
 
-SelectActiveSG-RequestPDU ::= SEQUENCE {
-    sgcbReference       [0] IMPLICIT ObjectReference,
-    settingGroupNumber  [1] IMPLICIT Int8U
-}
 
-SelectActiveSG-ResponsePDU ::= NULL
 
-SelectActiveSG-ErrorPDU ::= ServiceError
 
--- ======================================================================
--- 8.6.2 SelectEditSG (Service Code 0x63)
--- ======================================================================
 
-SelectEditSG-RequestPDU ::= SEQUENCE {
-    sgcbReference       [0] IMPLICIT ObjectReference,
-    settingGroupNumber  [1] IMPLICIT Int8U
-}
 
-SelectEditSG-ResponsePDU ::= NULL
 
-SelectEditSG-ErrorPDU ::= ServiceError
 
--- ======================================================================
--- 8.6.3 SetEditSGValue (Service Code 0x66)
--- ======================================================================
 
-SetEditSGValue-RequestPDU ::= SEQUENCE {
-    data    [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        value       [2] IMPLICIT Data
-    }
-}
 
-SetEditSGValue-ResponsePDU ::= NULL
 
-SetEditSGValue-ErrorPDU ::= SEQUENCE {
-    result  [0] IMPLICIT SEQUENCE OF ServiceError
-}
 
--- ======================================================================
--- 8.6.4 ConfirmEditSGValues (Service Code 0x64)
--- ======================================================================
 
-ConfirmEditSGValues-RequestPDU ::= SEQUENCE {
-    sgcbReference       [0] IMPLICIT ObjectReference
-}
 
-ConfirmEditSGValues-ResponsePDU ::= NULL
 
-ConfirmEditSGValues-ErrorPDU ::= ServiceError
 
--- ======================================================================
--- 8.6.5 GetEditSGValue (Service Code 0x65)
--- ======================================================================
 
-GetEditSGValue-RequestPDU ::= SEQUENCE {
-    data    [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        fc          [1] IMPLICIT FunctionalConstraint
-    }
-}
 
-GetEditSGValue-ResponsePDU ::= SEQUENCE {
-    value           [0] IMPLICIT SEQUENCE OF Data,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
 
-GetEditSGValue-ErrorPDU ::= ServiceError
 
--- ======================================================================
--- 8.6.6 GetSGCBValues (Service Code 0x61)
--- ======================================================================
+
+
+
+
+
+
+
+
+
+
 
 SGCB ::= SEQUENCE {
     numOfSG       [1] IMPLICIT Int8U,
@@ -948,50 +905,6 @@ SGCB ::= SEQUENCE {
     tActEdt       [4] IMPLICIT TimeStamp,
     resvTms       [5] IMPLICIT Int16U OPTIONAL
 }
-
-GetSGCBValues-RequestPDU ::= SEQUENCE {
-    sgcbReference  [0] IMPLICIT SEQUENCE OF ObjectReference
-}
-
-GetSGCBValues-ResponsePDU ::= SEQUENCE {
-    sgscb          [0] IMPLICIT SEQUENCE OF CHOICE {
-        error       [0] IMPLICIT ServiceError,
-        value       [1] IMPLICIT SGCB
-    },
-    moreFollows    [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetSGCBValues-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.7.1 Report (Service Code 0x35, unconfirmed)
--- ======================================================================
-
-ReportPDU ::= SEQUENCE {
-    rptID           [0] IMPLICIT VisibleString (SIZE (0..129)),
-    optFlds         [1] IMPLICIT RcbOptFlds,
-    sqNum           [2] IMPLICIT Int16U OPTIONAL,
-    subSeqNum       [3] IMPLICIT Int16U OPTIONAL,
-    moreSegmentsFollow [4] IMPLICIT BOOLEAN OPTIONAL,
-    dataSet         [5] IMPLICIT ObjectReference OPTIONAL,
-    bufOvfl         [6] IMPLICIT BOOLEAN OPTIONAL,
-    confRev         [7] IMPLICIT Int32U OPTIONAL,
-    entry           [8] IMPLICIT SEQUENCE {
-        timeOfEntry     [0] IMPLICIT EntryTime OPTIONAL,
-        entryID         [1] IMPLICIT EntryID OPTIONAL,
-        entryData       [2] IMPLICIT SEQUENCE OF SEQUENCE {
-            reference   [0] IMPLICIT ObjectReference OPTIONAL,
-            fc          [1] IMPLICIT FunctionalConstraint OPTIONAL,
-            id          [2] IMPLICIT Int16U,
-            value       [3] IMPLICIT Data,
-            reason      [4] IMPLICIT ReasonCode OPTIONAL
-        }
-    }
-}
-
--- ======================================================================
--- 8.7.2 GetBRCBValues (Service Code 0x31)
--- ======================================================================
 
 BRCB ::= SEQUENCE {
     rptID           [1] IMPLICIT VisibleString (SIZE (0..129)),
@@ -1011,64 +924,6 @@ BRCB ::= SEQUENCE {
     owner           [15] IMPLICIT OCTET STRING (SIZE (0..64)) OPTIONAL
 }
 
-GetBRCBValues-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT SEQUENCE OF ObjectReference
-}
-
-GetBRCBValues-ResponsePDU ::= SEQUENCE {
-    brcb            [0] IMPLICIT SEQUENCE OF CHOICE {
-        error       [0] IMPLICIT ServiceError,
-        value       [1] IMPLICIT BRCB
-    },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetBRCBValues-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.7.3 SetBRCBValues (Service Code 0x32)
--- ======================================================================
-
-SetBRCBValues-RequestPDU ::= SEQUENCE {
-    brcb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        rptID       [1] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
-        rptEna      [2] IMPLICIT BOOLEAN OPTIONAL,
-        datSet      [3] IMPLICIT ObjectReference OPTIONAL,
-        optFlds     [5] IMPLICIT RcbOptFlds OPTIONAL,
-        bufTm       [6] IMPLICIT Int32U OPTIONAL,
-        trgOps      [8] IMPLICIT TriggerConditions OPTIONAL,
-        intgPd      [9] IMPLICIT Int32U OPTIONAL,
-        gi          [10] IMPLICIT BOOLEAN OPTIONAL,
-        purgeBuf    [11] IMPLICIT BOOLEAN OPTIONAL,
-        entryID     [12] IMPLICIT EntryID OPTIONAL,
-        resvTms     [13] IMPLICIT Int16 OPTIONAL
-    }
-}
-
-SetBRCBValues-ResponsePDU ::= NULL
-
-SetBRCBValues-ErrorPDU ::= SEQUENCE {
-    result          [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        error       [0] IMPLICIT ServiceError OPTIONAL,
-        rptID       [1] IMPLICIT ServiceError OPTIONAL,
-        rptEna      [2] IMPLICIT ServiceError OPTIONAL,
-        datSet      [3] IMPLICIT ServiceError OPTIONAL,
-        optFlds     [5] IMPLICIT ServiceError OPTIONAL,
-        bufTm       [6] IMPLICIT ServiceError OPTIONAL,
-        trgOps      [8] IMPLICIT ServiceError OPTIONAL,
-        intgPd      [9] IMPLICIT ServiceError OPTIONAL,
-        gi          [10] IMPLICIT ServiceError OPTIONAL,
-        purgeBuf    [11] IMPLICIT ServiceError OPTIONAL,
-        entryID     [12] IMPLICIT ServiceError OPTIONAL,
-        resvTms     [14] IMPLICIT ServiceError OPTIONAL
-    }
-}
-
--- ======================================================================
--- 8.7.4 GetURCBValues (Service Code 0x33)
--- ======================================================================
-
 URCB ::= SEQUENCE {
     rptID           [1] IMPLICIT VisibleString (SIZE (0..129)),
     rptEna          [2] IMPLICIT BOOLEAN,
@@ -1084,75 +939,6 @@ URCB ::= SEQUENCE {
     owner           [15] IMPLICIT OCTET STRING (SIZE (0..64)) OPTIONAL
 }
 
-GetURCBValues-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT SEQUENCE OF ObjectReference
-}
-
-GetURCBValues-ResponsePDU ::= SEQUENCE {
-    urcb            [0] IMPLICIT SEQUENCE OF CHOICE {
-        error       [0] IMPLICIT ServiceError,
-        value       [1] IMPLICIT URCB
-    },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetURCBValues-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.7.5 SetURCBValues (Service Code 0x34)
--- ======================================================================
-
-SetURCBValues-RequestPDU ::= SEQUENCE {
-    urcb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        rptID       [1] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
-        rptEna      [2] IMPLICIT BOOLEAN OPTIONAL,
-        datSet      [3] IMPLICIT ObjectReference OPTIONAL,
-        optFlds     [5] IMPLICIT RcbOptFlds OPTIONAL,
-        bufTm       [6] IMPLICIT Int32U OPTIONAL,
-        trgOps      [8] IMPLICIT TriggerConditions OPTIONAL,
-        intgPd      [9] IMPLICIT Int32U OPTIONAL,
-        gi          [10] IMPLICIT BOOLEAN OPTIONAL,
-        resv        [13] IMPLICIT BOOLEAN OPTIONAL
-    }
-}
-
-SetURCBValues-ResponsePDU ::= NULL
-
-SetURCBValues-ErrorPDU ::= SEQUENCE {
-    result          [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        error       [0] IMPLICIT ServiceError OPTIONAL,
-        rptID       [1] IMPLICIT ServiceError OPTIONAL,
-        rptEna      [2] IMPLICIT ServiceError OPTIONAL,
-        datSet      [3] IMPLICIT ServiceError OPTIONAL,
-        optFlds     [5] IMPLICIT ServiceError OPTIONAL,
-        bufTm       [6] IMPLICIT ServiceError OPTIONAL,
-        trgOps      [8] IMPLICIT ServiceError OPTIONAL,
-        intgPd      [9] IMPLICIT ServiceError OPTIONAL,
-        gi          [10] IMPLICIT ServiceError OPTIONAL,
-        resv        [13] IMPLICIT ServiceError OPTIONAL
-    }
-}
-
--- ======================================================================
--- 8.8.1 LogEntry 
--- ======================================================================
-
-LogEntry ::= SEQUENCE {
-    timeOfEntry     [0] IMPLICIT EntryTime,
-    entryID         [1] IMPLICIT EntryID,
-    entryData       [2] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        fc          [1] IMPLICIT FunctionalConstraint,
-        value       [2] IMPLICIT Data,
-        reason      [3] IMPLICIT ReasonCode
-    }
-}
-
--- ======================================================================
--- 8.8.2 GetLCBValues (Service Code 0x67)
--- ======================================================================
-
 LCB ::= SEQUENCE {
     logEna          [1] IMPLICIT BOOLEAN,
     datSet          [2] IMPLICIT ObjectReference,
@@ -1163,173 +949,6 @@ LCB ::= SEQUENCE {
     bufTm           [7] IMPLICIT Int32U OPTIONAL
 }
 
-GetLCBValues-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT SEQUENCE OF ObjectReference
-}
-
-GetLCBValues-ResponsePDU ::= SEQUENCE {
-    lcb             [0] IMPLICIT SEQUENCE OF CHOICE {
-        error       [0] IMPLICIT ServiceError,
-        value       [1] IMPLICIT LCB
-    },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetLCBValues-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.8.3 SetLCBValues (Service Code 0x68)
--- ======================================================================
-
-SetLCBValues-RequestPDU ::= SEQUENCE {
-    lcb             [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        logEna      [1] IMPLICIT BOOLEAN OPTIONAL,
-        datSet      [2] IMPLICIT ObjectReference OPTIONAL,
-        trgOps      [3] IMPLICIT TriggerConditions OPTIONAL,
-        intgPd      [4] IMPLICIT Int32U OPTIONAL,
-        logRef      [5] IMPLICIT ObjectReference OPTIONAL,
-        optFlds     [6] IMPLICIT LcbOptFlds OPTIONAL,
-        bufTm       [7] IMPLICIT Int32U OPTIONAL
-    }
-}
-
-SetLCBValues-ResponsePDU ::= NULL
-
-SetLCBValues-ErrorPDU ::= SEQUENCE {
-    result          [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        error       [0] IMPLICIT ServiceError OPTIONAL,
-        logEna      [1] IMPLICIT ServiceError OPTIONAL,
-        datSet      [2] IMPLICIT ServiceError OPTIONAL,
-        trgOps      [3] IMPLICIT ServiceError OPTIONAL,
-        intgPd      [4] IMPLICIT ServiceError OPTIONAL,
-        logRef      [5] IMPLICIT ServiceError OPTIONAL,
-        optFlds     [6] IMPLICIT ServiceError OPTIONAL,
-        bufTm       [7] IMPLICIT ServiceError OPTIONAL
-    }
-}
-
--- ======================================================================
--- 8.8.4 QueryLogByTime (Service Code 0x6B)
--- ======================================================================
-
-QueryLogByTime-RequestPDU ::= SEQUENCE {
-    logReference    [0] IMPLICIT ObjectReference,
-    startTime       [1] IMPLICIT EntryTime OPTIONAL,
-    stopTime        [2] IMPLICIT EntryTime OPTIONAL,
-    entryAfter      [3] IMPLICIT EntryID OPTIONAL
-}
-
-QueryLogByTime-ResponsePDU ::= SEQUENCE {
-    logEntry        [0] IMPLICIT SEQUENCE OF LogEntry,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-QueryLogByTime-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.8.5 QueryLogAfter (Service Code 0x6A)
--- ======================================================================
-
-QueryLogAfter-RequestPDU ::= SEQUENCE {
-    logReference    [0] IMPLICIT ObjectReference,
-    startTime       [1] IMPLICIT EntryTime OPTIONAL,
-    entry           [2] IMPLICIT EntryID
-}
-
-QueryLogAfter-ResponsePDU ::= SEQUENCE {
-    logEntry        [0] IMPLICIT SEQUENCE OF LogEntry,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-QueryLogAfter-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.8.6 GetLogStatusValues (Service Code 0x69)
--- ======================================================================
-
-GetLogStatusValues-RequestPDU ::= SEQUENCE {
-    logReference    [0] IMPLICIT SEQUENCE OF ObjectReference
-}
-
-GetLogStatusValues-ResponsePDU ::= SEQUENCE {
-    log             [0] IMPLICIT SEQUENCE OF CHOICE {
-        error       [0] IMPLICIT ServiceError,
-        value       [1] IMPLICIT SEQUENCE {
-            oldEntrTm   [0] IMPLICIT EntryTime,
-            newEntrTm   [1] IMPLICIT EntryTime,
-            oldEntr     [2] IMPLICIT EntryID,
-            newEntr     [3] IMPLICIT EntryID
-        }
-    },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetLogStatusValues-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.9.1 SendGooseMessage (Service Code 0x84, unconfirmed)
--- ======================================================================
-
-SendGOOSEMessage-PDU ::= SEQUENCE {
-    goID            [0] IMPLICIT VisibleString (SIZE (0..129)),
-    datSet          [1] IMPLICIT ObjectReference OPTIONAL,
-    goRef           [2] IMPLICIT ObjectReference OPTIONAL,
-    t               [3] IMPLICIT TimeStamp,
-    stNum           [4] IMPLICIT Int32U,
-    sqNum           [5] IMPLICIT Int32U,
-    simulation      [6] IMPLICIT BOOLEAN,
-    confRev         [7] IMPLICIT Int32U,
-    ndsCom          [8] IMPLICIT BOOLEAN,
-    data            [9] IMPLICIT SEQUENCE OF Data
-}
-
--- ======================================================================
--- 8.9.2 GetGoReference (Service Code 0x81)
--- ======================================================================
-
-GetGoReference-RequestPDU ::= SEQUENCE {
-    gocbReference   [0] IMPLICIT ObjectReference,
-    memberOfs       [1] IMPLICIT SEQUENCE OF Int16U
-}
-
-GetGoReference-ResponsePDU ::= SEQUENCE {
-    gocbReference   [0] IMPLICIT ObjectReference,
-    confRev         [1] IMPLICIT Int32U,
-    datSet          [2] IMPLICIT ObjectReference,
-    memberData      [3] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        fc          [1] IMPLICIT FunctionalConstraint
-    }
-}
-
-GetGoReference-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.9.3 GetGooseElementNumber (Service Code 0x85)
--- ======================================================================
-
-GetGOOSEElementNumber-RequestPDU ::= SEQUENCE {
-    gocbReference   [0] IMPLICIT ObjectReference,
-    memberData      [1] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        fc          [1] IMPLICIT FunctionalConstraint
-    }
-}
-
-GetGOOSEElementNumber-ResponsePDU ::= SEQUENCE {
-    gocbReference   [0] IMPLICIT ObjectReference,
-    confRev         [1] IMPLICIT Int32U,
-    datSet          [2] IMPLICIT ObjectReference,
-    memberOffset    [3] IMPLICIT SEQUENCE OF Int16U
-}
-
-GetGOOSEElementNumber-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.9.4 GetGoCBValues (Service Code 0x82)
--- ======================================================================
-
 GoCB ::= SEQUENCE {
     goEna           [1] IMPLICIT BOOLEAN,
     goID            [2] IMPLICIT VisibleString (SIZE (0..129)),
@@ -1338,65 +957,6 @@ GoCB ::= SEQUENCE {
     ndsCom          [5] IMPLICIT BOOLEAN,
     dstAddress      [6] IMPLICIT PhyComAddr OPTIONAL
 }
-
-GetGoCbValues-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT SEQUENCE OF ObjectReference
-}
-
-GetGoCbValues-ResponsePDU ::= SEQUENCE {
-    gocb            [0] IMPLICIT SEQUENCE OF CHOICE {
-        error       [0] IMPLICIT ServiceError,
-        value       [1] IMPLICIT GoCB
-    },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetGoCbValues-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.9.5 SetGoCBValues (Service Code 0x83)
--- ======================================================================
-
-SetGoCBValues-RequestPDU ::= SEQUENCE {
-    gocb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        goEna       [1] IMPLICIT BOOLEAN OPTIONAL,
-        goID        [2] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
-        datSet      [3] IMPLICIT ObjectReference OPTIONAL
-    }
-}
-
-SetGoCBValues-ResponsePDU ::= NULL
-
-SetGoCBValues-ErrorPDU ::= SEQUENCE {
-    result          [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        error       [0] IMPLICIT ServiceError OPTIONAL,
-        goEna       [1] IMPLICIT ServiceError OPTIONAL,
-        goID        [2] IMPLICIT ServiceError OPTIONAL,
-        datSet      [3] IMPLICIT ServiceError OPTIONAL
-    }
-}
-
--- ======================================================================
--- 8.10.1 SendMSVMessage (Service Code 0x88, unconfirmed)
--- ======================================================================
-
-SendMSVMessage-PDU ::= SEQUENCE {
-    msvID           [0] IMPLICIT VisibleString (SIZE (0..129)),
-    datSet          [1] IMPLICIT ObjectReference OPTIONAL,
-    smpCnt          [2] IMPLICIT Int16U,
-    confRev         [3] IMPLICIT Int32U,
-    refTm           [4] IMPLICIT TimeStamp OPTIONAL,
-    smpSynch        [5] IMPLICIT Int8U,
-    smpRate         [6] IMPLICIT Int16U OPTIONAL,
-    simulation      [7] IMPLICIT BOOLEAN,
-    sample          [8] IMPLICIT SEQUENCE OF Data,
-    smpMod          [9] IMPLICIT SmpMod OPTIONAL
-}
-
--- ======================================================================
--- 8.10.2 GetMSVCBValues (Service Code 0x86)
--- ======================================================================
 
 MSVCB ::= SEQUENCE {
     svEna           [1] IMPLICIT BOOLEAN,
@@ -1409,435 +969,5 @@ MSVCB ::= SEQUENCE {
     dstAddress      [8] IMPLICIT PhyComAddr OPTIONAL
 }
 
-GetMSVCBValues-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT SEQUENCE OF ObjectReference
-}
-
-GetMSVCBValues-ResponsePDU ::= SEQUENCE {
-    msvcb           [0] IMPLICIT SEQUENCE OF CHOICE {
-        error       [0] IMPLICIT ServiceError,
-        value       [1] IMPLICIT MSVCB
-    },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetMSVCBValues-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.10.3 SetMSVCBValues (Service Code 0x87)
--- ======================================================================
-
-SetMSVCBValues-RequestPDU ::= SEQUENCE {
-    msvcb           [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        reference   [0] IMPLICIT ObjectReference,
-        svEna       [1] IMPLICIT BOOLEAN OPTIONAL,
-        msvID       [2] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
-        datSet      [3] IMPLICIT ObjectReference OPTIONAL,
-        smpMod      [5] IMPLICIT SmpMod OPTIONAL,
-        smpRate     [6] IMPLICIT Int16U OPTIONAL,
-        optFlds     [7] IMPLICIT MsvcbOptFlds OPTIONAL
-    }
-}
-
-SetMSVCBValues-ResponsePDU ::= NULL
-
-SetMSVCBValues-ErrorPDU ::= SEQUENCE {
-    result          [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        error       [0] IMPLICIT ServiceError OPTIONAL,
-        svEna       [1] IMPLICIT ServiceError OPTIONAL,
-        msvID       [2] IMPLICIT ServiceError OPTIONAL,
-        datSet      [3] IMPLICIT ServiceError OPTIONAL,
-        smpMod      [5] IMPLICIT ServiceError OPTIONAL,
-        smpRate     [6] IMPLICIT ServiceError OPTIONAL,
-        optFlds     [7] IMPLICIT ServiceError OPTIONAL
-    }
-}
-
--- ======================================================================
--- 8.11.1 Select (Service Code 0x21)
--- ======================================================================
-
-Select-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference
-}
-
-Select-ResponsePDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference
-}
-
-Select-ErrorPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference
-}
-
--- ======================================================================
--- 8.11.2 SelectWithValue (Service Code 0x22)
--- ======================================================================
-
-SelectWithValue-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp OPTIONAL,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check
-}
-
-SelectWithValue-ResponsePDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp OPTIONAL,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check
-}
-
-SelectWithValue-ErrorPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp OPTIONAL,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check,
-    addCause        [8] IMPLICIT AddCause
-}
-
--- ======================================================================
--- 8.11.3 Operate (Service Code 0x23)
--- ======================================================================
-
-Operate-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check
-}
-
-Operate-ResponsePDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference
-}
-
-Operate-ErrorPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check,
-    addCause        [8] IMPLICIT AddCause
-}
-
--- ======================================================================
--- 8.11.4 Cancel (Service Code 0x24)
--- ======================================================================
-
-Cancel-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp OPTIONAL,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN
-}
-
-Cancel-ResponsePDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp OPTIONAL,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN
-}
-
-Cancel-ErrorPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp OPTIONAL,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    addCause        [8] IMPLICIT AddCause
-}
-
--- ======================================================================
--- 8.11.5 CommandTermination (Service Code 0x26)
--- ======================================================================
-
-CommandTermination-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp OPTIONAL,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check,
-    addCause        [8] IMPLICIT AddCause OPTIONAL
-}
-
--- ======================================================================
--- 8.11.6 TimeActivatedOperate (Service Code 0x25)
--- ======================================================================
-
-TimeActivatedOperate-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check
-}
-
-TimeActivatedOperate-ResponsePDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check
-}
-
-TimeActivatedOperate-ErrorPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check,
-    addCause        [8] IMPLICIT AddCause
-}
-
--- ======================================================================
--- 8.11.7 TimeActivatedOperateTermination (Service Code 0x27)
--- ======================================================================
-
-TimeActivatedOperateTermination-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference,
-    ctlVal          [1] IMPLICIT Data,
-    operTm          [2] IMPLICIT TimeStamp,
-    origin          [3] IMPLICIT Originator,
-    ctlNum          [4] IMPLICIT Int8U,
-    t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
-    check           [7] IMPLICIT Check,
-    addCause        [8] IMPLICIT AddCause OPTIONAL
-}
-
--- ======================================================================
--- 8.12.1 GetFile (Service Code 0x71)
--- ======================================================================
-
-GetFile-RequestPDU ::= SEQUENCE {
-    filename        [0] IMPLICIT VisibleString255,
-    startPosition   [1] IMPLICIT Int32U
-}
-
-GetFile-ResponsePDU ::= SEQUENCE {
-    fileData        [0] IMPLICIT OCTET STRING,
-    endOfFile       [1] IMPLICIT BOOLEAN DEFAULT FALSE
-}
-
-GetFile-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.12.2 SetFile (Service Code 0x72)
--- ======================================================================
-
-SetFile-RequestPDU ::= SEQUENCE {
-    filename        [0] IMPLICIT VisibleString255,
-    startPosition   [1] IMPLICIT Int32U,
-    fileData        [2] IMPLICIT OCTET STRING,
-    endOfFile       [3] IMPLICIT BOOLEAN DEFAULT FALSE
-}
-
-SetFile-ResponsePDU ::= NULL
-
-SetFile-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.12.3 DeleteFile (Service Code 0x73)
--- ======================================================================
-
-DeleteFile-RequestPDU ::= SEQUENCE {
-    filename        [0] IMPLICIT VisibleString255
-}
-
-DeleteFile-ResponsePDU ::= NULL
-
-DeleteFile-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.12.4 GetFileAttributeValues (Service Code 0x75)
--- ======================================================================
-
-GetFileAttributeValues-RequestPDU ::= SEQUENCE {
-    filename        [0] IMPLICIT VisibleString255
-}
-
-GetFileAttributeValues-ResponsePDU ::= FileEntry
-
-GetFileAttributeValues-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.12.5 GetFileDirectory (Service Code 0x74)
--- ======================================================================
-
-GetFileDirectory-RequestPDU ::= SEQUENCE {
-    pathName        [0] IMPLICIT VisibleString255,
-    startTime       [1] IMPLICIT TimeStamp OPTIONAL,
-    stopTime        [2] IMPLICIT TimeStamp OPTIONAL,
-    fileAfter       [3] IMPLICIT VisibleString255 OPTIONAL
-}
-
-GetFileDirectory-ResponsePDU ::= SEQUENCE {
-    fileEntry       [0] IMPLICIT SEQUENCE OF FileEntry,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetFileDirectory-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.13.1 RPC Introduction
--- ======================================================================
-
--- introduction
-
--- ======================================================================
--- 8.13.2 GetRpcInterfaceDirectory (Service Code 0x91)
--- ======================================================================
-
-GetRpcInterfaceDirectory-RequestPDU ::= SEQUENCE {
-    referenceAfter  [0] IMPLICIT VisibleString OPTIONAL
-}
-
-GetRpcInterfaceDirectory-ResponsePDU ::= SEQUENCE {
-    reference       [0] IMPLICIT SEQUENCE OF VisibleString,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetRpcInterfaceDirectory-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.13.3 GetRpcMethodDirectory (Service Code 0x93)
--- ======================================================================
-
-GetRpcMethodDirectory-RequestPDU ::= SEQUENCE {
-    interface       [0] IMPLICIT VisibleString OPTIONAL,
-    referenceAfter  [1] IMPLICIT VisibleString OPTIONAL
-}
-
-GetRpcMethodDirectory-ResponsePDU ::= SEQUENCE {
-    reference       [0] IMPLICIT SEQUENCE OF VisibleString,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetRpcMethodDirectory-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.13.4 GetRpcInterfaceDefinition (Service Code 0x92)
--- ======================================================================
-
-GetRpcInterfaceDefinition-RequestPDU ::= SEQUENCE {
-    interface       [0] IMPLICIT VisibleString,
-    referenceAfter  [1] IMPLICIT VisibleString OPTIONAL
-}
-
-GetRpcInterfaceDefinition-ResponsePDU ::= SEQUENCE {
-    method          [0] IMPLICIT SEQUENCE OF SEQUENCE {
-        name        [0] IMPLICIT VisibleString,
-        version     [1] IMPLICIT Int32U,
-        timeout     [2] IMPLICIT Int32U,
-        request     [3] IMPLICIT DataDefinition,
-        response    [4] IMPLICIT DataDefinition
-    },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetRpcInterfaceDefinition-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.13.5 GetRpcMethodDefinition (Service Code 0x94)
--- ======================================================================
-
-GetRpcMethodDefinition-RequestPDU ::= SEQUENCE {
-    reference       [0] IMPLICIT SEQUENCE OF VisibleString
-}
-
-GetRpcMethodDefinition-ResponsePDU ::= SEQUENCE {
-    reference       [0] IMPLICIT SEQUENCE OF CHOICE {
-        error       [0] IMPLICIT ServiceError,
-        method      [1] IMPLICIT SEQUENCE {
-            version     [0] IMPLICIT Int32U,
-            timeout     [1] IMPLICIT Int32U,
-            request     [2] IMPLICIT DataDefinition,
-            response    [3] IMPLICIT DataDefinition
-        }
-    },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
-}
-
-GetRpcMethodDefinition-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.13.6 RpcCall (Service Code 0x95)
--- ======================================================================
-
-RpcCall-RequestPDU ::= SEQUENCE {
-    method          [0] IMPLICIT VisibleString,
-    req             [1] IMPLICIT CHOICE {
-        reqData     [0] IMPLICIT Data,
-        callID      [1] IMPLICIT OCTET STRING
-    }
-}
-
-RpcCall-ResponsePDU ::= SEQUENCE {
-    rspData         [0] IMPLICIT Data,
-    nextCallID      [1] IMPLICIT OCTET STRING OPTIONAL
-}
-
-RpcCall-ErrorPDU ::= ServiceError
-
--- ======================================================================
--- 8.14 Test (Service Code 0xA1)
--- ======================================================================
-
--- FL = 0, no field
-
--- ======================================================================
--- 8.15 AssociateNegotiate (Service Code 0x04)
--- ======================================================================
-
-AssociateNegotiate-RequestPDU ::= SEQUENCE {
-    apduSize        [0] IMPLICIT Int16U,
-    asduSize        [1] IMPLICIT Int32U,
-    protocolVersion [2] IMPLICIT Int32U
-}
-
-AssociateNegotiate-ResponsePDU ::= SEQUENCE {
-    apduSize        [0] IMPLICIT Int16U,
-    asduSize        [1] IMPLICIT Int32U,
-    protocolVersion [2] IMPLICIT Int32U,
-    modelVersion    [3] IMPLICIT VisibleString
-}
-
-AssociateNegotiate-ErrorPDU ::= ServiceError
 
 END
