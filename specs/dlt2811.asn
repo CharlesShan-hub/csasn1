@@ -111,6 +111,10 @@ TimeQuality ::= BIT STRING {
 -- ======================================================================
 
 BinaryTime ::= OCTET STRING (SIZE(6))
+-- BinaryTime ::= SEQUENCE {                    
+--     msOfDay       Int32U,                    -- milliseconds since midnight (0..86399999)
+--     daysSince1984 Int16U                     -- days since 1984-01-01
+-- }
 
 EntryTime ::= BinaryTime
 
