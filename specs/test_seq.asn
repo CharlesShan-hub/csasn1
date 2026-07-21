@@ -1,6 +1,0 @@
-TestModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
-
-Simple ::= SEQUENCE {
-    field1   [0] IMPLICIT INTEGER
-}
-END

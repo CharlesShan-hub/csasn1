@@ -1,2 +1,217 @@
-# csasn1
-Generate idiomatic Rust, C, Java and more from your ASN.1 definitions. One tool, multiple encodings (PER, BER, UPER), zero compromise. Built with ❤️ and 🦀 by Charles.
+# csasn1 — ASN.1 编解码工具链
+
+从 ASN.1 规约文件自动生成 Rust 编解码库 + 多语言绑定。
+
+## 架构
+
+```
+你的 .asn1 文件
+      │
+      ▼  cargo build
+┌──────────────────────┐
+│  build.rs            │
+│  ① rasn-compiler     │──→ src/generated.rs (Rust 类型)
+│  ② 类型扫描          │──→ src/ffi_auto.rs   (FFI 分发)
+│                      │──→ target/debug/csasn1.dll
+└──────────────────────┘
+      │
+      ▼  cargo run --bin csasn1
+┌──────────────────────┐
+│  csasn1             │──→ java/src/Cms*.java (Java 类)
+│  用 syn 解析         │    每个 ASN.1 类型一个类
+│  生成 Jackson POJO   │    含 encode() / decode()
+└──────────────────────┘
+```
+
+## 快速开始
+
+```powershell
+# 编译全部（DLL + CLI + 代码生成器）
+cargo build
+
+# 运行 CLI 演示
+cargo run --bin cscli
+
+# 生成 Java 类（默认 Cms 前缀、ber 编码）
+cargo run --bin csasn1
+```
+
+```powershell
+cargo run --bin csasn1 -- --src ./specs/dlt2811.asn --dest ./java/src --prefix Asn --enc per --package com.example.asn1
+```
+
+编译成命令
+```powershell
+# 编译一次（产生独立的 .exe）
+cargo build --release --bin csasn1
+
+# 之后就能直接用了
+.\target\release\csasn1 --src ./specs/dlt2811.asn --dest ./java/src --prefix Asn --enc per
+
+# 拷到任何地方都能跑
+copy target\release\csasn1.exe D:\tools\
+D:\tools\csasn1.exe --prefix MyPfx
+```
+
+## 项目结构
+
+```
+csasn1/
+├── specs/dlt2811.asn      ← 你的 ASN.1 规约文件（只改这个）
+├── build.rs               ← 编译时自动生成 Rust 类型 + FFI
+├── Cargo.toml
+├── src/
+│   ├── main.rs            ← CLI 演示入口
+│   ├── lib.rs             ← 库入口（编译为 csasn1.dll）
+│   ├── ffi_auto.rs        ← 自动生成的 FFI 分发代码
+│   ├── generated.rs       ← 自动生成的 Rust 类型
+│   └── bin/csasn1.rs    ← Java 类生成器
+├── java/src/              ← 生成的 Java 类（cargo run --bin csasn1 产出）
+│   ├── CmsNative.java     ← JNA 桥接（加载 DLL，encode/decode）
+│   └── Cms*.java          ← 每个 ASN.1 类型一个类（304+ 个）
+└── python/
+    └── csasn1_example.py  ← Python ctypes 调用示例
+```
+
+## 工作流
+
+### 当你修改 .asn1 文件后
+
+```powershell
+# 第 1 步：编译 DLL
+cargo build
+# → src/generated.rs 自动更新
+# → src/ffi_auto.rs 自动更新
+# → csasn1.dll 重新生成
+
+# 第 2 步：生成 Java 类
+cargo run --bin csasn1 -- --prefix Asn --enc per --src ./specs/dlt2811.asn --package com.example.asn1
+# → java/src/Asn*.java 全部重新生成，包名 com.example.asn1
+```
+
+**只改 `.asn1` 文件，其余全自动。**
+
+## csasn1 — Code 代码生成器
+
+从 `src/generated.rs`（由 `build.rs` 从 ASN.1 规约自动生成）生成 Java POJO 类。
+
+```powershell
+# 完整参数示例
+cargo run --bin csasn1 -- --prefix Asn --enc per --src ./specs/dlt2811.asn --out java/src --package com.example.asn1
+
+# 最短用法（全部走默认值）
+cargo run --bin csasn1
+```
+
+### 参数说明
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `--src <path>` | `specs/dlt2811.asn` | ASN.1 规约文件路径，传 `.asn` 自动映射到 `src/generated.rs` |
+| `--out <dir>` | `java/src` | Java 源码输出目录 |
+| `--prefix <str>` | `Cms` | Java 类名前缀，如 `Asn` → `AsnBoolean.java` |
+| `--enc <str>` | `ber` | 默认编码方式（`ber`/`der`/`aper`/`uper`），生成 `DEFAULT_ENCODING` 常量 |
+| `--package <str>` | （空） | Java 包名，如 `com.example.asn1` → 文件头生成 `package com.example.asn1;` |
+
+### 生成的 Java 类
+
+每个 ASN.1 类型一个文件，格式统一：
+
+```java
+// Auto-generated. ASN.1 type: Boolean
+
+package com.example.asn1;
+
+public class AsnBoolean {
+    public static final String DEFAULT_ENCODING = "per";
+    public int value;
+
+    public byte[] encode(String enc) { ... }    // 指定编码
+    public byte[] encode() { ... }              // 使用 DEFAULT_ENCODING
+    public static AsnBoolean decode(String enc, byte[] data) { ... }
+}
+```
+
+## FFI 接口
+
+DLL 导出 3 个 C 函数，所有语言共用：
+
+```c
+// JSON → 编码 → 二进制
+Buffer csasn1_encode(const char* type_name,
+                     const char* encoding,
+                     const char* json);
+
+// 二进制 → 解码 → JSON
+Buffer csasn1_decode(const char* type_name,
+                     const char* encoding,
+                     const uint8_t* data,
+                     size_t len);
+
+// 释放 Rust 分配的内存
+void csasn1_free_buffer(Buffer buf);
+```
+
+### 支持的编码方式
+
+| 参数 | 编码规则 | 特点 |
+|------|----------|------|
+| `"ber"` | Basic Encoding Rules | 通用，可读 |
+| `"der"` | Distinguished Encoding Rules | 确定性编码 |
+| `"aper"` | Aligned Packed Encoding Rules | 紧凑，对齐 |
+| `"uper"` | Unaligned Packed Encoding Rules | 最紧凑 |
+
+## Java 使用
+
+```java
+// 构造 Java 对象
+CmsApdu apdu = new CmsApdu();
+apdu.apch = new CmsApch();
+apdu.apch.cc = new CmsControlCode();
+apdu.apch.cc.resp = true;
+apdu.asdu = hexToBytes("01020304");
+
+// 编码为 PER 字节
+byte[] per = apdu.encode("aper");
+
+// 从 PER 字节解码
+CmsApdu recv = CmsApdu.decode("aper", per);
+```
+
+需要 Jackson 依赖：
+```xml
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.17.0</version>
+</dependency>
+```
+
+## Python 使用
+
+```python
+from csasn1_example import encode, decode
+
+encoded = encode("Apdu", "aper", {
+    "apch": {"cc": {"resp": True}, "sc": 0x51, "fl": 0},
+    "asdu": "01020304"
+})
+decoded = decode("Apdu", "aper", encoded)
+```
+
+## 你的现有项目集成
+
+如果你已有 Java 项目（如 `dlt2811bean/cms`）：
+
+1. 复制 `java/src/*.java` 到你的项目源码目录
+2. 复制 `target/debug/csasn1.dll` 到 `resources/win32-x86-64/`
+3. 添加 Jackson 依赖
+4. 用 `CmsApdu.encode("aper")` 替代旧的编解码调用
+
+## 技术栈
+
+- [rasn](https://github.com/librasn/rasn) — Rust ASN.1 编解码框架
+- [rasn-compiler](https://github.com/librasn/compiler) — ASN.1 → Rust 代码生成器
+- [syn](https://github.com/dtolnay/syn) — Rust 代码解析
+- [JNA](https://github.com/java-native-access/jna) — Java 原生调用
+- [Jackson](https://github.com/FasterXML/jackson) — Java JSON 序列化

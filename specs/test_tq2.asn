@@ -1,9 +1,0 @@
-TestModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
-
-TimeQuality ::= BIT STRING {
-    leap-second-known            (0),
-    clock-failure                (1),
-    clock-not-synchronized       (2)
-} (SIZE(8))
-
-END

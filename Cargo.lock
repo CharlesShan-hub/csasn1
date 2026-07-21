@@ -90,8 +90,11 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 name = "csasn1"
 version = "0.1.0"
 dependencies = [
+ "quote",
  "rasn",
  "rasn-compiler",
+ "serde_json",
+ "syn 2.0.119",
 ]
 
 [[package]]

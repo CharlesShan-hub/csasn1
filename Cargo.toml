@@ -3,8 +3,23 @@ name = "csasn1"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "csasn1"
+
 [dependencies]
 rasn = "0.28"
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"
+serde_json = "1"
 
 [build-dependencies]
 rasn-compiler = "0.16"
+
+[[bin]]
+name = "cscli"
+path = "src/main.rs"
+
+[[bin]]
+name = "csasn1"
+path = "src/bin/codegen.rs"
