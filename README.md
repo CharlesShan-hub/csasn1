@@ -42,15 +42,19 @@ cargo run --bin csasn1 -- --src ./specs/dlt2811.asn --dest ./java/src --prefix A
 
 编译成命令
 ```powershell
-# 编译一次（产生独立的 .exe）
-cargo build --release --bin csasn1
+# 编译并生成软连接
+cargo build --release; $env:PATH = "$pwd\target\release;$env:PATH"
 
 # 之后就能直接用了
-.\target\release\csasn1 --src ./specs/dlt2811.asn --dest ./java/src --prefix Asn --enc per
+./csasn1 --src ./specs/dlt2811.asn --dest ./java/src --prefix Asn --enc per
 
 # 拷到任何地方都能跑
 copy target\release\csasn1.exe D:\tools\
 D:\tools\csasn1.exe --prefix MyPfx
+```
+
+```bash
+D:\project\cs\csasn1\target\release\csasn1.exe --src ./specs/dlt2811.asn --dest "D:\project\work\standard\dlt2811bean\cms\jcms\jcms-data\src\main\java\com\ysh\jcms\data" --prefix Cms --enc per --package com.ysh.jcms.data
 ```
 
 ## 项目结构
