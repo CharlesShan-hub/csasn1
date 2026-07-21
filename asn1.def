@@ -1,0 +1,5 @@
+EXPORTS
+    csasn1_ping
+    csasn1_encode
+    csasn1_decode
+    csasn1_free_string

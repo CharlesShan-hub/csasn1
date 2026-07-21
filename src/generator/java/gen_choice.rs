@@ -1,0 +1,84 @@
+use std::collections::HashMap;
+use super::super::*;
+use super::type_map::{resolve_java_type, java_type_ref};
+use super::helpers;
+use super::helpers::safe_field_name;
+
+pub fn generate(
+    ti: &TypeInfo,
+    all: &[TypeInfo],
+    prefix: &str,
+    cn: &str,
+    asn_doc: &Option<String>,
+    named_consts: &HashMap<String, Vec<(String, i32)>>,
+    variants: &[VariantInfo],
+) -> String {
+    let mut c = String::new();
+    if let Some(doc) = asn_doc { c.push_str(doc); }
+    c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
+    c.push_str("@Data\n");
+    c.push_str(&format!("public class {} extends {}Base {{\n", cn, prefix));
+    if let Some(entries) = named_consts.get(&ti.name) {
+        for (name, val) in entries {
+            c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
+        }
+    }
+    c.push_str(&helpers::ln(1, "public String _choice;"));
+    c.push_str(&helpers::ln(1, "private static final ObjectMapper MAPPER = new ObjectMapper();"));
+
+    for v in variants {
+        let jt = resolve_java_type(&v.inner_type, all, prefix);
+        let fname = safe_field_name(&v.name);
+        c.push_str(&helpers::ln(1, &format!("@JsonIgnore public {} {};", jt, fname)));
+    }
+
+    // Serialize (only output the active branch)
+    c.push_str(&helpers::ln(1, "@JsonAnyGetter"));
+    c.push_str(&helpers::ln(1, "public java.util.Map<String, Object> serializeChoice() {"));
+    c.push_str(&helpers::ln(2, "java.util.Map<String, Object> map = new java.util.HashMap<String, Object>();"));
+    c.push_str(&helpers::ln(2, "if (_choice != null) {"));
+    c.push_str(&helpers::ln(3, "map.put(\"_choice\", _choice);"));
+    for v in variants {
+        let fname = safe_field_name(&v.name);
+        c.push_str(&helpers::ln(3, &format!("if (\"{}\".equals(_choice)) map.put(\"{}\", {});", v.name, v.name, fname)));
+    }
+    c.push_str(&helpers::ln(2, "}"));
+    c.push_str(&helpers::ln(2, "return map;"));
+    c.push_str(&helpers::ln(1, "}"));
+
+    // Deserialize
+    c.push_str(&helpers::ln(1, "@JsonAnySetter"));
+    c.push_str(&helpers::ln(1, "public void deserializeChoice(String key, Object value) {"));
+    c.push_str(&helpers::ln(2, "if (\"_choice\".equals(key)) return;"));
+    c.push_str(&helpers::ln(2, "this._choice = key;"));
+    for v in variants {
+        let fname = safe_field_name(&v.name);
+        let jt = resolve_java_type(&v.inner_type, all, prefix);
+        let tref = java_type_ref(&jt);
+        c.push_str(&helpers::ln(2, &format!("if (\"{}\".equals(key)) {{", v.name)));
+        c.push_str(&helpers::ln(3, &format!("this.{} = MAPPER.convertValue(value, {});", fname, tref)));
+        c.push_str(&helpers::ln(2, "}"));
+    }
+    c.push_str(&helpers::ln(1, "}"));
+
+    // encode
+    helpers::enc_overload(&mut c, &format!(
+        "{}{}{}{}{}",
+        helpers::ln(2, "try {"),
+        helpers::ln(3, &format!("return CmsNative.encode(\"{}\", enc, MAPPER.writeValueAsString(this));", ti.name)),
+        helpers::ln(2, "} catch (Exception e) {"),
+        helpers::ln(3, "throw new RuntimeException(e);"),
+        helpers::ln(2, "}"),
+    ));
+
+    // decode
+    c.push_str(&helpers::ln(1, &format!("public static {} decode(String enc, byte[] data) {{", cn)));
+    c.push_str(&helpers::ln(2, "try {"));
+    c.push_str(&helpers::ln(3, &format!("return MAPPER.readValue(CmsNative.decode(\"{}\", enc, data), {}.class);", ti.name, cn)));
+    c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
+    c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
+    c.push_str(&helpers::ln(2, "}"));
+    c.push_str(&helpers::ln(1, "}"));
+    c.push_str("}\n");
+    c
+}

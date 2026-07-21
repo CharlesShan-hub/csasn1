@@ -92,21 +92,39 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
          // 由 build.rs 扫描 generated.rs 自动生成\n\
          // 共 {} 个类型\n\n\
          #![allow(non_camel_case_types, non_snake_case, unused)]\n\n\
-         use std::ffi::{{c_char, CStr}};\n\n\
+         use std::ffi::{{c_char, CStr, CString}};\n\
+         use std::borrow::Cow;\n\n\
          #[path = \"generated.rs\"]\n\
          mod generated;\n\
-         use generated::dlt2811_data_types::*;\n\n",
+         use generated::dlt2811_data_types::*;\n\n\
+         /* ---- Jackson JSON ↔ JER adapter ---- */\n\
+         /// If json is `{{\"value\": X}}`, extract X; otherwise return as-is.\n\
+         fn unwrap_jackson_value<'a>(json: &'a str) -> Cow<'a, str> {{\n\
+             let t = json.trim();\n\
+             if t.starts_with(\"{{\") && t.contains(\"\\\"value\\\"\") {{\n\
+                 // Find the colon after \"value\" and extract everything after it\n\
+                 if let Some(colon) = t.find(':') {{\n\
+                     let rest = t[colon+1..].trim();\n\
+                     // Trim trailing }} \n\
+                     let end = rest.rfind('}}').unwrap_or(rest.len());\n\
+                     return Cow::Owned(rest[..end].trim().to_string());\n\
+                 }}\n\
+             }}\n\
+             Cow::Borrowed(json)\n\
+         }}\n\n\
+         /// If json is a bare value (not an object), wrap in {{\"value\": ...}}.\n\
+         fn wrap_in_jackson(json: &str) -> String {{\n\
+             let t = json.trim();\n\
+             if t.starts_with('{{') {{\n\
+                 t.to_string()\n\
+             }} else {{\n\
+                 format!(\"{{{{\\\"value\\\": {{}}}}}}\", t)\n\
+             }}\n\
+         }}\n\n",
         types.len()
     ));
 
-    // Buffer 结构体
-    code.push_str(
-        "#[repr(C)]\npub struct Buffer {\n\
-         pub data: *mut u8,\n\
-         pub len: usize,\n\
-         pub capacity: usize,\n}\n\n"
-    );
-
+    // also add CString to imports at line 95
     // encode_json dispatch（支持编码方式选择）
     code.push_str(
         "fn encode_json(type_name: &str, encoding: &str, json: &str) -> Result<Vec<u8>, String> {\n\
@@ -116,10 +134,10 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
     for t in types {
         code.push_str(&format!(
             "        \"{t}\" => {{\n\
-             let v: {t} = rasn::jer::decode(json)\n\
+             let v: {t} = rasn::jer::decode(&unwrap_jackson_value(json))\n\
              .map_err(|e| format!(\"JER decode {{type_name}}: {{e:?}}\"))?;\n\
              match enc.as_str() {{\n\
-             \"ber\" | \"\" => rasn::ber::encode(&v)\n\
+             \"ber\" | \"\" | \"per\" => rasn::ber::encode(&v)\n\
              .map_err(|e| format!(\"BER encode {{type_name}}: {{e:?}}\")),\n\
              \"der\" => rasn::der::encode(&v)\n\
              .map_err(|e| format!(\"DER encode {{type_name}}: {{e:?}}\")),\n\
@@ -147,7 +165,7 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
         code.push_str(&format!(
             "        \"{t}\" => {{\n\
              let v: {t} = match enc.as_str() {{\n\
-             \"ber\" | \"\" => rasn::ber::decode(data)\n\
+             \"ber\" | \"\" | \"per\" => rasn::ber::decode(data)\n\
              .map_err(|e| format!(\"BER decode {{type_name}}: {{e:?}}\"))?,\n\
              \"der\" => rasn::der::decode(data)\n\
              .map_err(|e| format!(\"DER decode {{type_name}}: {{e:?}}\"))?,\n\
@@ -157,8 +175,9 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
              .map_err(|e| format!(\"UPER decode {{type_name}}: {{e:?}}\"))?,\n\
              _ => return Err(format!(\"Unsupported encoding: {{enc}}\")),\n\
              }};\n\
-             rasn::jer::encode(&v)\n\
-             .map_err(|e| format!(\"JER encode {{type_name}}: {{e:?}}\"))\n\
+             let jer_bytes = rasn::jer::encode(&v)\n\
+             .map_err(|e| format!(\"JER encode {{type_name}}: {{e:?}}\"))?;\n\
+             Ok(wrap_in_jackson(&jer_bytes))\n\
              }}\n"
         ));
     }
@@ -167,98 +186,65 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
          }\n}\n\n"
     );
 
-    // csasn1_encode C API
+    // -- C API: all functions return *mut c_char (JSON response string) --
+    // csasn1_encode returns JSON: {"ok":true,"bytes":"<base64>"} or {"ok":false,"error":"<msg>"}
     code.push_str(
         "#[unsafe(no_mangle)]\npub extern \"C\" fn csasn1_encode(\n\
          type_name: *const c_char,\n\
          encoding: *const c_char,\n\
          json: *const c_char,\n\
-         ) -> Buffer {\n\
-         let type_name = match (|| -> Result<String, String> {\n\
-         Ok(unsafe { CStr::from_ptr(type_name) }.to_str().map_err(|e| format!(\"{e}\"))?.to_string())\n\
-         })() {\n\
-         Ok(s) => s,\n\
-         Err(e) => return encode_error(&e),\n\
-         };\n\
-         let encoding = match (|| -> Result<String, String> {\n\
-         Ok(unsafe { CStr::from_ptr(encoding) }.to_str().map_err(|e| format!(\"{e}\"))?.to_string())\n\
-         })() {\n\
-         Ok(s) => s,\n\
-         Err(e) => return encode_error(&e),\n\
-         };\n\
-         let json = match (|| -> Result<String, String> {\n\
-         Ok(unsafe { CStr::from_ptr(json) }.to_str().map_err(|e| format!(\"{e}\"))?.to_string())\n\
-         })() {\n\
-         Ok(s) => s,\n\
-         Err(e) => return encode_error(&e),\n\
-         };\n\
-         match encode_json(&type_name, &encoding, &json) {\n\
-         Ok(bytes) => buffer_from_vec(bytes),\n\
-         Err(e) => encode_error(&e),\n\
-         }\n\
+         ) -> *mut c_char {\n\
+         let result = (|| -> Result<String, String> {\n\
+         let type_name = unsafe { CStr::from_ptr(type_name) }.to_str().map_err(|e| format!(\"{e}\"))?;\n\
+         let encoding = unsafe { CStr::from_ptr(encoding) }.to_str().map_err(|e| format!(\"{e}\"))?;\n\
+         let json = unsafe { CStr::from_ptr(json) }.to_str().map_err(|e| format!(\"{e}\"))?;\n\
+         let bytes = encode_json(type_name, encoding, json)?;\n\
+         Ok(serde_json::json!({\"ok\": true, \"bytes\": bytes}).to_string())\n\
+         })().unwrap_or_else(|e| serde_json::json!({\"ok\": false, \"error\": e}).to_string());\n\
+         CString::new(result).unwrap().into_raw()\n\
          }\n\n"
     );
 
-    // csasn1_decode C API
+    // csasn1_decode returns JSON: {"ok":true,"value":<json>} or {"ok":false,"error":"<msg>"}
     code.push_str(
         "#[unsafe(no_mangle)]\npub extern \"C\" fn csasn1_decode(\n\
          type_name: *const c_char,\n\
          encoding: *const c_char,\n\
          data: *const u8,\n\
          len: usize,\n\
-         ) -> Buffer {\n\
-         let type_name = match (|| -> Result<String, String> {\n\
-         Ok(unsafe { CStr::from_ptr(type_name) }.to_str().map_err(|e| format!(\"{e}\"))?.to_string())\n\
-         })() {\n\
-         Ok(s) => s,\n\
-         Err(e) => return encode_error(&e),\n\
-         };\n\
-         let encoding = match (|| -> Result<String, String> {\n\
-         Ok(unsafe { CStr::from_ptr(encoding) }.to_str().map_err(|e| format!(\"{e}\"))?.to_string())\n\
-         })() {\n\
-         Ok(s) => s,\n\
-         Err(e) => return encode_error(&e),\n\
-         };\n\
+         ) -> *mut c_char {\n\
+         let result = (|| -> Result<String, String> {\n\
+         let type_name = unsafe { CStr::from_ptr(type_name) }.to_str().map_err(|e| format!(\"{e}\"))?;\n\
+         let encoding = unsafe { CStr::from_ptr(encoding) }.to_str().map_err(|e| format!(\"{e}\"))?;\n\
          let slice = unsafe { std::slice::from_raw_parts(data, len) };\n\
-         match decode_to_json(&type_name, &encoding, slice) {\n\
-         Ok(json) => buffer_from_string(json),\n\
-         Err(e) => encode_error(&e),\n\
-         }\n\
+         let value_json: serde_json::Value = serde_json::from_str(&decode_to_json(type_name, encoding, slice)?).unwrap_or(serde_json::Value::Null);\n\
+         Ok(serde_json::json!({\"ok\": true, \"value\": value_json}).to_string())\n\
+         })().unwrap_or_else(|e| serde_json::json!({\"ok\": false, \"error\": e}).to_string());\n\
+         CString::new(result).unwrap().into_raw()\n\
          }\n\n"
     );
 
-    // csasn1_free_buffer C API
+    // csasn1_free_string
     code.push_str(
-        "#[unsafe(no_mangle)]\npub extern \"C\" fn csasn1_free_buffer(buf: Buffer) {\n\
-         if !buf.data.is_null() {\n\
-         unsafe { let _ = Box::from_raw(\n\
-         std::slice::from_raw_parts_mut(buf.data, buf.capacity)); }\n\
+        "#[unsafe(no_mangle)]\npub extern \"C\" fn csasn1_free_string(s: *mut c_char) {\n\
+         if !s.is_null() {\n\
+         unsafe { drop(CString::from_raw(s)); }\n\
          }\n\
+         }\n\n\
+         #[unsafe(no_mangle)]\npub extern \"C\" fn csasn1_ping() -> *mut c_char {\n\
+         CString::new(\"pong\").unwrap().into_raw()\n\
          }\n\n"
-    );
-
-    // 辅助函数
-    code.push_str(
-        "fn buffer_from_vec(v: Vec<u8>) -> Buffer {\n\
-         let len = v.len();\n\
-         let mut boxed = v.into_boxed_slice();\n\
-         let data = boxed.as_mut_ptr();\n\
-         let capacity = len;\n\
-         std::mem::forget(boxed);\n\
-         Buffer { data, len, capacity }\n\
-         }\n\n\
-         fn buffer_from_string(s: String) -> Buffer {\n\
-         buffer_from_vec(s.into_bytes())\n\
-         }\n\n\
-         fn encode_error(msg: &str) -> Buffer {\n\
-         let err_bytes = format!(\"ERROR: {msg}\").into_bytes();\n\
-         buffer_from_vec(err_bytes)\n\
-         }\n"
     );
 
     let mut file = fs::File::create(output_path).expect("无法创建 ffi_auto.rs");
     file.write_all(code.as_bytes()).expect("写入失败");
     println!("cargo:info=生成了 {} 个类型的 FFI dispatch", types.len());
+
+    // 告诉链接器使用 .def 文件导出符号（Windows MSVC）
+    #[cfg(target_os = "windows")]
+    {
+        println!("cargo:rustc-link-arg=/DEF:asn1.def");
+    }
 }
 
 /// 在字节切片中查找子序列

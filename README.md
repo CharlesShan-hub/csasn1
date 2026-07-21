@@ -54,7 +54,7 @@ D:\tools\csasn1.exe --prefix MyPfx
 ```
 
 ```bash
-D:\project\cs\csasn1\target\release\csasn1.exe --src ./specs/dlt2811.asn --dest "D:\project\work\standard\dlt2811bean\cms\jcms\jcms-data\src\main\java\com\ysh\jcms\data" --prefix Cms --enc per --package com.ysh.jcms.data
+csasn1.exe --src ./specs/dlt2811.asn --dest "D:\project\work\standard\dlt2811bean\cms\jcms\jcms-data\src\main\java\com\ysh\jcms\data" --prefix Cms --enc per --package com.ysh.jcms.data
 ```
 
 ## 项目结构
