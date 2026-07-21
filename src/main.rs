@@ -69,7 +69,10 @@ fn main() {
 
     // Extract ASN.1 definitions for doc comments
     let type_names: Vec<&str> = types.iter().map(|t| t.name.as_str()).collect();
-    let asn_defs = generator::extract_asn1_definitions(&spec_path, &type_names);
+    let asn_defs = generator::extract_asn1_definitions(&spec_path, &type_names.as_slice());
+
+    // Extract named constants from BIT STRING / ENUMERATED definitions
+    let named_consts = generator::extract_asn1_named_constants(&spec_path);
 
     // Dispatch to the chosen language generator
     match target_lang.to_lowercase().as_str() {
@@ -80,7 +83,7 @@ fn main() {
                 package,
                 out_dir,
             };
-            generator::java::generate(&types, &cfg, &asn_defs);
+            generator::java::generate(&types, &cfg, &asn_defs, &named_consts);
         }
         other => {
             eprintln!(
