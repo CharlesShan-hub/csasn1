@@ -78,7 +78,7 @@ public class {pfx}Native {{
             @SuppressWarnings("unchecked")
             Map<String, Object> m = MAPPER.readValue(resp, Map.class);
             if (Boolean.TRUE.equals(m.get("ok"))) {{
-                return (String) m.get("value");
+                return MAPPER.writeValueAsString(m.get("value"));
             }}
             throw new RuntimeException("decode failed: " + m.get("error"));
         }} catch (Exception e) {{

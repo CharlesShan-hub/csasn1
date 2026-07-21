@@ -240,10 +240,10 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
     file.write_all(code.as_bytes()).expect("写入失败");
     println!("cargo:info=生成了 {} 个类型的 FFI dispatch", types.len());
 
-    // 告诉链接器使用 .def 文件导出符号（Windows MSVC）
+    // 告诉链接器使用 .def 文件导出符号（仅 cdylib，不影响二进制）
     #[cfg(target_os = "windows")]
     {
-        println!("cargo:rustc-link-arg=/DEF:asn1.def");
+        println!("cargo:rustc-cdylib-link-arg=/DEF:asn1.def");
     }
 }
 

@@ -92,7 +92,12 @@ pub fn generate(
             if dll_src.exists() {
                 fs::copy(&dll_src, res_dir.join(dll_name))
                     .expect("failed to copy asn1.dll to resources");
-                println!("  copied {} to resources/", dll_name);
+                // Also copy to platform-specific subdir for JNA platform loading
+                let jna_plat_dir = res_dir.join("win32-x86-64");
+                fs::create_dir_all(&jna_plat_dir).ok();
+                fs::copy(&dll_src, jna_plat_dir.join(dll_name))
+                    .expect("failed to copy asn1.dll to resources/win32-x86-64/");
+                println!("  copied {} to resources/ (incl. win32-x86-64)", dll_name);
             }
         }
     }
@@ -110,11 +115,10 @@ pub fn generate(
 
 /// Generate a standalone Maven pom.xml for the auto-generated data types.
 fn gen_pom(prefix: &str, package: &str) -> String {
-    let group_id = if let Some(dot) = package.rfind('.') {
-        package[..dot].to_string()
-    } else {
-        "com.example".to_string()
-    };
+    let group_id = package
+        .rsplit_once('.')
+        .map(|(head, _)| head.to_string())
+        .unwrap_or_else(|| "com.example".to_string());
     let artifact_id = format!("{}-data", prefix.to_lowercase());
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>

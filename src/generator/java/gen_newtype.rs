@@ -70,17 +70,17 @@ pub fn generate(
     } else if jt == "Object" {
         c.push_str(&helpers::ln(3, "r.value = null;"));
     } else if jt == "long" {
-        c.push_str(&helpers::ln(3, "r.value = Long.parseLong(json.trim());"));
+        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asLong();"));
     } else if jt == "String" {
-        c.push_str(&helpers::ln(3, "r.value = json.trim();"));
+        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asText();"));
     } else if jt == "boolean" {
-        c.push_str(&helpers::ln(3, "r.value = Boolean.parseBoolean(json.trim());"));
+        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asBoolean();"));
     } else if jt == "float" {
-        c.push_str(&helpers::ln(3, "r.value = Float.parseFloat(json.trim());"));
+        c.push_str(&helpers::ln(3, "r.value = (float) MAPPER.readTree(json).get(\"value\").asDouble();"));
     } else if jt == "double" {
-        c.push_str(&helpers::ln(3, "r.value = Double.parseDouble(json.trim());"));
+        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asDouble();"));
     } else if jt == "int" {
-        c.push_str(&helpers::ln(3, "r.value = Integer.parseInt(json.trim());"));
+        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asInt();"));
     } else {
         c.push_str(&helpers::ln(3, &format!("r.value = MAPPER.readValue(json.trim(), {}.class);", jt)));
     }
