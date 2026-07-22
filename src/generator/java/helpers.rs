@@ -11,38 +11,12 @@ const JAVA_KEYWORDS: &[&str] = &[
     "null",
 ];
 
-fn camel(s: &str) -> String {
-    let mut out = String::new();
-    let mut upper = false;
-    for c in s.chars() {
-        if c == '-' || c == '_' {
-            upper = true;
-        } else if upper {
-            out.push(c.to_ascii_uppercase());
-            upper = false;
-        } else {
-            out.push(c);
-        }
-    }
-    out
-}
-
 /// Convert a Rust-style name to a safe Java field name (avoid keywords, no camelCase).
 pub fn safe_field_name(name: &str) -> String {
     if JAVA_KEYWORDS.contains(&name) {
         format!("_{}", name)
     } else {
         name.to_string()
-    }
-}
-
-/// Convert a Rust-style name to camelCase Java field name (also avoids keywords).
-pub fn camel_case_name(name: &str) -> String {
-    let n = camel(name);
-    if JAVA_KEYWORDS.contains(&n.as_str()) {
-        format!("_{}", n)
-    } else {
-        n
     }
 }
 

@@ -121,20 +121,6 @@ pub fn resolve_wrapper_type_nullable(rt: &str, all: &[TypeInfo], prefix: &str) -
     resolve_wrapper_type(rt, all, prefix)
 }
 
-/// Resolve type to a nullable Java type (boxed primitives for optional fields).
-pub fn resolve_java_type_nullable(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
-    let t = resolve_java_type(rt, all, prefix);
-    let base = match t.as_str() {
-        "int" => "Integer",
-        "long" => "Long",
-        "boolean" => "Boolean",
-        "float" => "Float",
-        "double" => "Double",
-        other => return other.to_string(),
-    };
-    base.to_string()
-}
-
 /// Generate a type literal for Jackson convertValue.
 /// Uses TypeReference for List<T>, .class for everything else.
 pub fn java_type_ref(jt: &str) -> String {

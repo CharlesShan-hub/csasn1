@@ -18,6 +18,7 @@ pub struct FieldInfo {
     pub optional: bool,
     pub is_list: bool,
     pub identifier: Option<String>,
+    pub size_from_attr: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -119,12 +120,35 @@ fn analyze_struct(s: &syn::ItemStruct) -> TypeKind {
             None
         });
 
+        // Extract size from rasn attribute: size ("N") or size ("min..=max")
+        let size_from_attr = f.attrs.iter().find_map(|attr| {
+            let ts = attr.to_token_stream().to_string();
+            if let Some(pos) = ts.find("size (\"") {
+                let after = &ts[pos + 7..];
+                let end = after.find('"')?;
+                let val = &after[..end];
+                // For fixed size like "6", parse directly
+                if let Ok(n) = val.parse::<usize>() {
+                    return Some(n);
+                }
+                // For range like "0..=64", use the max
+                if let Some(eq_pos) = val.find("..=") {
+                    let max_str = val[eq_pos + 3..].trim();
+                    return max_str.parse::<usize>().ok();
+                }
+                None
+            } else {
+                None
+            }
+        });
+
         fields.push(FieldInfo {
             name,
             rust_type: rt,
             optional,
             is_list,
             identifier,
+            size_from_attr,
         });
     }
     TypeKind::Struct { fields }
@@ -172,11 +196,6 @@ pub fn type_str(ty: &Type) -> String {
         .replace("  ", " ")
         .trim()
         .to_string()
-}
-
-/// Build an indented line (4 spaces per indent level)
-pub fn ln(indent: usize, s: &str) -> String {
-    format!("{}{}\n", " ".repeat(indent * 4), s)
 }
 
 /// Extract ASN.1 type definitions from a spec file.

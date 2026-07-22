@@ -13,7 +13,7 @@ fn find_type<'a>(jt: &str, all: &'a [TypeInfo], prefix: &str) -> Option<&'a Type
     })
 }
 
-pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields: &[FieldInfo], asn_defs: &HashMap<String, String>) -> String {
+pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields: &[FieldInfo], asn_defs: &HashMap<String, String>) -> String {
     let mut c = String::new();
 
     // Helper: set all fields to initial values (no nulls left)
@@ -36,6 +36,16 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields:
                 }
                 s if s == "byte[]" => {
                     let sz = helpers::test_data_size(asn_defs.get(&f.rust_type).map(|s| s.as_str()));
+                    // Fallback: extract size from inline FixedOctetString < N > (e.g. "FixedOctetString < 6 >")
+                    let sz = if sz <= 2 && f.rust_type.contains("FixedOctetString") {
+                        f.rust_type
+                            .split(|c: char| !c.is_ascii_digit())
+                            .filter_map(|s| s.parse::<usize>().ok())
+                            .next()
+                            .unwrap_or(sz)
+                    } else { sz };
+                    // Fallback: use size from rasn attribute (e.g. OctetString with #[rasn(size("6"))])
+                    let sz = if sz <= 2 { f.size_from_attr.unwrap_or(sz) } else { sz };
                     c.push_str(&helpers::ln(indent, &format!("obj.{} = new byte[{}];", fname, sz)));
                 }
                 s if s.starts_with("java.util.List<") => {
@@ -89,6 +99,20 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields:
                             if inner_jt.starts_with("java.util.List<") {
                                 let inner = inner_jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
                                 c.push_str(&helpers::ln(indent, &format!("obj.{}.value = java.util.Collections.singletonList(new {}());", fname, inner)));
+                            }
+                        }
+                    }
+                    // For struct sub-objects, initialize byte[] fields with size constraints
+                    if let Some(ti) = find_type(&jt, all, prefix) {
+                        if let TypeKind::Struct { fields: sub_fields } = &ti.kind {
+                            for sf in sub_fields {
+                                let s_jt = resolve_wrapper_type(&sf.rust_type, all, prefix);
+                                if s_jt == "byte[]" {
+                                    if let Some(sz) = sf.size_from_attr {
+                                        let sfname = safe_field_name(sf.identifier.as_deref().unwrap_or(&sf.name));
+                                        c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new byte[{}];", fname, sfname, sz)));
+                                    }
+                                }
                             }
                         }
                     }
