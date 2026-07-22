@@ -13,7 +13,7 @@ fn find_type<'a>(jt: &str, all: &'a [TypeInfo], prefix: &str) -> Option<&'a Type
     })
 }
 
-pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields: &[FieldInfo], asn_defs: &HashMap<String, String>) -> String {
+pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields: &[FieldInfo], asn_defs: &HashMap<String, String>) -> String {
     let mut c = String::new();
 
     // Helper: set all fields to initial values (no nulls left)
@@ -26,8 +26,7 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                 "int" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 1;", fname))); }
                 "long" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 1L;", fname))); }
                 "boolean" => {
-                    // Rasn APER has a bug: booleans with DEFAULT FALSE/TRUE may decode as false.
-                    // Use false to match the decoder's behavior for all booleans.
+                    // Dead code: all booleans are now CmsBoolean (INTEGER 0..1) wrapper
                 }
                 "float" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 1.5f;", fname))); }
                 "double" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 2.5;", fname))); }
@@ -59,7 +58,7 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                                 match vjt.as_str() {
                                     "int" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 1;", fname, vfname))),
                                     "long" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 1L;", fname, vfname))),
-                                    "boolean" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = true;", fname, vfname))),
+                                    // "boolean" is dead code, all booleans use CmsBoolean now
                                     "float" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 1.5f;", fname, vfname))),
                                     "double" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 2.5;", fname, vfname))),
                                     "String" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = \"test\";", fname, vfname))),
@@ -90,40 +89,6 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                             if inner_jt.starts_with("java.util.List<") {
                                 let inner = inner_jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
                                 c.push_str(&helpers::ln(indent, &format!("obj.{}.value = java.util.Collections.singletonList(new {}());", fname, inner)));
-                            }
-                        }
-                    }
-                    // Recursive: initialize sub-fields of struct types
-                    if let Some(ti) = find_type(&jt, all, prefix) {
-                        if let TypeKind::Struct { fields: sub_fields } = &ti.kind {
-                            for sf in sub_fields {
-                                let s_raw = sf.identifier.as_deref().unwrap_or(&sf.name);
-                                let sfname = safe_field_name(s_raw);
-                                let sjt = resolve_wrapper_type(&sf.rust_type, all, prefix);
-                                let sub_path = format!("obj.{}.{}", fname, sfname);
-                                match sjt.as_str() {
-                                    "int" => c.push_str(&helpers::ln(indent, &format!("{} = 1;", sub_path))),
-                                    "long" => c.push_str(&helpers::ln(indent, &format!("{} = 1L;", sub_path))),
-                                    "boolean" => {} // leave as default false (works with APER bug)
-                                    "float" => c.push_str(&helpers::ln(indent, &format!("{} = 1.5f;", sub_path))),
-                                    "double" => c.push_str(&helpers::ln(indent, &format!("{} = 2.5;", sub_path))),
-                                    "String" => {
-                                        let sz = helpers::test_data_size(asn_defs.get(&sf.rust_type).map(|s| s.as_str()));
-                                        if sz > 0 {
-                                            c.push_str(&helpers::ln(indent, &format!("{} = \"{}\";", sub_path, "x".repeat(sz))));
-                                        }
-                                    }
-                                    s if s == "byte[]" => {
-                                        // Try resolving size through owner struct's definition
-                                        let full_def = asn_defs.get(&ti.name).map(|d| d.as_str());
-                                        let sz = helpers::test_data_size(full_def);
-                                        let sz = if sz > 1 { sz } else {
-                                            helpers::test_data_size(asn_defs.get(&sf.rust_type).map(|s| s.as_str()))
-                                        };
-                                        c.push_str(&helpers::ln(indent, &format!("{} = new byte[{}];", sub_path, sz.max(1))));
-                                    }
-                                    _ => {} // skip complex types (handled at parent level)
-                                }
                             }
                         }
                     }

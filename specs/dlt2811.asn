@@ -377,7 +377,7 @@ Data ::= CHOICE {
     error              [0] IMPLICIT ServiceError,
     array              [1] IMPLICIT SEQUENCE OF Data,
     structure          [2] IMPLICIT SEQUENCE OF Data,
-    boolean            [3] IMPLICIT BOOLEAN,
+    Boolean            [3] IMPLICIT Boolean,
     int8               [4] IMPLICIT Int8,
     int16              [5] IMPLICIT Int16,
     int32              [6] IMPLICIT Int32,
@@ -415,7 +415,7 @@ DataDefinition ::= CHOICE {
         fc               [1] IMPLICIT FunctionalConstraint OPTIONAL,
         type             [2] DataDefinition
     },
-    boolean            [3] IMPLICIT NULL,
+    Boolean            [3] IMPLICIT NULL,
     int8               [4] IMPLICIT NULL,
     int16              [5] IMPLICIT NULL,
     int32              [6] IMPLICIT NULL,
@@ -458,9 +458,9 @@ Apch ::= SEQUENCE {
 }
 
 ControlCode ::= SEQUENCE {
-    next        BOOLEAN,
-    resp        BOOLEAN,
-    err         BOOLEAN,
+    next        Boolean,
+    resp        Boolean,
+    err         Boolean,
     pi          Int8U
 }
 
@@ -570,7 +570,7 @@ GetServerDirectory-RequestPDU ::= SEQUENCE {
 
 GetServerDirectory-ResponsePDU ::= SEQUENCE {
     reference        [0] IMPLICIT SEQUENCE OF ObjectReference,
-    moreFollows      [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows      [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetServerDirectory-ErrorPDU ::= ServiceError
@@ -586,7 +586,7 @@ GetLogicalDeviceDirectory-RequestPDU ::= SEQUENCE {
 
 GetLogicalDeviceDirectory-ResponsePDU ::= SEQUENCE {
     lnReference       [0] IMPLICIT SEQUENCE OF SubReference,
-    moreFollows       [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows       [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetLogicalDeviceDirectory-ErrorPDU ::= ServiceError
@@ -619,7 +619,7 @@ GetLogicalNodeDirectory-RequestPDU ::= SEQUENCE {
 
 GetLogicalNodeDirectory-ResponsePDU ::= SEQUENCE {
     reference       [0] IMPLICIT SEQUENCE OF SubReference,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetLogicalNodeDirectory-ErrorPDU ::= ServiceError
@@ -642,7 +642,7 @@ GetAllDataValues-ResponsePDU ::= SEQUENCE {
         reference     [0] IMPLICIT SubReference,
         value         [1] IMPLICIT Data
     },
-    moreFollows      [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows      [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetAllDataValues-ErrorPDU ::= ServiceError
@@ -666,7 +666,7 @@ GetAllDataDefinition-ResponsePDU ::= SEQUENCE {
         cdcType       [1] IMPLICIT VisibleString OPTIONAL,
         definition    [2] IMPLICIT DataDefinition
     },
-    moreFollows      [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows      [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetAllDataDefinition-ErrorPDU ::= ServiceError
@@ -697,7 +697,7 @@ GetAllCBValues-ResponsePDU ::= SEQUENCE {
             msvcb       [5] IMPLICIT MSVCB
         }
     },
-    moreFollows      [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows      [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetAllCBValues-ErrorPDU ::= ServiceError
@@ -715,7 +715,7 @@ GetDataValues-RequestPDU ::= SEQUENCE {
 
 GetDataValues-ResponsePDU ::= SEQUENCE {
     value            [0] IMPLICIT SEQUENCE OF Data,
-    moreFollows      [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows      [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetDataValues-ErrorPDU ::= ServiceError
@@ -753,7 +753,7 @@ GetDataDirectory-ResponsePDU ::= SEQUENCE {
         reference     [0] IMPLICIT SubReference,
         fc            [1] IMPLICIT FunctionalConstraint OPTIONAL
     },
-    moreFollows      [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows      [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetDataDirectory-ErrorPDU ::= ServiceError
@@ -775,7 +775,7 @@ GetDataDefinition-ResponsePDU ::= SEQUENCE {
         cdcType       [0] IMPLICIT VisibleString OPTIONAL,
         definition    [1] IMPLICIT DataDefinition
     },
-    moreFollows      [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows      [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetDataDefinition-ErrorPDU ::= ServiceError
@@ -791,7 +791,7 @@ GetDataSetValues-RequestPDU ::= SEQUENCE {
 
 GetDataSetValues-ResponsePDU ::= SEQUENCE {
     value               [0] IMPLICIT SEQUENCE OF Data,
-    moreFollows         [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows         [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetDataSetValues-ErrorPDU ::= ServiceError
@@ -855,7 +855,7 @@ GetDataSetDirectory-ResponsePDU ::= SEQUENCE {
         reference       [0] IMPLICIT ObjectReference,
         fc              [1] IMPLICIT FunctionalConstraint
     },
-    moreFollows         [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows         [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetDataSetDirectory-ErrorPDU ::= ServiceError
@@ -929,7 +929,7 @@ GetEditSGValue-RequestPDU ::= SEQUENCE {
 
 GetEditSGValue-ResponsePDU ::= SEQUENCE {
     value           [0] IMPLICIT SEQUENCE OF Data,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetEditSGValue-ErrorPDU ::= ServiceError
@@ -955,7 +955,7 @@ GetSGCBValues-ResponsePDU ::= SEQUENCE {
         error       [0] IMPLICIT ServiceError,
         value       [1] IMPLICIT SGCB
     },
-    moreFollows    [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows    [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetSGCBValues-ErrorPDU ::= ServiceError
@@ -969,9 +969,9 @@ ReportPDU ::= SEQUENCE {
     optFlds         [1] IMPLICIT RcbOptFlds,
     sqNum           [2] IMPLICIT Int16U OPTIONAL,
     subSeqNum       [3] IMPLICIT Int16U OPTIONAL,
-    moreSegmentsFollow [4] IMPLICIT BOOLEAN OPTIONAL,
+    moreSegmentsFollow [4] IMPLICIT Boolean OPTIONAL,
     dataSet         [5] IMPLICIT ObjectReference OPTIONAL,
-    bufOvfl         [6] IMPLICIT BOOLEAN OPTIONAL,
+    bufOvfl         [6] IMPLICIT Boolean OPTIONAL,
     confRev         [7] IMPLICIT Int32U OPTIONAL,
     entry           [8] IMPLICIT SEQUENCE {
         timeOfEntry     [0] IMPLICIT EntryTime OPTIONAL,
@@ -994,7 +994,7 @@ ReportPDU ::= SEQUENCE {
 
 BRCB ::= SEQUENCE {
     rptID           [1] IMPLICIT VisibleString (SIZE (0..129)),
-    rptEna          [2] IMPLICIT BOOLEAN,
+    rptEna          [2] IMPLICIT Boolean,
     datSet          [3] IMPLICIT ObjectReference,
     confRev         [4] IMPLICIT Int32U,
     optFlds         [5] IMPLICIT RcbOptFlds,
@@ -1002,8 +1002,8 @@ BRCB ::= SEQUENCE {
     sqNum           [7] IMPLICIT Int16U,
     trgOps          [8] IMPLICIT TriggerConditions,
     intgPd          [9] IMPLICIT Int32U,
-    gi              [10] IMPLICIT BOOLEAN,
-    purgeBuf        [11] IMPLICIT BOOLEAN,
+    gi              [10] IMPLICIT Boolean,
+    purgeBuf        [11] IMPLICIT Boolean,
     entryID         [12] IMPLICIT EntryID,
     timeOfEntry     [13] IMPLICIT EntryTime,
     resvTms         [14] IMPLICIT Int16 OPTIONAL,
@@ -1019,7 +1019,7 @@ GetBRCBValues-ResponsePDU ::= SEQUENCE {
         error       [0] IMPLICIT ServiceError,
         value       [1] IMPLICIT BRCB
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetBRCBValues-ErrorPDU ::= ServiceError
@@ -1032,14 +1032,14 @@ SetBRCBValues-RequestPDU ::= SEQUENCE {
     brcb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
         rptID       [1] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
-        rptEna      [2] IMPLICIT BOOLEAN OPTIONAL,
+        rptEna      [2] IMPLICIT Boolean OPTIONAL,
         datSet      [3] IMPLICIT ObjectReference OPTIONAL,
         optFlds     [5] IMPLICIT RcbOptFlds OPTIONAL,
         bufTm       [6] IMPLICIT Int32U OPTIONAL,
         trgOps      [8] IMPLICIT TriggerConditions OPTIONAL,
         intgPd      [9] IMPLICIT Int32U OPTIONAL,
-        gi          [10] IMPLICIT BOOLEAN OPTIONAL,
-        purgeBuf    [11] IMPLICIT BOOLEAN OPTIONAL,
+        gi          [10] IMPLICIT Boolean OPTIONAL,
+        purgeBuf    [11] IMPLICIT Boolean OPTIONAL,
         entryID     [12] IMPLICIT EntryID OPTIONAL,
         resvTms     [13] IMPLICIT Int16 OPTIONAL
     }
@@ -1070,7 +1070,7 @@ SetBRCBValues-ErrorPDU ::= SEQUENCE {
 
 URCB ::= SEQUENCE {
     rptID           [1] IMPLICIT VisibleString (SIZE (0..129)),
-    rptEna          [2] IMPLICIT BOOLEAN,
+    rptEna          [2] IMPLICIT Boolean,
     datSet          [3] IMPLICIT ObjectReference,
     confRev         [4] IMPLICIT Int32U,
     optFlds         [5] IMPLICIT RcbOptFlds,
@@ -1078,8 +1078,8 @@ URCB ::= SEQUENCE {
     sqNum           [7] IMPLICIT Int16U,
     trgOps          [8] IMPLICIT TriggerConditions,
     intgPd          [9] IMPLICIT Int32U,
-    gi              [10] IMPLICIT BOOLEAN,
-    resv            [14] IMPLICIT BOOLEAN,
+    gi              [10] IMPLICIT Boolean,
+    resv            [14] IMPLICIT Boolean,
     owner           [15] IMPLICIT OCTET STRING (SIZE (0..64)) OPTIONAL
 }
 
@@ -1092,7 +1092,7 @@ GetURCBValues-ResponsePDU ::= SEQUENCE {
         error       [0] IMPLICIT ServiceError,
         value       [1] IMPLICIT URCB
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetURCBValues-ErrorPDU ::= ServiceError
@@ -1105,14 +1105,14 @@ SetURCBValues-RequestPDU ::= SEQUENCE {
     urcb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
         rptID       [1] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
-        rptEna      [2] IMPLICIT BOOLEAN OPTIONAL,
+        rptEna      [2] IMPLICIT Boolean OPTIONAL,
         datSet      [3] IMPLICIT ObjectReference OPTIONAL,
         optFlds     [5] IMPLICIT RcbOptFlds OPTIONAL,
         bufTm       [6] IMPLICIT Int32U OPTIONAL,
         trgOps      [8] IMPLICIT TriggerConditions OPTIONAL,
         intgPd      [9] IMPLICIT Int32U OPTIONAL,
-        gi          [10] IMPLICIT BOOLEAN OPTIONAL,
-        resv        [13] IMPLICIT BOOLEAN OPTIONAL
+        gi          [10] IMPLICIT Boolean OPTIONAL,
+        resv        [13] IMPLICIT Boolean OPTIONAL
     }
 }
 
@@ -1154,7 +1154,7 @@ LogEntry ::= SEQUENCE {
 -- ====================================================================== --
 
 LCB ::= SEQUENCE {
-    logEna          [1] IMPLICIT BOOLEAN,
+    logEna          [1] IMPLICIT Boolean,
     datSet          [2] IMPLICIT ObjectReference,
     trgOps          [3] IMPLICIT TriggerConditions,
     intgPd          [4] IMPLICIT Int32U,
@@ -1172,7 +1172,7 @@ GetLCBValues-ResponsePDU ::= SEQUENCE {
         error       [0] IMPLICIT ServiceError,
         value       [1] IMPLICIT LCB
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetLCBValues-ErrorPDU ::= ServiceError
@@ -1184,7 +1184,7 @@ GetLCBValues-ErrorPDU ::= ServiceError
 SetLCBValues-RequestPDU ::= SEQUENCE {
     lcb             [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
-        logEna      [1] IMPLICIT BOOLEAN OPTIONAL,
+        logEna      [1] IMPLICIT Boolean OPTIONAL,
         datSet      [2] IMPLICIT ObjectReference OPTIONAL,
         trgOps      [3] IMPLICIT TriggerConditions OPTIONAL,
         intgPd      [4] IMPLICIT Int32U OPTIONAL,
@@ -1222,7 +1222,7 @@ QueryLogByTime-RequestPDU ::= SEQUENCE {
 
 QueryLogByTime-ResponsePDU ::= SEQUENCE {
     logEntry        [0] IMPLICIT SEQUENCE OF LogEntry,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 QueryLogByTime-ErrorPDU ::= ServiceError
@@ -1239,7 +1239,7 @@ QueryLogAfter-RequestPDU ::= SEQUENCE {
 
 QueryLogAfter-ResponsePDU ::= SEQUENCE {
     logEntry        [0] IMPLICIT SEQUENCE OF LogEntry,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 QueryLogAfter-ErrorPDU ::= ServiceError
@@ -1262,7 +1262,7 @@ GetLogStatusValues-ResponsePDU ::= SEQUENCE {
             newEntr     [3] IMPLICIT EntryID
         }
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetLogStatusValues-ErrorPDU ::= ServiceError
@@ -1278,9 +1278,9 @@ SendGOOSEMessage-PDU ::= SEQUENCE {
     t               [3] IMPLICIT TimeStamp,
     stNum           [4] IMPLICIT Int32U,
     sqNum           [5] IMPLICIT Int32U,
-    simulation      [6] IMPLICIT BOOLEAN,
+    simulation      [6] IMPLICIT Boolean,
     confRev         [7] IMPLICIT Int32U,
-    ndsCom          [8] IMPLICIT BOOLEAN,
+    ndsCom          [8] IMPLICIT Boolean,
     data            [9] IMPLICIT SEQUENCE OF Data
 }
 
@@ -1331,11 +1331,11 @@ GetGOOSEElementNumber-ErrorPDU ::= ServiceError
 -- ====================================================================== --
 
 GoCB ::= SEQUENCE {
-    goEna           [1] IMPLICIT BOOLEAN,
+    goEna           [1] IMPLICIT Boolean,
     goID            [2] IMPLICIT VisibleString (SIZE (0..129)),
     datSet          [3] IMPLICIT ObjectReference,
     confRev         [4] IMPLICIT Int32U,
-    ndsCom          [5] IMPLICIT BOOLEAN,
+    ndsCom          [5] IMPLICIT Boolean,
     dstAddress      [6] IMPLICIT PhyComAddr OPTIONAL
 }
 
@@ -1348,7 +1348,7 @@ GetGoCbValues-ResponsePDU ::= SEQUENCE {
         error       [0] IMPLICIT ServiceError,
         value       [1] IMPLICIT GoCB
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetGoCbValues-ErrorPDU ::= ServiceError
@@ -1360,7 +1360,7 @@ GetGoCbValues-ErrorPDU ::= ServiceError
 SetGoCBValues-RequestPDU ::= SEQUENCE {
     gocb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
-        goEna       [1] IMPLICIT BOOLEAN OPTIONAL,
+        goEna       [1] IMPLICIT Boolean OPTIONAL,
         goID        [2] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
         datSet      [3] IMPLICIT ObjectReference OPTIONAL
     }
@@ -1390,7 +1390,7 @@ SendMSVMessage-PDU ::= SEQUENCE {
     refTm           [4] IMPLICIT TimeStamp OPTIONAL,
     smpSynch        [5] IMPLICIT Int8U,
     smpRate         [6] IMPLICIT Int16U OPTIONAL,
-    simulation      [7] IMPLICIT BOOLEAN,
+    simulation      [7] IMPLICIT Boolean,
     sample          [8] IMPLICIT SEQUENCE OF Data,
     smpMod          [9] IMPLICIT SmpMod OPTIONAL
 }
@@ -1400,7 +1400,7 @@ SendMSVMessage-PDU ::= SEQUENCE {
 -- ====================================================================== --
 
 MSVCB ::= SEQUENCE {
-    svEna           [1] IMPLICIT BOOLEAN,
+    svEna           [1] IMPLICIT Boolean,
     msvID           [2] IMPLICIT VisibleString (SIZE (0..129)),
     datSet          [3] IMPLICIT ObjectReference,
     confRev         [4] IMPLICIT Int32U,
@@ -1419,7 +1419,7 @@ GetMSVCBValues-ResponsePDU ::= SEQUENCE {
         error       [0] IMPLICIT ServiceError,
         value       [1] IMPLICIT MSVCB
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetMSVCBValues-ErrorPDU ::= ServiceError
@@ -1431,7 +1431,7 @@ GetMSVCBValues-ErrorPDU ::= ServiceError
 SetMSVCBValues-RequestPDU ::= SEQUENCE {
     msvcb           [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
-        svEna       [1] IMPLICIT BOOLEAN OPTIONAL,
+        svEna       [1] IMPLICIT Boolean OPTIONAL,
         msvID       [2] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
         datSet      [3] IMPLICIT ObjectReference OPTIONAL,
         smpMod      [5] IMPLICIT SmpMod OPTIONAL,
@@ -1481,7 +1481,7 @@ SelectWithValue-RequestPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check
 }
 
@@ -1492,7 +1492,7 @@ SelectWithValue-ResponsePDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check
 }
 
@@ -1503,7 +1503,7 @@ SelectWithValue-ErrorPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check,
     addCause        [8] IMPLICIT AddCause
 }
@@ -1518,7 +1518,7 @@ Operate-RequestPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check
 }
 
@@ -1532,7 +1532,7 @@ Operate-ErrorPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check,
     addCause        [8] IMPLICIT AddCause
 }
@@ -1548,7 +1548,7 @@ Cancel-RequestPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN
+    test            [6] IMPLICIT Boolean
 }
 
 Cancel-ResponsePDU ::= SEQUENCE {
@@ -1558,7 +1558,7 @@ Cancel-ResponsePDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN
+    test            [6] IMPLICIT Boolean
 }
 
 Cancel-ErrorPDU ::= SEQUENCE {
@@ -1568,7 +1568,7 @@ Cancel-ErrorPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     addCause        [8] IMPLICIT AddCause
 }
 
@@ -1583,7 +1583,7 @@ CommandTermination-RequestPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check,
     addCause        [8] IMPLICIT AddCause OPTIONAL
 }
@@ -1599,7 +1599,7 @@ TimeActivatedOperate-RequestPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check
 }
 
@@ -1610,7 +1610,7 @@ TimeActivatedOperate-ResponsePDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check
 }
 
@@ -1621,7 +1621,7 @@ TimeActivatedOperate-ErrorPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check,
     addCause        [8] IMPLICIT AddCause
 }
@@ -1637,7 +1637,7 @@ TimeActivatedOperateTermination-RequestPDU ::= SEQUENCE {
     origin          [3] IMPLICIT Originator,
     ctlNum          [4] IMPLICIT Int8U,
     t               [5] IMPLICIT TimeStamp,
-    test            [6] IMPLICIT BOOLEAN,
+    test            [6] IMPLICIT Boolean,
     check           [7] IMPLICIT Check,
     addCause        [8] IMPLICIT AddCause OPTIONAL
 }
@@ -1655,7 +1655,7 @@ GetFile-RequestPDU ::= SEQUENCE {
 
 GetFile-ResponsePDU ::= SEQUENCE {
     fileData        [0] IMPLICIT OCTET STRING,
-    endOfFile       [1] IMPLICIT BOOLEAN DEFAULT FALSE
+    endOfFile       [1] IMPLICIT Boolean DEFAULT 0
 }
 
 GetFile-ErrorPDU ::= ServiceError
@@ -1668,7 +1668,7 @@ SetFile-RequestPDU ::= SEQUENCE {
     filename        [0] IMPLICIT VisibleString (SIZE (0..255)),
     startPosition   [1] IMPLICIT Int32U,
     fileData        [2] IMPLICIT OCTET STRING,
-    endOfFile       [3] IMPLICIT BOOLEAN DEFAULT FALSE
+    endOfFile       [3] IMPLICIT Boolean DEFAULT 0
 }
 
 SetFile-ResponsePDU ::= NULL
@@ -1712,7 +1712,7 @@ GetFileDirectory-RequestPDU ::= SEQUENCE {
 
 GetFileDirectory-ResponsePDU ::= SEQUENCE {
     fileEntry       [0] IMPLICIT SEQUENCE OF FileEntry,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetFileDirectory-ErrorPDU ::= ServiceError
@@ -1733,7 +1733,7 @@ GetRpcInterfaceDirectory-RequestPDU ::= SEQUENCE {
 
 GetRpcInterfaceDirectory-ResponsePDU ::= SEQUENCE {
     reference       [0] IMPLICIT SEQUENCE OF VisibleString,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetRpcInterfaceDirectory-ErrorPDU ::= ServiceError
@@ -1749,7 +1749,7 @@ GetRpcMethodDirectory-RequestPDU ::= SEQUENCE {
 
 GetRpcMethodDirectory-ResponsePDU ::= SEQUENCE {
     reference       [0] IMPLICIT SEQUENCE OF VisibleString,
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetRpcMethodDirectory-ErrorPDU ::= ServiceError
@@ -1771,7 +1771,7 @@ GetRpcInterfaceDefinition-ResponsePDU ::= SEQUENCE {
         request     [3] IMPLICIT DataDefinition,
         response    [4] IMPLICIT DataDefinition
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetRpcInterfaceDefinition-ErrorPDU ::= ServiceError
@@ -1794,7 +1794,7 @@ GetRpcMethodDefinition-ResponsePDU ::= SEQUENCE {
             response    [3] IMPLICIT DataDefinition
         }
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows     [1] IMPLICIT Boolean DEFAULT 1
 }
 
 GetRpcMethodDefinition-ErrorPDU ::= ServiceError
