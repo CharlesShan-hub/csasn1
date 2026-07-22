@@ -78,7 +78,11 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                                     "double" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 2.5;", fname, vfname))),
                                     "String" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = \"test\";", fname, vfname))),
                                     "byte[]" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new byte[0];", fname, vfname))),
-                                    _ => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new {}();", fname, vfname, vjt))),
+                                    _ => {
+                                        c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new {}();", fname, vfname, vjt)));
+                                        // Also initialize the CHOICE variant's sub-fields (for struct types)
+                                        init_nested_struct_fields(c, indent, fname.as_str(), vjt.as_str(), vfname.as_str(), all, prefix, asn_defs);
+                                    }
                                 }
                             }
                         }
@@ -104,23 +108,67 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                             if inner_jt.starts_with("java.util.List<") {
                                 let inner = inner_jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
                                 c.push_str(&helpers::ln(indent, &format!("obj.{}.value = java.util.Collections.singletonList(new {}());", fname, inner)));
+                                // Also initialize the inner element's fields (if it's a struct)
+                                let inner_jt_name = format!("{}{}", prefix, inner);
+                                init_nested_struct_fields(c, indent, fname.as_str(), inner_jt_name.as_str(), "value.0", all, prefix, asn_defs);
                             }
                         }
                     }
-                    // For struct sub-objects, initialize byte[] fields with fixed sizes only
-                    if let Some(ti) = find_type(&jt, all, prefix) {
-                        if let TypeKind::Struct { fields: sub_fields } = &ti.kind {
-                            for sf in sub_fields {
-                                let s_jt = resolve_wrapper_type(&sf.rust_type, all, prefix);
-                                if s_jt == "byte[]" {
-                                    // Only use fixed sizes (not ranges like "0..=64")
-                                    if let Some(sz) = sf.size_from_attr {
-                                        let is_fixed = sf.size_attr_raw.as_deref()
-                                            .and_then(|r| r.parse::<usize>().ok())
-                                            .is_some();
-                                        if is_fixed {
-                                            let sfname = safe_field_name(sf.identifier.as_deref().unwrap_or(&sf.name));
-                                            c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new byte[{}];", fname, sfname, sz)));
+                    // For struct sub-objects, initialize fields with fixed sizes
+                    init_nested_struct_fields(c, indent, fname.as_str(), jt.as_str(), "", all, prefix, asn_defs);
+                }
+            }
+        }
+    };
+
+    // Helper: initialize fields of a nested struct (or wrapper-with-size) under the given parent path
+    fn init_nested_struct_fields(
+        c: &mut String, indent: usize, parent_var: &str, jt: &str, prefix_field: &str,
+        all: &[TypeInfo], prefix: &str, asn_defs: &HashMap<String, String>,
+    ) {
+        let obj_prefix = if prefix_field.is_empty() {
+            format!("obj.{}", parent_var)
+        } else {
+            format!("obj.{}.{}", parent_var, prefix_field)
+        };
+        if let Some(ti) = find_type(jt, all, prefix) {
+            if let TypeKind::Struct { fields: sub_fields } = &ti.kind {
+                for sf in sub_fields {
+                    let s_jt = resolve_wrapper_type(&sf.rust_type, all, prefix);
+                    let sfname = safe_field_name(sf.identifier.as_deref().unwrap_or(&sf.name));
+                    match s_jt.as_str() {
+                        "byte[]" => {
+                            let sz = sf.size_from_attr.or_else(|| {
+                                let s = helpers::resolve_size(&sf.rust_type, asn_defs);
+                                if s > 1 { Some(s) } else { None }
+                            });
+                            if let Some(sz) = sz {
+                                let is_fixed = sf.size_attr_raw.as_deref()
+                                    .and_then(|r| r.parse::<usize>().ok())
+                                    .is_some()
+                                    || sf.size_from_attr.is_none();
+                                if is_fixed {
+                                    c.push_str(&helpers::ln(indent, &format!("{}.{} = new byte[{}];", obj_prefix, sfname, sz)));
+                                }
+                            }
+                        }
+                        "String" => {
+                            let sz = helpers::test_data_size(asn_defs.get(&sf.rust_type).map(|s| s.as_str()));
+                            if sz > 1 {
+                                c.push_str(&helpers::ln(indent, &format!("{}.{} = \"{}\";", obj_prefix, sfname, "x".repeat(sz))));
+                            }
+                        }
+                        _ => {
+                            // Wrapper type (e.g. CmsFunctionalConstraint) — set .value if it's byte[] or String
+                            if let Some(sf_ti) = find_type(&s_jt, all, prefix) {
+                                let ultimate = resolve_java_type(&sf_ti.name, all, prefix);
+                                if ultimate == "byte[]" || ultimate == "String" {
+                                    let sz = helpers::resolve_size(&sf_ti.name, asn_defs);
+                                    if sz > 1 {
+                                        if ultimate == "byte[]" {
+                                            c.push_str(&helpers::ln(indent, &format!("{}.{}.value = new byte[{}];", obj_prefix, sfname, sz)));
+                                        } else {
+                                            c.push_str(&helpers::ln(indent, &format!("{}.{}.value = \"{}\";", obj_prefix, sfname, "x".repeat(sz))));
                                         }
                                     }
                                 }
@@ -130,7 +178,7 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                 }
             }
         }
-    };
+    }
 
     c.push_str(&helpers::ln(1, "@Test"));
     c.push_str(&helpers::ln(1, "public void testEncodeDecodeAper() throws Exception {"));

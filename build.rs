@@ -63,13 +63,10 @@ fn main() {
                 // 跳过 newtype: "pub struct Name(pub ..." - 即后面是 '(' 而不是 '{'
                 // 也跳过内部辅助类型
                 if !name.starts_with('_') && !types.contains(&name) {
-                    // 检查紧跟的是 '(' 还是 '{'
-                    let after_name = bytes[pos..].first().copied().unwrap_or(0);
-                    if after_name == b'{' || after_name == b' ' {
-                        // 有花括号的 struct 或 enum（不是 newtype）
-                        types.push(name);
-                    }
+                    types.push(name);
                     // 跳过 '(' 或 '{' 之后的匹配括号内容
+                    pos = skip_paren_block(&bytes, pos);
+                } else {
                     pos = skip_paren_block(&bytes, pos);
                 }
             }
@@ -99,13 +96,17 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
          use generated::dlt2811_data_types::*;\n\n\
          /* ---- Jackson JSON ↔ JER adapter ---- */\n\
          /// If json is `{{\"value\": X}}`, extract X; otherwise return as-is.\n\
+         /// Only unwraps when the value is NOT a JSON object, to avoid\n\
+         /// breaking CHOICE types (which serialize as {{\"variant\": {{...}}}}).\n\
          fn unwrap_jackson_value<'a>(json: &'a str) -> Cow<'a, str> {{\n\
-             let t = json.trim();\n\
-             // Unwrap only if JSON is exactly {{\"value\": ...}} at top level\n\
-             if t.starts_with(\"{{\\\"value\\\":\") {{\n\
-                 let rest = t[\"{{\\\"value\\\":\".len()..].trim();\n\
-                 let end = rest.rfind('}}').unwrap_or(rest.len());\n\
-                 return Cow::Owned(rest[..end].trim().to_string());\n\
+             if let Ok(serde_json::Value::Object(map)) = serde_json::from_str(json.trim()) {{\n\
+                 if map.len() == 1 {{\n\
+                     if let Some(value) = map.get(\"value\") {{\n\
+                         if !value.is_object() {{\n\
+                             return Cow::Owned(serde_json::to_string(value).unwrap_or_default());\n\
+                         }}\n\
+                     }}\n\
+                 }}\n\
              }}\n\
              Cow::Borrowed(json)\n\
          }}\n\n\

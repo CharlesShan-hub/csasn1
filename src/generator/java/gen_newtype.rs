@@ -58,10 +58,16 @@ pub fn generate(
         c.push_str(&helpers::ln(1, &format!("public {}(String hex) {{ this.value = CmsBase.parseBitStringHex(hex, {}); }}", cn, bit_count)));
     } else {
         let default_val = match jt {
-            "String" => " = \"\"",
-            "byte[]" => " = new byte[0]",
-            _ if jt.starts_with("java.util.List<") => " = new java.util.ArrayList<>()",
-            _ => "",
+            "String" => {
+                let sz = helpers::resolve_size(&ti.name, asn_defs);
+                if sz > 0 { format!(" = \"{}\"", "x".repeat(sz)) } else { " = \"\"".to_string() }
+            }
+            "byte[]" => {
+                let sz = helpers::resolve_size(&ti.name, asn_defs);
+                if sz > 0 { format!(" = new byte[{}]", sz) } else { " = new byte[0]".to_string() }
+            }
+            _ if jt.starts_with("java.util.List<") => " = new java.util.ArrayList<>()".to_string(),
+            _ => "".to_string(),
         };
         c.push_str(&helpers::ln(1, &format!("@JsonValue public {} value{};", jt, default_val)));
         c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));

@@ -12,6 +12,7 @@ pub fn generate(
     asn_doc: &Option<String>,
     named_consts: &HashMap<String, Vec<(String, i32)>>,
     fields: &[FieldInfo],
+    asn_defs: &HashMap<String, String>,
 ) -> String {
     let mut c = String::new();
     let _has_optional = fields.iter().any(|f| f.optional);
@@ -35,7 +36,29 @@ pub fn generate(
         // Use ASN.1 identifier as Java field name if available, otherwise Rust field name
         let raw_name = f.identifier.as_deref().unwrap_or(&f.name);
         let fname = safe_field_name(raw_name);
-        let dflt = jdefault(&jt, f.is_list);
+        let dflt = match jt.as_str() {
+            "byte[]" => {
+                let sz = f.size_from_attr.or_else(|| {
+                    let s = helpers::resolve_size(&f.rust_type, asn_defs);
+                    if s > 0 { Some(s) } else { None }
+                });
+                match sz {
+                    Some(n) => format!("new byte[{}]", n),
+                    None => "new byte[0]".to_string(),
+                }
+            }
+            "String" => {
+                let sz = f.size_from_attr.or_else(|| {
+                    let s = helpers::resolve_size(&f.rust_type, asn_defs);
+                    if s > 0 { Some(s) } else { None }
+                });
+                match sz {
+                    Some(n) => format!("\"{}\"", "x".repeat(n)),
+                    None => "\"\"".to_string(),
+                }
+            }
+            _ => jdefault(&jt, f.is_list),
+        };
         if fname != raw_name {
             // Java keyword escaped → need @JsonProperty to keep original name
             c.push_str(&helpers::ln(1, &format!("@JsonProperty(\"{}\") public {} {} = {};", raw_name, jt, fname, dflt)));

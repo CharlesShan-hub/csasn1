@@ -1,7 +1,10 @@
-# Build release binary + DLL, generate Java classes + tests, copy DLL/SO to assets/
+# Build release binary + generate Java classes + tests (Linux/macOS)
+# The csasn1 binary automatically copies libasn1.so to assets/java/src/main/resources/
 build-assets:
-    powershell -NoProfile -Command "Remove-Item -Recurse -Force 'assets/java' -ErrorAction SilentlyContinue; exit 0"
+    rm -rf assets/java
     cargo build --release
-    cargo run --release -- --src specs/dlt2811.asn --dest assets/java --prefix Cms --enc aper --package com.example.csasn1
-    powershell -NoProfile -Command "Copy-Item -Path target/release/asn1.dll -Destination assets/java/ -Force"
-    powershell -NoProfile -Command "if (Test-Path target/release/libasn1.so) { Copy-Item -Path target/release/libasn1.so -Destination assets/java/ -Force }"
+    cargo run --release -- --src specs/dlt2811.asn --dest assets/java --prefix Cms --enc aper --package com.ysh.jcms.data
+
+# Build + generate + run Java tests
+test-java: build-assets
+    cd assets/java && mvn test

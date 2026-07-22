@@ -30,7 +30,7 @@ pub fn gen_test_class(
             c.push_str(&test_struct::generate(ti, all, prefix, &cn, fields, asn_defs));
         }
         TypeKind::Choice { variants } => {
-            c.push_str(&test_choice::generate(ti, all, prefix, &cn, variants));
+            c.push_str(&test_choice::generate(ti, all, prefix, &cn, variants, asn_defs));
         }
     }
 
