@@ -19,6 +19,7 @@ pub struct FieldInfo {
     pub is_list: bool,
     pub identifier: Option<String>,
     pub size_from_attr: Option<usize>,
+    pub size_attr_raw: Option<String>,
 }
 
 #[derive(Debug)]
@@ -141,6 +142,17 @@ fn analyze_struct(s: &syn::ItemStruct) -> TypeKind {
                 None
             }
         });
+        // Extract raw size constraint string to distinguish fixed vs range
+        let size_attr_raw = f.attrs.iter().find_map(|attr| {
+            let ts = attr.to_token_stream().to_string();
+            if let Some(pos) = ts.find("size (\"") {
+                let after = &ts[pos + 7..];
+                let end = after.find('"')?;
+                Some(after[..end].to_string())
+            } else {
+                None
+            }
+        });
 
         fields.push(FieldInfo {
             name,
@@ -149,6 +161,7 @@ fn analyze_struct(s: &syn::ItemStruct) -> TypeKind {
             is_list,
             identifier,
             size_from_attr,
+            size_attr_raw,
         });
     }
     TypeKind::Struct { fields }

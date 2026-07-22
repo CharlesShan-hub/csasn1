@@ -44,8 +44,13 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                             .next()
                             .unwrap_or(sz)
                     } else { sz };
-                    // Fallback: use size from rasn attribute (e.g. OctetString with #[rasn(size("6"))])
-                    let sz = if sz <= 2 { f.size_from_attr.unwrap_or(sz) } else { sz };
+                    // Fallback: use size from rasn attribute (fixed sizes only, not ranges)
+                    let sz = if sz <= 2 && f.size_from_attr.is_some() {
+                        let is_fixed = f.size_attr_raw.as_deref()
+                            .and_then(|r| r.parse::<usize>().ok())
+                            .is_some();
+                        if is_fixed { f.size_from_attr.unwrap() } else { sz }
+                    } else { sz };
                     c.push_str(&helpers::ln(indent, &format!("obj.{} = new byte[{}];", fname, sz)));
                 }
                 s if s.starts_with("java.util.List<") => {
@@ -102,15 +107,21 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                             }
                         }
                     }
-                    // For struct sub-objects, initialize byte[] fields with size constraints
+                    // For struct sub-objects, initialize byte[] fields with fixed sizes only
                     if let Some(ti) = find_type(&jt, all, prefix) {
                         if let TypeKind::Struct { fields: sub_fields } = &ti.kind {
                             for sf in sub_fields {
                                 let s_jt = resolve_wrapper_type(&sf.rust_type, all, prefix);
                                 if s_jt == "byte[]" {
+                                    // Only use fixed sizes (not ranges like "0..=64")
                                     if let Some(sz) = sf.size_from_attr {
-                                        let sfname = safe_field_name(sf.identifier.as_deref().unwrap_or(&sf.name));
-                                        c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new byte[{}];", fname, sfname, sz)));
+                                        let is_fixed = sf.size_attr_raw.as_deref()
+                                            .and_then(|r| r.parse::<usize>().ok())
+                                            .is_some();
+                                        if is_fixed {
+                                            let sfname = safe_field_name(sf.identifier.as_deref().unwrap_or(&sf.name));
+                                            c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new byte[{}];", fname, sfname, sz)));
+                                        }
                                     }
                                 }
                             }

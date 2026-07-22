@@ -26,6 +26,26 @@ pub fn generate(
     c.push_str(&helpers::ln(1, "@JsonIgnore public String _choice;"));
     c.push_str(&helpers::ln(1, "private static final ObjectMapper MAPPER = CmsBase.createMapper();"));
 
+    // No-arg constructor picks the first variant as default
+    if let Some(first) = variants.first() {
+        let fname = safe_field_name(&first.name);
+        let json_key = first.identifier.as_deref().unwrap_or(&first.name);
+        let jt = resolve_wrapper_type(&first.inner_type, all, prefix);
+        let init = match jt.as_str() {
+            "int" => " = 1".to_string(),
+            "long" => " = 1L".to_string(),
+            "float" => " = 1.5f".to_string(),
+            "double" => " = 2.5".to_string(),
+            "String" => " = \"\"".to_string(),
+            "byte[]" => " = new byte[0]".to_string(),
+            _ => format!(" = new {}()", jt),
+        };
+        c.push_str(&helpers::ln(1, &format!("public {}() {{", cn)));
+        c.push_str(&helpers::ln(2, &format!("this._choice = \"{}\";", json_key)));
+        c.push_str(&helpers::ln(2, &format!("this.{}{};", fname, init)));
+        c.push_str(&helpers::ln(1, "}"));
+    }
+
     for v in variants {
         let jt = resolve_wrapper_type(&v.inner_type, all, prefix);
         let fname = safe_field_name(&v.name);
