@@ -60,6 +60,7 @@ pub fn generate(
         let default_val = match jt {
             "String" => " = \"\"",
             "byte[]" => " = new byte[0]",
+            _ if jt.starts_with("java.util.List<") => " = new java.util.ArrayList<>()",
             _ => "",
         };
         c.push_str(&helpers::ln(1, &format!("@JsonValue public {} value{};", jt, default_val)));
@@ -79,7 +80,8 @@ pub fn generate(
         // String needs JSON-quoting via MAPPER
         ("MAPPER.writeValueAsString(this.value)".into(), true)
     } else if jt == "Object" {
-        ("\"\"".into(), false)
+        // NULL type — JER expects JSON null
+        ("\"null\"".into(), false)
     } else {
         ("String.valueOf(this.value)".into(), false)
     };
@@ -110,7 +112,7 @@ pub fn generate(
     if jt.starts_with("java.util.List<") {
         let inner = jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
         c.push_str(&helpers::ln(3, &format!(
-            "r.value = MAPPER.readValue(json.trim(), new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}});",
+            "r.value = MAPPER.convertValue(MAPPER.readTree(json).get(\"value\"), new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}});",
             inner
         )));
     } else if jt == "byte[]" {

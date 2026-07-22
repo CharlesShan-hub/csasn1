@@ -57,7 +57,9 @@ pub fn jdefault(jt: &str, is_list: bool) -> String {
         "boolean" => "false".to_string(),
         "float" => "0.0f".to_string(),
         "double" => "0.0".to_string(),
-        "Integer" | "Long" | "Boolean" | "Float" | "Double" | "String" | "byte[]" => "null".to_string(),
+        "Integer" | "Long" | "Boolean" | "Float" | "Double" => "null".to_string(),
+        "String" => "\"\"".to_string(),
+        "byte[]" => "new byte[0]".to_string(),
         // Wrapper types (user-defined ASN.1 types) — create new instance for non-null default
         _ => format!("new {}()", jt),
     }

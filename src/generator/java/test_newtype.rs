@@ -28,6 +28,9 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, asn_def
     } else if jt == "byte[]" {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
         c.push_str(&helpers::ln(2, &format!("obj.value = new byte[{}];", size)));
+    } else if jt.starts_with("java.util.List<") {
+        c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
+        c.push_str(&helpers::ln(2, "obj.value = new java.util.ArrayList<>();"));
     } else {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
     }
