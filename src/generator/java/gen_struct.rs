@@ -38,23 +38,32 @@ pub fn generate(
         let fname = safe_field_name(raw_name);
         let dflt = match jt.as_str() {
             "byte[]" => {
-                let sz = f.size_from_attr.or_else(|| {
-                    let s = helpers::resolve_size(&f.rust_type, asn_defs);
-                    if s > 0 { Some(s) } else { None }
-                });
-                match sz {
-                    Some(n) => format!("new byte[{}]", n),
-                    None => "new byte[0]".to_string(),
+                // Only use non-empty default for truly fixed sizes, not ranges
+                let is_fixed = f.size_attr_raw.as_deref()
+                    .and_then(|r| r.parse::<usize>().ok())
+                    .is_some();
+                if is_fixed {
+                    if let Some(n) = f.size_from_attr {
+                        format!("new byte[{}]", n)
+                    } else {
+                        "new byte[0]".to_string()
+                    }
+                } else {
+                    "new byte[0]".to_string()
                 }
             }
             "String" => {
-                let sz = f.size_from_attr.or_else(|| {
-                    let s = helpers::resolve_size(&f.rust_type, asn_defs);
-                    if s > 0 { Some(s) } else { None }
-                });
-                match sz {
-                    Some(n) => format!("\"{}\"", "x".repeat(n)),
-                    None => "\"\"".to_string(),
+                let is_fixed = f.size_attr_raw.as_deref()
+                    .and_then(|r| r.parse::<usize>().ok())
+                    .is_some();
+                if is_fixed {
+                    if let Some(n) = f.size_from_attr {
+                        format!("\"{}\"", "x".repeat(n))
+                    } else {
+                        "\"\"".to_string()
+                    }
+                } else {
+                    "\"\"".to_string()
                 }
             }
             _ => jdefault(&jt, f.is_list),
