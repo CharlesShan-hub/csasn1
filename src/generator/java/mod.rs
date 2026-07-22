@@ -43,41 +43,48 @@ pub fn generate(
     asn_defs: &HashMap<String, String>,
     named_consts: &HashMap<String, Vec<(String, i32)>>,
 ) {
+    let project_root = &cfg.out_dir;
+
+    // —— Compute Maven directory layout —————————————————
+    let pkg_path = helpers::package_to_path(&cfg.package);
+    let main_dir = project_root.join("src/main/java").join(&pkg_path);
+    let test_dir = project_root.join("src/test/java").join(&pkg_path);
+    let res_dir = project_root.join("src/main/resources");
+
+    fs::create_dir_all(&main_dir).expect("failed to create main source dir");
+    fs::create_dir_all(&test_dir).expect("failed to create test source dir");
+    fs::create_dir_all(&res_dir).expect("failed to create resources dir");
+
     // —— Java source files ——————————————————————————
-    fs::create_dir_all(&cfg.out_dir).expect("failed to create output directory");
     for t in types {
         let code = class_gen::gen_class(t, types, &cfg.prefix, &cfg.default_enc, &cfg.package, asn_defs, named_consts);
         fs::write(
-            cfg.out_dir.join(format!("{}{}.java", cfg.prefix, t.name)),
+            main_dir.join(format!("{}{}.java", cfg.prefix, t.name)),
             &code,
         )
         .unwrap();
 
         let test_code = test_gen::gen_test_class(t, types, &cfg.prefix, &cfg.package, asn_defs);
-        let test_dir = helpers::derive_test_dir(&cfg.out_dir);
-        fs::create_dir_all(&test_dir).expect("failed to create test output directory");
         fs::write(
             test_dir.join(format!("{}{}Test.java", cfg.prefix, t.name)),
             &test_code,
         )
         .unwrap();
     }
+
+    // Native + Base
     fs::write(
-        cfg.out_dir.join(format!("{}Native.java", cfg.prefix)),
+        main_dir.join(format!("{}Native.java", cfg.prefix)),
         &native_gen::gen_native(&cfg.prefix, &cfg.package),
     )
     .unwrap();
     fs::write(
-        cfg.out_dir.join(format!("{}Base.java", cfg.prefix)),
+        main_dir.join(format!("{}Base.java", cfg.prefix)),
         &native_gen::gen_base(&cfg.prefix, &cfg.package, &cfg.default_enc),
     )
     .unwrap();
 
-    // —— Maven project structure ———————————————————
-    let project_root = helpers::derive_project_root(&cfg.out_dir);
-    let res_dir = project_root.join("src").join("main").join("resources");
-    fs::create_dir_all(&res_dir).expect("failed to create resources dir");
-
+    // —— Maven pom.xml ———————————————————————————————
     let pom_path = project_root.join("pom.xml");
     if !pom_path.exists() {
         fs::write(&pom_path, &gen_pom(&cfg.prefix, &cfg.package))
@@ -85,6 +92,7 @@ pub fn generate(
         println!("  wrote pom.xml");
     }
 
+    // —— Copy DLL to resources ——————————————————————
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let dll_name = if cfg!(target_os = "windows") { "asn1.dll" } else { "libasn1.so" };
@@ -92,7 +100,6 @@ pub fn generate(
             if dll_src.exists() {
                 fs::copy(&dll_src, res_dir.join(dll_name))
                     .expect("failed to copy asn1.dll to resources");
-                // Also copy to platform-specific subdir for JNA platform loading
                 let jna_plat_dir = res_dir.join("win32-x86-64");
                 fs::create_dir_all(&jna_plat_dir).ok();
                 fs::copy(&dll_src, jna_plat_dir.join(dll_name))
@@ -104,12 +111,11 @@ pub fn generate(
 
     println!(
         "✓ generated {} Java classes (incl. {}Native.java, {}Base.java) in {:?}",
-        types.len(), cfg.prefix, cfg.prefix, cfg.out_dir
+        types.len(), cfg.prefix, cfg.prefix, main_dir
     );
     println!(
         "✓ generated {} Java test classes in {:?}",
-        types.len(),
-        helpers::derive_test_dir(&cfg.out_dir)
+        types.len(), test_dir
     );
 }
 

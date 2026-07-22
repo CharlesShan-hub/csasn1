@@ -101,10 +101,36 @@ pub fn gen_base(prefix: &str, package: &str, default_enc: &str) -> String {
     format!(
         r#"// Auto-generated. Base class for all {pfx} data types.
 
-{pkg}import com.fasterxml.jackson.databind.ObjectMapper;
+{pkg}import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.core.*;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import java.io.IOException;
 
 public abstract class {pfx}Base {{
     public static final String DEFAULT_ENCODING = "{enc}";
+
+    /** Convert byte array to lowercase hex string. */
+    public static String hex(byte[] bytes) {{
+        if (bytes == null) return "";
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {{
+            sb.append(String.format("%02x", b & 0xFF));
+        }}
+        return sb.toString();
+    }}
+
+    /** Convert hex string to byte array. */
+    public static byte[] unhex(String hex) {{
+        if (hex == null || hex.isEmpty()) return new byte[0];
+        int len = hex.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {{
+            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
+                                 + Character.digit(hex.charAt(i + 1), 16));
+        }}
+        return data;
+    }}
 
     @Override
     public String toString() {{
@@ -113,6 +139,59 @@ public abstract class {pfx}Base {{
         }} catch (Exception e) {{
             return getClass().getSimpleName() + "{{...}}";
         }}
+    }}
+
+    /** Create an ObjectMapper configured for JER-compatible serialization. */
+    protected static ObjectMapper createMapper() {{
+        ObjectMapper m = new ObjectMapper();
+        m.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+        m.setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.NONE);
+        m.setVisibility(PropertyAccessor.IS_GETTER, JsonAutoDetect.Visibility.NONE);
+        m.setVisibility(PropertyAccessor.SETTER, JsonAutoDetect.Visibility.NONE);
+        m.setVisibility(PropertyAccessor.CREATOR, JsonAutoDetect.Visibility.NONE);
+        SimpleModule mod = new SimpleModule();
+        mod.addSerializer(byte[].class, new JsonSerializer<byte[]>() {{
+            @Override
+            public void serialize(byte[] value, JsonGenerator gen, SerializerProvider prov) throws IOException {{
+                gen.writeString(hex(value));
+            }}
+        }});
+        mod.addDeserializer(byte[].class, new JsonDeserializer<byte[]>() {{
+            @Override
+            public byte[] deserialize(JsonParser p, DeserializationContext ctx) throws IOException {{
+                return unhex(p.getValueAsString());
+            }}
+        }});
+        m.registerModule(mod);
+        return m;
+    }}
+
+    /** Convert integer value to BIT STRING JER hex (MSB-first byte packing). */
+    public static String bitStringHex(int value, int numBits) {{
+        int bytes = (numBits + 7) / 8;
+        int result = 0;
+        for (int i = 0; i < numBits; i++) {{
+            if ((value & (1 << i)) != 0) {{
+                int bytePos = i / 8;
+                int bitPos = 7 - (i % 8);
+                result |= (1 << (bytePos * 8 + bitPos));
+            }}
+        }}
+        return String.format("%0" + (bytes * 2) + "x", result);
+    }}
+
+    /** Parse BIT STRING JER hex back to integer value. */
+    public static int parseBitStringHex(String hex, int numBits) {{
+        int bytes = Integer.parseInt(hex, 16);
+        int result = 0;
+        for (int i = 0; i < numBits; i++) {{
+            int bytePos = i / 8;
+            int bitPos = 7 - (i % 8);
+            if ((bytes & (1 << (bytePos * 8 + bitPos))) != 0) {{
+                result |= (1 << i);
+            }}
+        }}
+        return result;
     }}
 }}
 "#,

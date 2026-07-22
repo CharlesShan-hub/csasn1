@@ -101,14 +101,11 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
          /// If json is `{{\"value\": X}}`, extract X; otherwise return as-is.\n\
          fn unwrap_jackson_value<'a>(json: &'a str) -> Cow<'a, str> {{\n\
              let t = json.trim();\n\
-             if t.starts_with(\"{{\") && t.contains(\"\\\"value\\\"\") {{\n\
-                 // Find the colon after \"value\" and extract everything after it\n\
-                 if let Some(colon) = t.find(':') {{\n\
-                     let rest = t[colon+1..].trim();\n\
-                     // Trim trailing }} \n\
-                     let end = rest.rfind('}}').unwrap_or(rest.len());\n\
-                     return Cow::Owned(rest[..end].trim().to_string());\n\
-                 }}\n\
+             // Unwrap only if JSON is exactly {{\"value\": ...}} at top level\n\
+             if t.starts_with(\"{{\\\"value\\\":\") {{\n\
+                 let rest = t[\"{{\\\"value\\\":\".len()..].trim();\n\
+                 let end = rest.rfind('}}').unwrap_or(rest.len());\n\
+                 return Cow::Owned(rest[..end].trim().to_string());\n\
              }}\n\
              Cow::Borrowed(json)\n\
          }}\n\n\

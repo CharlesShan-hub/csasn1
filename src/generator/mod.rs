@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use syn::{Item, Type, Fields};
+use quote::ToTokens;
 
 pub mod java;
 
@@ -16,12 +17,14 @@ pub struct FieldInfo {
     pub rust_type: String,
     pub optional: bool,
     pub is_list: bool,
+    pub identifier: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct VariantInfo {
     pub name: String,
     pub inner_type: String,
+    pub identifier: Option<String>,
 }
 
 #[derive(Debug)]
@@ -98,11 +101,30 @@ fn analyze_struct(s: &syn::ItemStruct) -> TypeKind {
         let rt = type_str(&f.ty);
         let optional = rt.starts_with("Option <");
         let is_list = rt.contains("Vec <") || rt.contains("SequenceOf <");
+
+        // Extract ASN.1 identifier from rasn attribute: identifier = "xxx"
+        let identifier = f.attrs.iter().find_map(|attr| {
+            let ts = attr.to_token_stream().to_string();
+            // Look for `identifier = "xxx"` pattern
+            if let Some(pos) = ts.find("identifier =") {
+                let after = &ts[pos + 12..]; // skip "identifier ="
+                let after = after.trim();
+                if let Some(start) = after.find('"') {
+                    let rest = &after[start + 1..];
+                    if let Some(end) = rest.find('"') {
+                        return Some(rest[..end].to_string());
+                    }
+                }
+            }
+            None
+        });
+
         fields.push(FieldInfo {
             name,
             rust_type: rt,
             optional,
             is_list,
+            identifier,
         });
     }
     TypeKind::Struct { fields }
@@ -114,9 +136,26 @@ fn analyze_enum(e: &syn::ItemEnum) -> TypeKind {
         .iter()
         .filter_map(|v| {
             if let Fields::Unnamed(ref u) = v.fields {
-                u.unnamed.first().map(|f| VariantInfo {
-                    name: v.ident.to_string(),
-                    inner_type: type_str(&f.ty),
+                u.unnamed.first().map(|f| {
+                    // Extract ASN.1 identifier from rasn attribute: identifier = "xxx"
+                    let identifier = v.attrs.iter().find_map(|attr| {
+                        let ts = attr.to_token_stream().to_string();
+                        if let Some(pos) = ts.find("identifier =") {
+                            let after = &ts[pos + 12..].trim();
+                            if let Some(start) = after.find('"') {
+                                let rest = &after[start + 1..];
+                                if let Some(end) = rest.find('"') {
+                                    return Some(rest[..end].to_string());
+                                }
+                            }
+                        }
+                        None
+                    });
+                    VariantInfo {
+                        name: v.ident.to_string(),
+                        inner_type: type_str(&f.ty),
+                        identifier,
+                    }
                 })
             } else {
                 None

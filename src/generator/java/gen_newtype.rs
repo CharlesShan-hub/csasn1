@@ -8,9 +8,34 @@ pub fn generate(
     prefix: &str,
     cn: &str,
     asn_doc: &Option<String>,
+    asn_defs: &HashMap<String, String>,
     named_consts: &HashMap<String, Vec<(String, i32)>>,
     jt: &str,
 ) -> String {
+    // Detect BIT STRING → need hex formatting in JER
+    // Check inner type name (more reliable than named_consts for some types)
+    let inner_bit_string = match &ti.kind {
+        TypeKind::Newtype { inner_type } => {
+            inner_type.starts_with("FixedBitString") || inner_type.starts_with("BitString")
+        }
+        _ => false,
+    };
+    let (hex_digits, bit_count) = if inner_bit_string || named_consts.contains_key(&ti.name) {
+        // Determine hex digit count from SIZE constraint in ASN.1 definition
+        if let Some(def) = asn_defs.get(&ti.name) {
+            if let Some((Some(min), Some(max))) = helpers::parse_asn1_size(def) {
+                // For fixed SIZE(N), use N bits → ceil(N/8) * 2 hex chars
+                let bits = max.max(min);
+                let hd = std::cmp::max(2, ((bits + 7) / 8) * 2);
+                (hd, bits)
+            } else {
+                (2, 8) // default for BIT STRING without known size
+            }
+        } else {
+            (2, 8)
+        }
+    } else { (0, 0) };
+
     let mut c = String::new();
     if let Some(doc) = asn_doc { c.push_str(doc); }
     c.push_str("@Data\n");
@@ -22,14 +47,37 @@ pub fn generate(
         }
     }
     c.push_str(&helpers::ln(1, "private static final ObjectMapper MAPPER = new ObjectMapper();"));
-    c.push_str(&helpers::ln(1, &format!("@JsonProperty public {} value;", jt)));
-    c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
-    c.push_str(&helpers::ln(1, &format!("public {}({} value) {{ this.value = value; }}", cn, jt)));
+    if hex_digits > 0 {
+        // BIT STRING: @JsonValue returns hex string, not raw int
+        c.push_str(&helpers::ln(1, &format!("public {} value;", jt)));
+        c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
+        c.push_str(&helpers::ln(1, &format!("public {}({} value) {{ this.value = value; }}", cn, jt)));
+        c.push_str(&helpers::ln(1, "@JsonValue"));
+        c.push_str(&helpers::ln(1, &format!("public String toJsonValue() {{ return CmsBase.bitStringHex(this.value, {}); }}", bit_count)));
+        c.push_str(&helpers::ln(1, "@JsonCreator"));
+        c.push_str(&helpers::ln(1, &format!("public {}(String hex) {{ this.value = CmsBase.parseBitStringHex(hex, {}); }}", cn, bit_count)));
+    } else {
+        let default_val = match jt {
+            "String" => " = \"\"",
+            "byte[]" => " = new byte[0]",
+            _ => "",
+        };
+        c.push_str(&helpers::ln(1, &format!("@JsonValue public {} value{};", jt, default_val)));
+        c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
+        c.push_str(&helpers::ln(1, "@JsonCreator"));
+        c.push_str(&helpers::ln(1, &format!("public {}({} value) {{ this.value = value; }}", cn, jt)));
+    }
 
     let (encode_arg, wrap_try): (String, bool) = if jt.starts_with("java.util.List<") {
         ("MAPPER.writeValueAsString(this.value)".into(), true)
     } else if jt == "byte[]" {
-        ("java.util.Base64.getEncoder().encodeToString(this.value)".into(), false)
+        ("MAPPER.writeValueAsString(CmsBase.hex(this.value))".into(), true)
+    } else if hex_digits > 0 {
+        // BIT STRING — format as hex string with correct bit ordering
+        (format!("MAPPER.writeValueAsString(CmsBase.bitStringHex(this.value, {}))", bit_count), true)
+    } else if jt == "String" {
+        // String needs JSON-quoting via MAPPER
+        ("MAPPER.writeValueAsString(this.value)".into(), true)
     } else if jt == "Object" {
         ("\"\"".into(), false)
     } else {
@@ -66,7 +114,7 @@ pub fn generate(
             inner
         )));
     } else if jt == "byte[]" {
-        c.push_str(&helpers::ln(3, "r.value = java.util.Base64.getDecoder().decode(json.trim());"));
+        c.push_str(&helpers::ln(3, "r.value = CmsBase.unhex(MAPPER.readTree(json).get(\"value\").asText());"));
     } else if jt == "Object" {
         c.push_str(&helpers::ln(3, "r.value = null;"));
     } else if jt == "long" {
@@ -79,6 +127,9 @@ pub fn generate(
         c.push_str(&helpers::ln(3, "r.value = (float) MAPPER.readTree(json).get(\"value\").asDouble();"));
     } else if jt == "double" {
         c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asDouble();"));
+    } else if hex_digits > 0 {
+        // BIT STRING: JER returns hex string, parse with correct bit ordering
+        c.push_str(&helpers::ln(3, &format!("r.value = CmsBase.parseBitStringHex(MAPPER.readTree(json).get(\"value\").asText(), {});", bit_count)));
     } else if jt == "int" {
         c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asInt();"));
     } else {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use super::super::*;
-use super::type_map::{resolve_java_type, java_type_ref};
+use super::type_map::{resolve_wrapper_type, java_type_ref};
 use super::helpers;
 use super::helpers::safe_field_name;
 
@@ -23,11 +23,11 @@ pub fn generate(
             c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
         }
     }
-    c.push_str(&helpers::ln(1, "public String _choice;"));
-    c.push_str(&helpers::ln(1, "private static final ObjectMapper MAPPER = new ObjectMapper();"));
+    c.push_str(&helpers::ln(1, "@JsonIgnore public String _choice;"));
+    c.push_str(&helpers::ln(1, "private static final ObjectMapper MAPPER = CmsBase.createMapper();"));
 
     for v in variants {
-        let jt = resolve_java_type(&v.inner_type, all, prefix);
+        let jt = resolve_wrapper_type(&v.inner_type, all, prefix);
         let fname = safe_field_name(&v.name);
         c.push_str(&helpers::ln(1, &format!("@JsonIgnore public {} {};", jt, fname)));
     }
@@ -37,10 +37,10 @@ pub fn generate(
     c.push_str(&helpers::ln(1, "public java.util.Map<String, Object> serializeChoice() {"));
     c.push_str(&helpers::ln(2, "java.util.Map<String, Object> map = new java.util.HashMap<String, Object>();"));
     c.push_str(&helpers::ln(2, "if (_choice != null) {"));
-    c.push_str(&helpers::ln(3, "map.put(\"_choice\", _choice);"));
     for v in variants {
         let fname = safe_field_name(&v.name);
-        c.push_str(&helpers::ln(3, &format!("if (\"{}\".equals(_choice)) map.put(\"{}\", {});", v.name, v.name, fname)));
+        let json_key = v.identifier.as_deref().unwrap_or(&v.name);
+        c.push_str(&helpers::ln(3, &format!("if (\"{}\".equals(_choice)) map.put(\"{}\", {});", json_key, json_key, fname)));
     }
     c.push_str(&helpers::ln(2, "}"));
     c.push_str(&helpers::ln(2, "return map;"));
@@ -53,9 +53,10 @@ pub fn generate(
     c.push_str(&helpers::ln(2, "this._choice = key;"));
     for v in variants {
         let fname = safe_field_name(&v.name);
-        let jt = resolve_java_type(&v.inner_type, all, prefix);
+        let jt = resolve_wrapper_type(&v.inner_type, all, prefix);
         let tref = java_type_ref(&jt);
-        c.push_str(&helpers::ln(2, &format!("if (\"{}\".equals(key)) {{", v.name)));
+        let json_key = v.identifier.as_deref().unwrap_or(&v.name);
+        c.push_str(&helpers::ln(2, &format!("if (\"{}\".equals(key)) {{", json_key)));
         c.push_str(&helpers::ln(3, &format!("this.{} = MAPPER.convertValue(value, {});", fname, tref)));
         c.push_str(&helpers::ln(2, "}"));
     }

@@ -48,7 +48,7 @@ pub fn gen_class(
                     all, prefix,
                 )
             } else { jt };
-            c.push_str(&gen_newtype::generate(ti, all, prefix, &cn, &asn_doc, named_consts, &jt));
+            c.push_str(&gen_newtype::generate(ti, all, prefix, &cn, &asn_doc, asn_defs, named_consts, &jt));
         }
         TypeKind::Struct { fields } => {
             c.push_str(&gen_struct::generate(ti, all, prefix, &cn, &asn_doc, named_consts, fields));

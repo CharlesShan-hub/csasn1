@@ -66,6 +66,61 @@ pub fn resolve_java_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
     base.to_string()
 }
 
+/// Resolve a Rust type to its Java wrapper type (does NOT unwrap newtypes).
+/// e.g. "Boolean" → "CmsBoolean" instead of "int"
+pub fn resolve_wrapper_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
+    let rt = rt.trim();
+    if rt.starts_with("Option <") {
+        let inner = rt
+            .trim_start_matches("Option <")
+            .trim_end_matches('>')
+            .trim()
+            .to_string();
+        return resolve_wrapper_type(&inner, all, prefix);
+    }
+    if rt.starts_with("SequenceOf <") || rt.starts_with("Vec <") {
+        let inner = rt
+            .trim_start_matches("SequenceOf <")
+            .trim_start_matches("Vec <")
+            .trim_end_matches('>')
+            .trim()
+            .to_string();
+        let inner_java = resolve_wrapper_type(&inner, all, prefix);
+        return format!("java.util.List<{}>", inner_java);
+    }
+    if rt.starts_with("Box <") {
+        let inner = rt
+            .trim_start_matches("Box <")
+            .trim_end_matches('>')
+            .trim()
+            .to_string();
+        return resolve_wrapper_type(&inner, all, prefix);
+    }
+
+    let base = match rt {
+        "bool" => "boolean",
+        "u8" | "i8" | "u16" | "i16" | "u32" | "i32" => "int",
+        "u64" | "i64" => "long",
+        "f32" => "float",
+        "f64" => "double",
+        s if s == "String" || s.starts_with("Utf8String") || s.starts_with("VisibleString") => "String",
+        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "byte[]",
+        s if s.starts_with("Integer") => "int",
+        s if s.starts_with("FixedBitString") => "int",
+        s if s.starts_with("BitString") => "byte[]",
+        "()" => "Object",
+        // For any user-defined type (including newtypes), return the wrapper name.
+        // Unlike resolve_java_type, we do NOT recurse into newtypes here.
+        s => return format!("{}{}", prefix, s),
+    };
+    base.to_string()
+}
+
+/// Nullable variant of resolve_wrapper_type — wrapper types are already objects.
+pub fn resolve_wrapper_type_nullable(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
+    resolve_wrapper_type(rt, all, prefix)
+}
+
 /// Resolve type to a nullable Java type (boxed primitives for optional fields).
 pub fn resolve_java_type_nullable(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
     let t = resolve_java_type(rt, all, prefix);
