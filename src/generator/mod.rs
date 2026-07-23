@@ -3,6 +3,7 @@ use syn::{Item, Type, Fields};
 use quote::ToTokens;
 
 pub mod java;
+pub mod python;
 
 #[derive(Debug)]
 pub enum TypeKind {

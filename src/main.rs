@@ -85,9 +85,18 @@ fn main() {
             };
             generator::java::generate(&types, &cfg, &asn_defs, &named_consts);
         }
+        "python" | "py" => {
+            let cfg = generator::python::PythonConfig {
+                prefix,
+                default_enc,
+                package,
+                out_dir,
+            };
+            generator::python::generate(&types, &cfg, &asn_defs, &named_consts);
+        }
         other => {
             eprintln!(
-                "Error: unsupported target language '{}'. Supported: java",
+                "Error: unsupported target language '{}'. Supported: java, python",
                 other
             );
             std::process::exit(1);
