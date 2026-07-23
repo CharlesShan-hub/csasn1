@@ -18,3 +18,6 @@ strip = "none"
 
 [build-dependencies]
 rasn-compiler = "0.16"
+
+[patch.crates-io]
+rasn = { path = "d:/project/rasn" }

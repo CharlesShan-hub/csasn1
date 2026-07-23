@@ -219,3 +219,28 @@ decoded = decode("Apdu", "aper", encoded)
 - [syn](https://github.com/dtolnay/syn) — Rust 代码解析
 - [JNA](https://github.com/java-native-access/jna) — Java 原生调用
 - [Jackson](https://github.com/FasterXML/jackson) — Java JSON 序列化
+
+## TODO / 改进方向
+
+### Java 类质量提升
+
+- [ ] **Builder 模式** — 为复杂类型生成 Builder，代替多个 setter 调用
+- [ ] **不可变对象变体** — 可选生成 record 或不可变类，适合线程安全场景
+- [ ] **泛化编解码接口** — `Codec.aper().encode(obj)` 代替每个类的静态方法
+- [ ] **Null safety** — OPTIONAL 字段使用 `Optional<T>` 或 `@Nullable` 注解
+- [ ] **Jackson 注解** — 生成 `@JsonProperty("fc")`、`@JsonInclude` 等注解，开箱即用与 REST API 集成
+
+### 性能
+
+- [ ] **批量 FFI 调用** — 多个 PDU 一次 JNI 调用，减少跨语言开销
+- [ ] **直接 ByteBuffer** — 跳过 JSON 中间表示，直接传二进制 buffer
+
+### 测试
+
+- [ ] **约束感知的随机数据生成** — 根据 SIZE 范围、permitted alphabet 自动生成合法的随机测试数据
+- [ ] **边界值测试** — 自动生成 MIN/MAX/空/超长等边界用例
+
+### 文档与可追溯性
+
+- [ ] **ASN.1 注释 → Javadoc** — 将 ASN.1 规约中的注释携带到生成的 Java 类中
+- [ ] **生成版本标记** — 标明由哪个 ASN.1 文件、什么时间、哪个生成器版本生成

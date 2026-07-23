@@ -12,7 +12,7 @@ pub fn generate(
     asn_doc: &Option<String>,
     named_consts: &HashMap<String, Vec<(String, i32)>>,
     fields: &[FieldInfo],
-    asn_defs: &HashMap<String, String>,
+    _asn_defs: &HashMap<String, String>,
 ) -> String {
     let mut c = String::new();
     let base = format!("{}Base", prefix);
