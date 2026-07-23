@@ -52,12 +52,39 @@ pub fn resolve_py_type(rust_type: &str, all: &[TypeInfo], prefix: &str) -> Strin
     "Any".into()
 }
 
+/// Extract element type from "Vec <CmsFoo>" or "SequenceOf <CmsFoo>"
+fn list_elem_type(rust_type: &str, prefix: &str, all: &[TypeInfo]) -> Option<String> {
+    let rt = rust_type.trim();
+    let inner = if rt.starts_with("Vec <") {
+        rt.trim_start_matches("Vec <").trim_end_matches('>').trim()
+    } else if rt.starts_with("SequenceOf <") {
+        rt.trim_start_matches("SequenceOf <").trim_end_matches('>').trim()
+    } else { return None; };
+    if inner.is_empty() { return None; }
+    // Resolve with prefix
+    let with_prefix = if inner.starts_with(prefix) {
+        inner.to_string()
+    } else {
+        format!("{}{}", prefix, inner)
+    };
+    // Verify it's a known type
+    if all.iter().any(|t| format!("{}{}", prefix, t.name) == with_prefix || t.name == inner) {
+        Some(with_prefix)
+    } else { None }
+}
+
 /// Generate Python field declaration
 pub fn gen_field(f: &FieldInfo, all: &[TypeInfo], prefix: &str) -> String {
     let raw = f.identifier.as_deref().unwrap_or(&f.name);
     let name = py_safe_name(raw);
     let py_type = resolve_py_type(&f.rust_type, all, prefix);
     if f.is_list {
+        // Fixed-size SEQUENCE OF: generate default with correct element count
+        if let Some(sz) = f.size_from_attr.filter(|&s| s > 0 && s <= 100) {
+            if let Some(elem) = list_elem_type(&f.rust_type, prefix, all) {
+                return format!("    {}: {} = field(default_factory=lambda: [{}() for _ in range({})])", name, py_type, elem, sz);
+            }
+        }
         format!("    {}: {} = field(default_factory=list)", name, py_type)
     } else if f.optional {
         format!("    {}: {} = None", name, py_type)

@@ -85,7 +85,7 @@ pub fn gen_base(_prefix: &str, _package: &str) -> String {
     c.push_str("        d = {}\n");
     c.push_str("        for k in obj.__dataclass_fields__:\n");
     c.push_str("            if k in ('_set', '_choice', '_bit_count'):\n                continue\n");
-    c.push_str("            v = getattr(obj, k)\n");
+    c.push_str("            v = obj.__dict__.get(k)\n");
     c.push_str("            if v is None:\n                continue\n");
     c.push_str("            d[k] = _to_dict(v)\n");
     c.push_str("        return d\n");
@@ -115,14 +115,14 @@ pub fn gen_base(_prefix: &str, _package: &str) -> String {
     c.push_str("        for k in obj.__dataclass_fields__:\n");
     c.push_str("            if k in ('_set', '_choice', '_bit_count'):\n                continue\n");
     c.push_str("            if k in obj._set:\n");
-    c.push_str("                d[k] = _to_dict_strict(getattr(obj, k))\n");
+    c.push_str("                d[k] = _to_dict_strict(obj.__dict__.get(k))\n");
     c.push_str("        return d\n");
     c.push_str("    # No _set nor _choice: include all non-None\n");
     c.push_str("    if hasattr(obj, '__dataclass_fields__'):\n");
     c.push_str("        d = {}\n");
     c.push_str("        for k in obj.__dataclass_fields__:\n");
     c.push_str("            if k in ('_set', '_choice', '_bit_count'):\n                continue\n");
-    c.push_str("            v = getattr(obj, k)\n");
+    c.push_str("            v = obj.__dict__.get(k)\n");
     c.push_str("            if v is not None:\n                d[k] = _to_dict_strict(v)\n");
     c.push_str("        return d\n");
     c.push_str("    return obj\n\n");
