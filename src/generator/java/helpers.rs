@@ -102,7 +102,7 @@ pub fn parse_asn1_size(def: &str) -> Option<(Option<usize>, Option<usize>)> {
 pub fn test_data_size(def: Option<&str>) -> usize {
     let size = match def.and_then(parse_asn1_size) {
         Some((Some(min), Some(max))) if min == max => max,       // fixed
-        Some((Some(min), _)) => min + 1,                         // range → min+1
+        Some((Some(min), Some(max))) => std::cmp::max(2, (min + max) / 2 + 1), // mid-range, min 2
         Some((_, Some(max))) => max,                              // max only
         Some((Some(min), None)) => min + 1,                       // min only
         _ => return 2,                                            // default

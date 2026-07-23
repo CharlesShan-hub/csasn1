@@ -8,3 +8,7 @@ build-assets:
 # Build + generate + run Java tests
 test-java: build-assets
     cd assets/java && mvn test
+
+# Run a single Java test by class name (e.g. just test-one CmsObjectNameTest)
+test-one cls:
+    cd assets/java && mvn test -Dtest={{cls}}

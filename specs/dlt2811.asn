@@ -610,8 +610,8 @@ ACSIClass ::= INTEGER {
 
 GetLogicalNodeDirectory-RequestPDU ::= SEQUENCE {
     reference       [0] IMPLICIT CHOICE {
-        ldName        [0] IMPLICIT ObjectName,
-        lnReference   [1] IMPLICIT ObjectReference
+        ldName         [0] IMPLICIT ObjectName,
+        lnReference    [1] IMPLICIT ObjectReference
     },
     acsiClass       [1] IMPLICIT ACSIClass,
     referenceAfter  [2] IMPLICIT ObjectReference OPTIONAL
