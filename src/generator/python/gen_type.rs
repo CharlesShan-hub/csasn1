@@ -50,6 +50,17 @@ pub fn gen_type_class(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &
                 } else {
                     c.push_str(&format!("    value: {} = {}\n", py_type, default));
                 }
+            } else if py_type == "str" {
+                // Check for fixed SIZE(N) — use correct-length default
+                let fixed_size = asn_defs.get(&ti.name)
+                    .and_then(|def| super::super::java::helpers::parse_asn1_size(def))
+                    .and_then(|(min, max)| if min == max && min.is_some() { min } else { None })
+                    .unwrap_or(0);
+                if fixed_size > 0 {
+                    c.push_str(&format!("    value: {} = \"x\" * {}\n", py_type, fixed_size));
+                } else {
+                    c.push_str(&format!("    value: {} = {}\n", py_type, default));
+                }
             } else if default == "None" && py_type != "Any" {
                 c.push_str(&format!("    value: {} = field(default_factory=lambda: {}())\n", py_type, py_type));
             } else {

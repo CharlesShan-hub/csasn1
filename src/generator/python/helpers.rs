@@ -66,6 +66,29 @@ pub fn gen_field(f: &FieldInfo, all: &[TypeInfo], prefix: &str) -> String {
         if default == "None" && py_type != "Any" {
             // Use lambda to handle forward references
             format!("    {}: {} = field(default_factory=lambda: {}())", name, py_type, py_type)
+        } else if py_type == "bytes" && !f.is_list {
+            // Fixed-length OCTET STRING — use correct-length default if fixed size
+            let fixed = f.size_attr_raw.as_deref()
+                .and_then(|raw| {
+                    // Check if it's SIZE(N), not SIZE(M..N)
+                    let no_range = !raw.contains("..");
+                    if !no_range { return None; }
+                    let digits: String = raw.chars().filter(|c| c.is_ascii_digit()).collect();
+                    digits.parse::<usize>().ok()
+                })
+                .or_else(|| {
+                    // Also check FixedOctetString rust_type
+                    if f.rust_type.starts_with("FixedOctetString") {
+                        let d: String = f.rust_type.chars().filter(|c| c.is_ascii_digit()).collect();
+                        d.parse::<usize>().ok()
+                    } else { None }
+                })
+                .unwrap_or(0);
+            if fixed > 0 {
+                format!("    {}: {} = b\"\\x00\" * {}", name, py_type, fixed)
+            } else {
+                format!("    {}: {} = {}", name, py_type, default)
+            }
         } else {
             format!("    {}: {} = {}", name, py_type, default)
         }

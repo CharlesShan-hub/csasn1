@@ -181,7 +181,7 @@ pub fn generate(types: &[TypeInfo], cfg: &PythonConfig, asn_defs: &HashMap<Strin
     }
     all_tests.push_str(")\n\n");
     for ti in types {
-        all_tests.push_str(&test_gen::gen_test(ti, types, &cfg.prefix, &cfg.package));
+        all_tests.push_str(&test_gen::gen_test(ti, types, &cfg.prefix, &cfg.package, asn_defs));
         all_tests.push('\n');
     }
     fs::write(test_dir.join("test_types.py"), &all_tests)
