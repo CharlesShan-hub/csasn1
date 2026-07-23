@@ -1,7 +1,7 @@
 use super::helpers;
 
 /// Generate _native.py — ctypes bridge
-pub fn gen_native(prefix: &str, _package: &str, default_enc: &str) -> String {
+pub fn gen_native(_prefix: &str, _package: &str, default_enc: &str) -> String {
     let mut c = String::new();
     c.push_str(&helpers::gen_header_comment());
     c.push_str("# ctypes bridge to native asn1.dll\n\n");
@@ -54,37 +54,125 @@ pub fn gen_native(prefix: &str, _package: &str, default_enc: &str) -> String {
 }
 
 /// Generate _base.py — serialization helpers
-pub fn gen_base(prefix: &str, _package: &str) -> String {
+pub fn gen_base(_prefix: &str, _package: &str) -> String {
     let mut c = String::new();
     c.push_str(&helpers::gen_header_comment());
     c.push_str("# Base utilities\n\n");
-    c.push_str("import json\nfrom dataclasses import dataclass, field, asdict\nfrom typing import Any\n\n");
+    c.push_str("import json\nfrom dataclasses import dataclass, field\nfrom typing import Any\n\n");
     c.push_str("from ._native import encode, decode_raw\n\n");
 
+    // --- Lenient serialization (skips None, used by encode_test) ---
     c.push_str("def to_json(obj) -> str:\n    return json.dumps(_to_dict(obj))\n\n");
     c.push_str("def _to_dict(obj) -> Any:\n");
     c.push_str("    if obj is None:\n        return None\n");
-    c.push_str("    if hasattr(obj, '_set'):\n");
-    c.push_str("        d = {}\n");
-    c.push_str("        for k, v in obj.__dict__.items():\n            if k == '_set':\n                continue\n");
-    c.push_str("            d[k] = _to_dict(v)\n        return d\n");
-    c.push_str("    if hasattr(obj, '__dataclass_fields__'):\n");
-    c.push_str("        return {k: _to_dict(v) for k, v in asdict(obj).items()}\n");
     c.push_str("    if isinstance(obj, bytes):\n        return obj.hex()\n");
     c.push_str("    if isinstance(obj, list):\n        return [_to_dict(x) for x in obj]\n");
+    c.push_str("    # BIT STRING with _bit_count: convert int to hex string\n");
+    c.push_str("    if hasattr(obj, '_bit_count') and hasattr(obj, 'value'):\n");
+    c.push_str("        return bit_string_hex(obj.value, obj._bit_count)\n");
+    c.push_str("    # Newtype wrapper: unwrap to raw value\n");
+    c.push_str("    if hasattr(obj, '__dataclass_fields__'):\n");
+    c.push_str("        fields = obj.__dataclass_fields__\n");
+    c.push_str("        if set(fields.keys()) == {'value'}:\n");
+    c.push_str("            return _to_dict(obj.value)\n");
+    c.push_str("    # CHOICE: only serialize the selected variant\n");
+    c.push_str("    if hasattr(obj, '_choice') and obj._choice:\n");
+    c.push_str("        v = getattr(obj, obj._choice, None)\n");
+    c.push_str("        if v is not None:\n            return {obj._choice: _to_dict(v)}\n");
+    c.push_str("        return {}\n");
+    c.push_str("    # Dataclass: skip None values (lenient mode)\n");
+    c.push_str("    if hasattr(obj, '__dataclass_fields__'):\n");
+    c.push_str("        d = {}\n");
+    c.push_str("        for k in obj.__dataclass_fields__:\n");
+    c.push_str("            if k in ('_set', '_choice', '_bit_count'):\n                continue\n");
+    c.push_str("            v = getattr(obj, k)\n");
+    c.push_str("            if v is None:\n                continue\n");
+    c.push_str("            d[k] = _to_dict(v)\n");
+    c.push_str("        return d\n");
     c.push_str("    return obj\n\n");
-
+    // --- Strict serialization (checks _set, used by encode) ---
+    c.push_str("def to_json_strict(obj) -> str:\n    return json.dumps(_to_dict_strict(obj))\n\n");
+    c.push_str("def _to_dict_strict(obj) -> Any:\n");
+    c.push_str("    if obj is None:\n        return None\n");
+    c.push_str("    if isinstance(obj, bytes):\n        return obj.hex()\n");
+    c.push_str("    if isinstance(obj, list):\n        return [_to_dict_strict(x) for x in obj]\n");
+    c.push_str("    # BIT STRING with _bit_count: convert int to hex string\n");
+    c.push_str("    if hasattr(obj, '_bit_count') and hasattr(obj, 'value'):\n");
+    c.push_str("        return bit_string_hex(obj.value, obj._bit_count)\n");
+    c.push_str("    # Newtype wrapper\n");
+    c.push_str("    if hasattr(obj, '__dataclass_fields__'):\n");
+    c.push_str("        fields = obj.__dataclass_fields__\n");
+    c.push_str("        if set(fields.keys()) == {'value'}:\n");
+    c.push_str("            return _to_dict_strict(obj.value)\n");
+    c.push_str("    # CHOICE: only serialize the selected variant\n");
+    c.push_str("    if hasattr(obj, '_choice') and obj._choice:\n");
+    c.push_str("        v = getattr(obj, obj._choice, None)\n");
+    c.push_str("        if v is not None:\n            return {obj._choice: _to_dict_strict(v)}\n");
+    c.push_str("        return {}\n");
+    c.push_str("    # Has _set: only include explicitly set fields\n");
+    c.push_str("    if hasattr(obj, '_set'):\n");
+    c.push_str("        d = {}\n");
+    c.push_str("        for k in obj.__dataclass_fields__:\n");
+    c.push_str("            if k in ('_set', '_choice', '_bit_count'):\n                continue\n");
+    c.push_str("            if k in obj._set:\n");
+    c.push_str("                d[k] = _to_dict_strict(getattr(obj, k))\n");
+    c.push_str("        return d\n");
+    c.push_str("    # No _set nor _choice: include all non-None\n");
+    c.push_str("    if hasattr(obj, '__dataclass_fields__'):\n");
+    c.push_str("        d = {}\n");
+    c.push_str("        for k in obj.__dataclass_fields__:\n");
+    c.push_str("            if k in ('_set', '_choice', '_bit_count'):\n                continue\n");
+    c.push_str("            v = getattr(obj, k)\n");
+    c.push_str("            if v is not None:\n                d[k] = _to_dict_strict(v)\n");
+    c.push_str("        return d\n");
+    c.push_str("    return obj\n\n");
+    // --- Decode ---
+    c.push_str("def _convert_bytes(val, target_type) -> Any:\n");
+    c.push_str("    if val is None:\n        return None\n");
+    c.push_str("    if target_type is bytes and isinstance(val, str):\n");
+    c.push_str("        try:\n            return bytes.fromhex(val)\n");
+    c.push_str("        except (ValueError, AttributeError):\n            pass\n");
+    c.push_str("    return val\n\n");
+    // --- BIT STRING hex conversion (matching Java CmsBase.bitStringHex) ---
+    c.push_str("def bit_string_hex(value: int, num_bits: int) -> str:\n");
+    c.push_str("    num_bytes = (num_bits + 7) // 8\n    result = 0\n");
+    c.push_str("    for i in range(num_bits):\n");
+    c.push_str("        if (value >> i) & 1:\n");
+    c.push_str("            byte_pos = i // 8\n            bit_pos = 7 - (i % 8)\n");
+    c.push_str("            result |= 1 << (byte_pos * 8 + bit_pos)\n");
+    c.push_str("    return format(result, '0{}x'.format(num_bytes * 2))\n\n");
+    c.push_str("def parse_bit_string_hex(hex_str: str, num_bits: int) -> int:\n");
+    c.push_str("    raw = int(hex_str, 16)\n    result = 0\n");
+    c.push_str("    for i in range(num_bits):\n");
+    c.push_str("        byte_pos = i // 8\n        bit_pos = 7 - (i % 8)\n");
+    c.push_str("        if (raw >> (byte_pos * 8 + bit_pos)) & 1:\n");
+    c.push_str("            result |= 1 << i\n");
+    c.push_str("    return result\n\n");
     c.push_str("def from_json(json_str: str, cls) -> Any:\n");
     c.push_str("    data = json.loads(json_str)\n    return _from_dict(data, cls)\n\n");
-    c.push_str("def _from_dict(data: dict, cls) -> Any:\n");
+    c.push_str("def _from_dict(data, cls) -> Any:\n");
     c.push_str("    if data is None:\n        return None\n");
     c.push_str("    if hasattr(cls, '__dataclass_fields__'):\n");
-    c.push_str("        fields = cls.__dataclass_fields__\n        kwargs = {}\n");
-    c.push_str("        for name, field_type in fields.items():\n");
-    c.push_str("            if name == '_set':\n                continue\n");
-    c.push_str("            if name in data:\n");
-    c.push_str("                kwargs[name] = _from_dict(data[name], field_type.type)\n");
-    c.push_str("        return cls(**kwargs)\n");
+    c.push_str("        fields = cls.__dataclass_fields__\n");
+    c.push_str("        # BIT STRING: parse hex string back to int\n");
+    c.push_str("        if hasattr(cls, '_bit_count') and 'value' in fields:\n");
+    c.push_str("            hex_val = data['value'] if isinstance(data, dict) and 'value' in data else data\n");
+    c.push_str("            return cls(value=parse_bit_string_hex(str(hex_val) if hex_val is not None else '0', cls._bit_count))\n");
+    c.push_str("        # Newtype: always recursively wrap, even when data is scalar\n");
+    c.push_str("        if set(fields.keys()) == {'value'}:\n");
+    c.push_str("            val = data['value'] if isinstance(data, dict) and 'value' in data else data\n");
+    c.push_str("            result = _from_dict(val, fields['value'].type)\n");
+    c.push_str("            result = _convert_bytes(result, fields['value'].type)\n");
+    c.push_str("            return cls(value=result)\n");
+    c.push_str("        # Regular dataclass\n");
+    c.push_str("        if isinstance(data, dict):\n");
+    c.push_str("            kwargs = {}\n");
+    c.push_str("            for name, field_type in fields.items():\n");
+    c.push_str("                if name in ('_set', '_choice', '_bit_count'):\n                    continue\n");
+    c.push_str("                if name in data:\n");
+    c.push_str("                    val = _from_dict(data[name], field_type.type)\n");
+    c.push_str("                    kwargs[name] = _convert_bytes(val, field_type.type)\n");
+    c.push_str("            return cls(**kwargs)\n");
     c.push_str("    if isinstance(data, list):\n        return data\n");
     c.push_str("    return data\n");
     c
@@ -96,7 +184,7 @@ pub fn gen_init(prefix: &str, package: &str) -> String {
     let mut c = String::new();
     c.push_str(&helpers::gen_header_comment());
     c.push_str("\nfrom ._native import encode, decode_raw\n");
-    c.push_str("from ._base import to_json, from_json\n");
+    c.push_str("from ._base import to_json, to_json_strict, from_json, bit_string_hex, parse_bit_string_hex\n");
     c.push_str("\n__all__ = []\n");
     c
 }

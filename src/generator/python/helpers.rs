@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use super::super::*;
 
 /// Re-use the version helper from the Java generator
@@ -42,7 +41,8 @@ pub fn resolve_py_type(rust_type: &str, all: &[TypeInfo], prefix: &str) -> Strin
     if rt == "i8" || rt == "i16" || rt == "i32" || rt == "i64" { return "int".into(); }
     if rt == "u8" || rt == "u16" || rt == "u32" || rt == "u64" { return "int".into(); }
     if rt == "f32" || rt == "f64" { return "float".into(); }
-    if rt == "BIT_STRING" || rt == "OctetString" || rt.starts_with("FixedOctetString") { return "bytes".into(); }
+    if rt == "BIT_STRING" || rt.starts_with("BitString") || rt.starts_with("FixedBitString") { return "int".into(); }
+    if rt == "OctetString" || rt.starts_with("FixedOctetString") { return "bytes".into(); }
     if rt.starts_with("VisibleString") || rt.starts_with("UTF8String") || rt == "String" { return "str".into(); }
     if rt.starts_with("Vec <") || rt.starts_with("SequenceOf <") { return "list".into(); }
     if rt.starts_with(prefix) || all.iter().any(|t| format!("{}{}", prefix, t.name) == rt || t.name == rt) {
@@ -59,8 +59,15 @@ pub fn gen_field(f: &FieldInfo, all: &[TypeInfo], prefix: &str) -> String {
     let py_type = resolve_py_type(&f.rust_type, all, prefix);
     if f.is_list {
         format!("    {}: {} = field(default_factory=list)", name, py_type)
+    } else if f.optional {
+        format!("    {}: {} = None", name, py_type)
     } else {
         let default = py_default(&py_type);
-        format!("    {}: {} = {}", name, py_type, default)
+        if default == "None" && py_type != "Any" {
+            // Use lambda to handle forward references
+            format!("    {}: {} = field(default_factory=lambda: {}())", name, py_type, py_type)
+        } else {
+            format!("    {}: {} = {}", name, py_type, default)
+        }
     }
 }
