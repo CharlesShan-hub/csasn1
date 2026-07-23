@@ -98,6 +98,45 @@ pub fn gen_decode_method(c: &mut String, cn: &str, native: &str, type_name: &str
     c.push_str(&ln(1, "}"));
 }
 
+/// Return the generator version string (e.g. "csasn1 v0.1.0 at 2026-07-23 11:30").
+pub fn gen_version() -> String {
+    let ts = {
+        let d = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default();
+        let secs = d.as_secs();
+        // Days since epoch
+        let days = secs / 86400;
+        // Remaining seconds in the day
+        let day_secs = secs % 86400;
+        let hours = day_secs / 3600;
+        let minutes = (day_secs % 3600) / 60;
+
+        // Gregorian calendar: days since 1970-01-01
+        let mut y = 1970i64;
+        let mut d = days as i64;
+        loop {
+            let leap = (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
+            let days_in_year = if leap { 366 } else { 365 };
+            if d < days_in_year { break; }
+            d -= days_in_year;
+            y += 1;
+        }
+        let leap = (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
+        let mdays = if leap {
+            [31,29,31,30,31,30,31,31,30,31,30,31]
+        } else {
+            [31,28,31,30,31,30,31,31,30,31,30,31]
+        };
+        let mut m = 0usize;
+        for (i, &md) in mdays.iter().enumerate() {
+            if d < md as i64 { m = i + 1; break; }
+            d -= md as i64;
+        }
+        format!("{:04}-{:02}-{:02} {:02}:{:02}", y, m, d + 1, hours, minutes)
+    };
+    format!("csasn1 v{} at {} UTC", env!("CARGO_PKG_VERSION"), ts)
+}
 /// Parse SIZE constraint from an ASN.1 definition line.
 /// Returns `(min, max)` where both are `Some` for fixed/constrained sizes.
 /// - `SIZE(8)`       → (Some(8), Some(8))
