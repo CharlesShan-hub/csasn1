@@ -19,6 +19,7 @@ pub fn generate(
     if let Some(doc) = asn_doc { c.push_str(doc); }
     c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
     c.push_str("@Data\n");
+    c.push_str("@lombok.experimental.Accessors(chain = true, fluent = true)\n");
     c.push_str(&format!("public class {} extends {}Base {{\n", cn, prefix));
     if let Some(entries) = named_consts.get(&ti.name) {
         for (name, val) in entries {
@@ -84,24 +85,12 @@ pub fn generate(
     }
     c.push_str(&helpers::ln(1, "}"));
 
-    // encode
-    helpers::enc_overload(&mut c, &format!(
-        "{}{}{}{}{}",
-        helpers::ln(2, "try {"),
-        helpers::ln(3, &format!("return {}.encode(\"{}\", enc, MAPPER.writeValueAsString(this));", native, ti.name)),
-        helpers::ln(2, "} catch (Exception e) {"),
-        helpers::ln(3, "throw new RuntimeException(e);"),
-        helpers::ln(2, "}"),
-    ));
+    // encode + encodeTest
+    helpers::gen_encode_methods(&mut c, cn, &native, &ti.name, "MAPPER.writeValueAsString(this)",
+                                false, &[]);
 
     // decode
-    c.push_str(&helpers::ln(1, &format!("public static {} decode(String enc, byte[] data) {{", cn)));
-    c.push_str(&helpers::ln(2, "try {"));
-    c.push_str(&helpers::ln(3, &format!("return MAPPER.readValue({}.decode(\"{}\", enc, data), {}.class);", native, ti.name, cn)));
-    c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
-    c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
-    c.push_str(&helpers::ln(2, "}"));
-    c.push_str(&helpers::ln(1, "}"));
+    helpers::gen_decode_method(&mut c, cn, &native, &ti.name);
     c.push_str("}\n");
     c
 }

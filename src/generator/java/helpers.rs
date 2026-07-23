@@ -54,13 +54,47 @@ pub fn ln(indent: usize, s: &str) -> String {
     format!("{}{}\n", " ".repeat(indent * 4), s)
 }
 
-/// Generate the encode(String) + encode() overload pair.
-pub fn enc_overload(c: &mut String, body: &str) {
-    c.push_str(&ln(1, "public byte[] encode(String enc) {"));
-    c.push_str(body);
-    c.push_str(&ln(1, "}"));
+/// Generate encode methods for struct/choice types (no _set filtering on encodeArg).
+/// If `encodeArg` is "this", MAPPER.valueToTree is used and opt_fields are stripped.
+pub fn gen_encode_methods(c: &mut String, _cn: &str, native: &str, type_name: &str,
+                          encode_arg: &str, has_optional: bool, opt_fields: &[&str]) {
+    // encode() — strict
     c.push_str(&ln(1, "public byte[] encode() {"));
-    c.push_str(&ln(2, "return encode(DEFAULT_ENCODING);"));
+    c.push_str(&ln(2, "try {"));
+    if has_optional {
+        c.push_str(&ln(3, "com.fasterxml.jackson.databind.node.ObjectNode _root = MAPPER.valueToTree(this);"));
+        for fname in opt_fields {
+            c.push_str(&ln(3, &format!("if (!_set.contains(\"{}\")) _root.remove(\"{}\");", fname, fname)));
+        }
+        c.push_str(&ln(3, &format!("String _json = MAPPER.writeValueAsString(_root);")));
+    } else {
+        c.push_str(&ln(3, &format!("String _json = {};", encode_arg)));
+    }
+    c.push_str(&ln(3, &format!("return {}.encode(\"{}\", DEFAULT_ENCODING, _json);", native, type_name)));
+    c.push_str(&ln(2, "} catch (Exception e) {"));
+    c.push_str(&ln(3, "throw new RuntimeException(e);"));
+    c.push_str(&ln(2, "}"));
+    c.push_str(&ln(1, "}"));
+
+    // encodeTest() — lenient (all fields)
+    c.push_str(&ln(1, "public byte[] encodeTest() {"));
+    c.push_str(&ln(2, "try {"));
+    c.push_str(&ln(3, &format!("String _json = {};", encode_arg)));
+    c.push_str(&ln(3, &format!("return {}.encode(\"{}\", DEFAULT_ENCODING, _json);", native, type_name)));
+    c.push_str(&ln(2, "} catch (Exception e) {"));
+    c.push_str(&ln(3, "throw new RuntimeException(e);"));
+    c.push_str(&ln(2, "}"));
+    c.push_str(&ln(1, "}"));
+}
+
+/// Generate `decode(byte[])` for struct/choice types.
+pub fn gen_decode_method(c: &mut String, cn: &str, native: &str, type_name: &str) {
+    c.push_str(&ln(1, &format!("public static {} decode(byte[] data) {{", cn)));
+    c.push_str(&ln(2, "try {"));
+    c.push_str(&ln(3, &format!("return MAPPER.readValue({}.decode(\"{}\", DEFAULT_ENCODING, data), {}.class);", native, type_name, cn)));
+    c.push_str(&ln(2, "} catch (Exception e) {"));
+    c.push_str(&ln(3, "throw new RuntimeException(e);"));
+    c.push_str(&ln(2, "}"));
     c.push_str(&ln(1, "}"));
 }
 

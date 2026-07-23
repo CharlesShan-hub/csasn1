@@ -17,10 +17,11 @@ pub fn generate(
     let mut c = String::new();
     let base = format!("{}Base", prefix);
     let native = format!("{}Native", prefix);
-    let _has_optional = fields.iter().any(|f| f.optional);
+    let has_optional = fields.iter().any(|f| f.optional);
     if let Some(doc) = asn_doc { c.push_str(doc); }
     c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
     c.push_str("@Data\n");
+    c.push_str("@lombok.experimental.Accessors(chain = true, fluent = true)\n");
     c.push_str(&format!("public class {} extends {}Base {{\n", cn, prefix));
     if let Some(entries) = named_consts.get(&ti.name) {
         for (name, val) in entries {
@@ -35,12 +36,10 @@ pub fn generate(
         } else {
             resolve_wrapper_type(&f.rust_type, all, prefix)
         };
-        // Use ASN.1 identifier as Java field name if available, otherwise Rust field name
         let raw_name = f.identifier.as_deref().unwrap_or(&f.name);
         let fname = safe_field_name(raw_name);
         let dflt = match jt.as_str() {
             "byte[]" => {
-                // Only use non-empty default for truly fixed sizes, not ranges
                 let is_fixed = f.size_attr_raw.as_deref()
                     .and_then(|r| r.parse::<usize>().ok())
                     .is_some();
@@ -71,33 +70,41 @@ pub fn generate(
             _ => jdefault(&jt, f.is_list),
         };
         if fname != raw_name {
-            // Java keyword escaped → need @JsonProperty to keep original name
             c.push_str(&helpers::ln(1, &format!("@JsonProperty(\"{}\") public {} {} = {};", raw_name, jt, fname, dflt)));
         } else {
             c.push_str(&helpers::ln(1, &format!("public {} {} = {};", jt, fname, dflt)));
         }
     }
 
-    // encode
-    helpers::enc_overload(&mut c, &format!(
-        "{}{}{}{}{}{}{}",
-        helpers::ln(2, "try {"),
-        helpers::ln(3, "String _json = MAPPER.writeValueAsString(this);"),
-        helpers::ln(3, "System.err.println(\"JSON[\" + getClass().getSimpleName() + \"]: \" + _json);"),
-        helpers::ln(3, &format!("return {}.encode(\"{}\", enc, _json);", native, ti.name)),
-        helpers::ln(2, "} catch (Exception e) {"),
-        helpers::ln(3, "throw new RuntimeException(e);"),
-        helpers::ln(2, "}"),
-    ));
+    // _set tracking for OPTIONAL fields
+    if has_optional {
+        c.push_str(&helpers::ln(1, "@com.fasterxml.jackson.annotation.JsonIgnore"));
+        c.push_str(&helpers::ln(1, "@lombok.EqualsAndHashCode.Exclude"));
+        c.push_str(&helpers::ln(1, "public transient java.util.Set<String> _set = new java.util.HashSet<>();"));
+        // Fluent setter for each OPTIONAL field (tracks _set)
+        for f in fields {
+            if !f.optional { continue; }
+            let raw_name = f.identifier.as_deref().unwrap_or(&f.name);
+            let fname = safe_field_name(raw_name);
+            let jt = resolve_wrapper_type_nullable(&f.rust_type, all, prefix);
+            c.push_str(&helpers::ln(1, &format!("public {} {}({} value) {{", cn, fname, jt)));
+            c.push_str(&helpers::ln(2, &format!("this.{} = value;", fname)));
+            c.push_str(&helpers::ln(2, &format!("this._set.add(\"{}\");", raw_name)));
+            c.push_str(&helpers::ln(2, "return this;"));
+            c.push_str(&helpers::ln(1, "}"));
+        }
+    }
 
-    // decode
-    c.push_str(&helpers::ln(1, &format!("public static {} decode(String enc, byte[] data) {{", cn)));
-    c.push_str(&helpers::ln(2, "try {"));
-    c.push_str(&helpers::ln(3, &format!("return MAPPER.readValue({}.decode(\"{}\", enc, data), {}.class);", native, ti.name, cn)));
-    c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
-    c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
-    c.push_str(&helpers::ln(2, "}"));
-    c.push_str(&helpers::ln(1, "}"));
+    // Collect OPTIONAL field names for strict encode filtering
+    let opt_names: Vec<&str> = fields.iter()
+        .filter(|f| f.optional)
+        .map(|f| f.identifier.as_deref().unwrap_or(&f.name))
+        .collect();
+
+    // encode + encodeTest + decode
+    helpers::gen_encode_methods(&mut c, cn, &native, &ti.name, "MAPPER.writeValueAsString(this)",
+                                has_optional, &opt_names);
+    helpers::gen_decode_method(&mut c, cn, &native, &ti.name);
     c.push_str("}\n");
     c
 }

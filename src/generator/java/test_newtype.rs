@@ -20,7 +20,6 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, asn_def
     c.push_str(&helpers::ln(1, "public void testEncodeDecodeAper() throws Exception {"));
     if jt == "int" || jt == "long" || jt == "float" || jt == "double" {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}(1);", cn, cn)));
-    // "boolean" is dead code, all booleans use CmsBoolean (INTEGER wrapper) now
     } else if jt == "String" {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
         c.push_str(&helpers::ln(2, &format!("obj.value = \"{}\";", "x".repeat(size))));
@@ -32,7 +31,6 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, asn_def
         c.push_str(&helpers::ln(2, "obj.value = new java.util.ArrayList<>();"));
     } else {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
-        // For newtypes wrapping a struct (not a primitive), initialize value to non-null
         if let TypeKind::Newtype { inner_type } = &ti.kind {
             let inner_jt = resolve_java_type(inner_type, all, prefix);
             if inner_jt.starts_with(prefix) && !inner_jt.contains("Anonymous") {
@@ -40,8 +38,8 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, asn_def
             }
         }
     }
-    c.push_str(&helpers::ln(2, "byte[] data = obj.encode(\"aper\");"));
-    c.push_str(&helpers::ln(2, &format!("{} d = {}.decode(\"aper\", data);", cn, cn)));
+    c.push_str(&helpers::ln(2, "byte[] data = obj.encodeTest();"));
+    c.push_str(&helpers::ln(2, &format!("{} d = {}.decode(data);", cn, cn)));
     c.push_str(&helpers::ln(2, "assertEquals(obj, d);"));
     c.push_str(&helpers::ln(1, "}"));
     c

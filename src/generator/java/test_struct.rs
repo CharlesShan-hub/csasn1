@@ -36,7 +36,6 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                 }
                 s if s == "byte[]" => {
                     let sz = helpers::test_data_size(asn_defs.get(&f.rust_type).map(|s| s.as_str()));
-                    // Fallback: extract size from inline FixedOctetString < N > (e.g. "FixedOctetString < 6 >")
                     let sz = if sz <= 2 && f.rust_type.contains("FixedOctetString") {
                         f.rust_type
                             .split(|c: char| !c.is_ascii_digit())
@@ -44,7 +43,6 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                             .next()
                             .unwrap_or(sz)
                     } else { sz };
-                    // Fallback: use size from rasn attribute (fixed sizes only, not ranges)
                     let sz = if sz <= 2 && f.size_from_attr.is_some() {
                         let is_fixed = f.size_attr_raw.as_deref()
                             .and_then(|r| r.parse::<usize>().ok())
@@ -62,7 +60,6 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                 }
                 _ => {
                     c.push_str(&helpers::ln(indent, &format!("obj.{} = new {}();", fname, jt)));
-                    // If it's a CHOICE type, set _choice to first variant
                     if let Some(ti) = find_type(&jt, all, prefix) {
                         if let TypeKind::Choice { variants } = &ti.kind {
                             if let Some(first) = variants.first() {
@@ -73,21 +70,18 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                                 match vjt.as_str() {
                                     "int" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 1;", fname, vfname))),
                                     "long" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 1L;", fname, vfname))),
-                                    // "boolean" is dead code, all booleans use CmsBoolean now
                                     "float" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 1.5f;", fname, vfname))),
                                     "double" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 2.5;", fname, vfname))),
                                     "String" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = \"test\";", fname, vfname))),
                                     "byte[]" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new byte[0];", fname, vfname))),
                                     _ => {
                                         c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new {}();", fname, vfname, vjt)));
-                                        // Also initialize the CHOICE variant's sub-fields (for struct types)
                                         init_nested_struct_fields(c, indent, fname.as_str(), vjt.as_str(), vfname.as_str(), all, prefix, asn_defs);
                                     }
                                 }
                             }
                         }
                     }
-                    // For byte[]/String wrappers (e.g. TimeStamp), set value to the expected size
                     if let Some(ti) = find_type(&jt, all, prefix) {
                         let ultimate_type = resolve_java_type(&ti.name, all, prefix);
                         if ultimate_type == "byte[]" || ultimate_type == "String" {
@@ -101,20 +95,17 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                             }
                         }
                     }
-                    // For List wrappers (e.g. SEQUENCE OF), set value to non-null list
                     if let Some(ti) = find_type(&jt, all, prefix) {
                         if let TypeKind::Newtype { inner_type } = &ti.kind {
                             let inner_jt = resolve_wrapper_type(inner_type, all, prefix);
                             if inner_jt.starts_with("java.util.List<") {
                                 let inner = inner_jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
                                 c.push_str(&helpers::ln(indent, &format!("obj.{}.value = java.util.Collections.singletonList(new {}());", fname, inner)));
-                                // Also initialize the inner element's fields (if it's a struct)
                                 let inner_jt_name = format!("{}{}", prefix, inner);
                                 init_nested_struct_fields(c, indent, fname.as_str(), inner_jt_name.as_str(), "value.0", all, prefix, asn_defs);
                             }
                         }
                     }
-                    // For struct sub-objects, initialize fields with fixed sizes
                     init_nested_struct_fields(c, indent, fname.as_str(), jt.as_str(), "", all, prefix, asn_defs);
                 }
             }
@@ -159,7 +150,6 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                             }
                         }
                         _ => {
-                            // Wrapper type (e.g. CmsFunctionalConstraint) — set .value if it's byte[] or String
                             if let Some(sf_ti) = find_type(&s_jt, all, prefix) {
                                 let ultimate = resolve_java_type(&sf_ti.name, all, prefix);
                                 if ultimate == "byte[]" || ultimate == "String" {
@@ -184,8 +174,8 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
     c.push_str(&helpers::ln(1, "public void testEncodeDecodeAper() throws Exception {"));
     c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
     set_fields(&mut c, 2);
-    c.push_str(&helpers::ln(2, "byte[] data = obj.encode(\"aper\");"));
-    c.push_str(&helpers::ln(2, &format!("{} d = {}.decode(\"aper\", data);", cn, cn)));
+    c.push_str(&helpers::ln(2, "byte[] data = obj.encodeTest();"));
+    c.push_str(&helpers::ln(2, &format!("{} d = {}.decode(data);", cn, cn)));
     c.push_str(&helpers::ln(2, "assertEquals(obj, d);"));
     c.push_str(&helpers::ln(1, "}"));
     c

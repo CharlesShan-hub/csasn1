@@ -114,7 +114,7 @@ cargo run --bin csasn1
 | `--src <path>` | `specs/dlt2811.asn` | ASN.1 规约文件路径，传 `.asn` 自动映射到 `src/generated.rs` |
 | `--out <dir>` | `java/src` | Java 源码输出目录 |
 | `--prefix <str>` | `Cms` | Java 类名前缀，如 `Asn` → `AsnBoolean.java` |
-| `--enc <str>` | `ber` | 默认编码方式（`ber`/`der`/`aper`/`uper`），生成 `DEFAULT_ENCODING` 常量 |
+| `--enc <str>` | `ber` | 生成时固定的编码方式（`ber`/`der`/`aper`/`uper`），Java 类不再需要手动传编码参数 |
 | `--package <str>` | （空） | Java 包名，如 `com.example.asn1` → 文件头生成 `package com.example.asn1;` |
 
 ### 生成的 Java 类
@@ -127,12 +127,11 @@ cargo run --bin csasn1
 package com.example.asn1;
 
 public class AsnBoolean {
-    public static final String DEFAULT_ENCODING = "per";
     public int value;
 
-    public byte[] encode(String enc) { ... }    // 指定编码
-    public byte[] encode() { ... }              // 使用 DEFAULT_ENCODING
-    public static AsnBoolean decode(String enc, byte[] data) { ... }
+    public byte[] encode();                  // 严格编码（生产用）
+    public byte[] encodeTest();              // 宽松编码（测试用）
+    public static AsnBoolean decode(byte[] data);  // 解码（编码方式由生成时固定）
 }
 ```
 
@@ -175,11 +174,14 @@ apdu.apch.cc = new CmsControlCode();
 apdu.apch.cc.resp = true;
 apdu.asdu = hexToBytes("01020304");
 
-// 编码为 PER 字节
-byte[] per = apdu.encode("aper");
+// 严格编码（生产用）— 只编码显式设过的 OPTIONAL 字段
+byte[] per = apdu.encode();
 
-// 从 PER 字节解码
-CmsApdu recv = CmsApdu.decode("aper", per);
+// 宽松编码（测试用）— 全部 OPTIONAL 字段都编码
+byte[] perTest = apdu.encodeTest();
+
+// 解码（编码方式由生成时固定，无需指定）
+CmsApdu recv = CmsApdu.decode(per);
 ```
 
 需要 Jackson 依赖：
@@ -210,7 +212,7 @@ decoded = decode("Apdu", "aper", encoded)
 1. 复制 `java/src/*.java` 到你的项目源码目录
 2. 复制 `target/debug/csasn1.dll` 到 `resources/win32-x86-64/`
 3. 添加 Jackson 依赖
-4. 用 `CmsApdu.encode("aper")` 替代旧的编解码调用
+4. 用 `CmsApdu.encode()` / `CmsApdu.decode()` 替代旧的编解码调用
 
 ## 技术栈
 
@@ -225,9 +227,9 @@ decoded = decode("Apdu", "aper", encoded)
 ### Java 类质量提升
 
 - [ ] **Builder 模式** — 为复杂类型生成 Builder，代替多个 setter 调用
+- [ ] **精确 OPTIONAL presence 控制** — 每个 POJO 内建 `_set` 追踪（记录哪些字段通过 setter 设过值）。`encode()` 为严格模式，只编码 `_set` 中的 OPTIONAL 字段；`encodeTest()` 为宽松模式，全部字段都编码，方便测试向后兼容
 - [ ] **不可变对象变体** — 可选生成 record 或不可变类，适合线程安全场景
 - [ ] **泛化编解码接口** — `Codec.aper().encode(obj)` 代替每个类的静态方法
-- [ ] **Null safety** — OPTIONAL 字段使用 `Optional<T>` 或 `@Nullable` 注解
 - [ ] **Jackson 注解** — 生成 `@JsonProperty("fc")`、`@JsonInclude` 等注解，开箱即用与 REST API 集成
 
 ### 性能
