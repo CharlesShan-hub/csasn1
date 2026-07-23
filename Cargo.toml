@@ -20,4 +20,4 @@ strip = "none"
 rasn-compiler = "0.16"
 
 [patch.crates-io]
-rasn = { path = "d:/project/rasn" }
+rasn = { path = "/media/psf/Home/workspace/project/rasn" }
