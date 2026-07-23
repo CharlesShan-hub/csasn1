@@ -15,6 +15,8 @@ pub fn generate(
     asn_defs: &HashMap<String, String>,
 ) -> String {
     let mut c = String::new();
+    let base = format!("{}Base", prefix);
+    let native = format!("{}Native", prefix);
     let _has_optional = fields.iter().any(|f| f.optional);
     if let Some(doc) = asn_doc { c.push_str(doc); }
     c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
@@ -25,7 +27,7 @@ pub fn generate(
             c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
         }
     }
-    c.push_str(&helpers::ln(1, "private static final ObjectMapper MAPPER = CmsBase.createMapper();"));
+    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.createMapper();", base)));
 
     for f in fields {
         let jt = if f.optional {
@@ -82,7 +84,7 @@ pub fn generate(
         helpers::ln(2, "try {"),
         helpers::ln(3, "String _json = MAPPER.writeValueAsString(this);"),
         helpers::ln(3, "System.err.println(\"JSON[\" + getClass().getSimpleName() + \"]: \" + _json);"),
-        helpers::ln(3, &format!("return CmsNative.encode(\"{}\", enc, _json);", ti.name)),
+        helpers::ln(3, &format!("return {}.encode(\"{}\", enc, _json);", native, ti.name)),
         helpers::ln(2, "} catch (Exception e) {"),
         helpers::ln(3, "throw new RuntimeException(e);"),
         helpers::ln(2, "}"),
@@ -91,7 +93,7 @@ pub fn generate(
     // decode
     c.push_str(&helpers::ln(1, &format!("public static {} decode(String enc, byte[] data) {{", cn)));
     c.push_str(&helpers::ln(2, "try {"));
-    c.push_str(&helpers::ln(3, &format!("return MAPPER.readValue(CmsNative.decode(\"{}\", enc, data), {}.class);", ti.name, cn)));
+    c.push_str(&helpers::ln(3, &format!("return MAPPER.readValue({}.decode(\"{}\", enc, data), {}.class);", native, ti.name, cn)));
     c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
     c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
     c.push_str(&helpers::ln(2, "}"));

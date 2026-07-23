@@ -24,7 +24,9 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, varian
             "double" => c.push_str(&helpers::ln(2, &format!("obj.{} = 2.5;", fname))),
             "String" => c.push_str(&helpers::ln(2, &format!("obj.{} = \"test\";", fname))),
             "byte[]" => c.push_str(&helpers::ln(2, &format!("obj.{} = new byte[0];", fname))),
-            s if s.starts_with("java.util.List<") => {}
+            s if s.starts_with("java.util.List<") => {
+                c.push_str(&helpers::ln(2, &format!("obj.{} = new java.util.ArrayList<>();", fname)));
+            }
             _ => {
                 c.push_str(&helpers::ln(2, &format!("obj.{} = new {}();", fname, jt)));
                 // Initialize nested struct fields

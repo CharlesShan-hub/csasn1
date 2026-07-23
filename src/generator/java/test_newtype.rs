@@ -32,6 +32,13 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, asn_def
         c.push_str(&helpers::ln(2, "obj.value = new java.util.ArrayList<>();"));
     } else {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
+        // For newtypes wrapping a struct (not a primitive), initialize value to non-null
+        if let TypeKind::Newtype { inner_type } = &ti.kind {
+            let inner_jt = resolve_java_type(inner_type, all, prefix);
+            if inner_jt.starts_with(prefix) && !inner_jt.contains("Anonymous") {
+                c.push_str(&helpers::ln(2, &format!("obj.value = new {}();", inner_jt)));
+            }
+        }
     }
     c.push_str(&helpers::ln(2, "byte[] data = obj.encode(\"aper\");"));
     c.push_str(&helpers::ln(2, &format!("{} d = {}.decode(\"aper\", data);", cn, cn)));

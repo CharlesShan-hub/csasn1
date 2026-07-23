@@ -14,6 +14,8 @@ pub fn generate(
     variants: &[VariantInfo],
 ) -> String {
     let mut c = String::new();
+    let base = format!("{}Base", prefix);
+    let native = format!("{}Native", prefix);
     if let Some(doc) = asn_doc { c.push_str(doc); }
     c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
     c.push_str("@Data\n");
@@ -24,7 +26,7 @@ pub fn generate(
         }
     }
     c.push_str(&helpers::ln(1, "@JsonIgnore public String _choice;"));
-    c.push_str(&helpers::ln(1, "private static final ObjectMapper MAPPER = CmsBase.createMapper();"));
+    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.createMapper();", base)));
 
     // No-arg constructor picks the first variant as default
     if let Some(first) = variants.first() {
@@ -86,7 +88,7 @@ pub fn generate(
     helpers::enc_overload(&mut c, &format!(
         "{}{}{}{}{}",
         helpers::ln(2, "try {"),
-        helpers::ln(3, &format!("return CmsNative.encode(\"{}\", enc, MAPPER.writeValueAsString(this));", ti.name)),
+        helpers::ln(3, &format!("return {}.encode(\"{}\", enc, MAPPER.writeValueAsString(this));", native, ti.name)),
         helpers::ln(2, "} catch (Exception e) {"),
         helpers::ln(3, "throw new RuntimeException(e);"),
         helpers::ln(2, "}"),
@@ -95,7 +97,7 @@ pub fn generate(
     // decode
     c.push_str(&helpers::ln(1, &format!("public static {} decode(String enc, byte[] data) {{", cn)));
     c.push_str(&helpers::ln(2, "try {"));
-    c.push_str(&helpers::ln(3, &format!("return MAPPER.readValue(CmsNative.decode(\"{}\", enc, data), {}.class);", ti.name, cn)));
+    c.push_str(&helpers::ln(3, &format!("return MAPPER.readValue({}.decode(\"{}\", enc, data), {}.class);", native, ti.name, cn)));
     c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
     c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
     c.push_str(&helpers::ln(2, "}"));
