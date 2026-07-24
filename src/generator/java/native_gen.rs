@@ -15,7 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 
 public class {pfx}Native {{
-    private static final NativeImpl LIB = Native.load("asn1", NativeImpl.class);
+    private static final NativeImpl LIB = Native.load("asn1", NativeImpl.class,
+        java.util.Collections.singletonMap(Library.OPTION_STRING_ENCODING, "UTF-8"));
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private interface NativeImpl extends Library {{
@@ -70,7 +71,7 @@ public class {pfx}Native {{
      * @param typeName  ASN.1 type name
      * @param encoding  encoding rule
      * @param data      binary encoded data
-     * @return JSON representation
+     * @return JSON representation (with 0x prefixes stripped from hex strings)
      */
     public static String decode(String typeName, String encoding, byte[] data) {{
         try {{
@@ -78,7 +79,10 @@ public class {pfx}Native {{
             @SuppressWarnings("unchecked")
             Map<String, Object> m = MAPPER.readValue(resp, Map.class);
             if (Boolean.TRUE.equals(m.get("ok"))) {{
-                return MAPPER.writeValueAsString(m.get("value"));
+                String json = MAPPER.writeValueAsString(m.get("value"));
+                // Strip 0x prefixes from hex strings (rasn JER uses {{:02X?}} format)
+                json = json.replace("0x", "").replace("0X", "");
+                return json;
             }}
             throw new RuntimeException("decode failed: " + m.get("error"));
         }} catch (Exception e) {{
@@ -122,9 +126,11 @@ public abstract class {pfx}Base {{
         return sb.toString();
     }}
 
-    /** Convert hex string to byte array. */
+    /** Convert hex string to byte array. Handles both "4048F5C3" and "0x400x48..." formats. */
     public static byte[] unhex(String hex) {{
         if (hex == null || hex.isEmpty()) return new byte[0];
+        // Strip 0x prefixes (rasn JER uses {{:02X?}} format which emits "0x40" per byte)
+        hex = hex.replace("0x", "").replace("0X", "");
         int len = hex.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {{

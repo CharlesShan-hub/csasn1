@@ -1,6 +1,10 @@
 use std::path::PathBuf;
 use std::fs;
 use std::io::Write;
+use std::collections::HashMap;
+
+/// Rust primitive integer types that a newtype may wrap.
+const INT_TYPES: &[&str] = &["u8", "i8", "u16", "i16", "u32", "i32", "u64", "i64"];
 
 fn main() {
     println!("cargo:rerun-if-changed=specs/dlt2811.asn");
@@ -17,21 +21,20 @@ fn main() {
         .compile()
         .expect("ASN.1 编译失败");
 
-    // 第 2 步：扫描生成的代码，提取所有结构体类型名
+    // 第 2 步：扫描生成的代码，提取所有结构体类型名以及 newtype 的内层类型
     let generated = fs::read_to_string("src/generated.rs")
         .expect("无法读取 generated.rs");
 
     let mut types: Vec<String> = Vec::new();
+    // type_name → inner_type for newtype structs (e.g. "Int32U" → "u32")
+    let mut newtype_inner: HashMap<String, String> = HashMap::new();
     let mut pos = 0;
     let bytes = generated.as_bytes();
 
-    // 扫描所有 "pub struct" 和 "pub enum" 后面跟的字段名
-    // （generated.rs 是整个模块在一行的压缩格式）
     while pos < bytes.len() {
-        // 找 "pub struct " 或 "pub enum "
         let struct_keyword = b"pub struct ";
         let enum_keyword = b"pub enum ";
-        let mut found_pos = None;
+        let mut found_pos: Option<usize> = None;
 
         if let Some(p) = find_subsequence(&bytes[pos..], struct_keyword) {
             found_pos = Some(pos + p);
@@ -47,28 +50,65 @@ fn main() {
         match found_pos {
             Some(p) => {
                 pos = p;
-                // 跳过关键字
                 if bytes[pos..].starts_with(struct_keyword) {
                     pos += struct_keyword.len();
                 } else {
                     pos += enum_keyword.len();
                 }
-                // 读取类型名（到空格或 ( 或 {）
+                // 读取类型名
                 let start = pos;
                 while pos < bytes.len() && bytes[pos] != b' ' && bytes[pos] != b'{' && bytes[pos] != b'(' {
                     pos += 1;
                 }
                 let name = String::from_utf8_lossy(&bytes[start..pos]).to_string();
 
-                // 跳过 newtype: "pub struct Name(pub ..." - 即后面是 '(' 而不是 '{'
-                // 也跳过内部辅助类型
-                if !name.starts_with('_') && !types.contains(&name) {
-                    types.push(name);
-                    // 跳过 '(' 或 '{' 之后的匹配括号内容
+                if name.starts_with('_') {
                     pos = skip_paren_block(&bytes, pos);
-                } else {
-                    pos = skip_paren_block(&bytes, pos);
+                    continue;
                 }
+
+                // 检测 newtype: "pub struct Name (pub InnerType)"
+                // 生成的代码中可能有空格: "pub struct Name(pub u32)" 或 "pub struct Name (pub u32)"
+                let is_newtype = {
+                    // 跳过名字后的空白字符
+                    let mut scan = pos;
+                    while scan < bytes.len() && bytes[scan] == b' ' { scan += 1; }
+                    if scan < bytes.len() && bytes[scan] == b'(' {
+                        // 提取内层类型 "(pub InnerType)"
+                        let mut inner_pos = scan + 1;
+                        while inner_pos < bytes.len() && bytes[inner_pos] != b'p' && bytes[inner_pos] != b')' { inner_pos += 1; }
+                        if inner_pos + 3 < bytes.len() && &bytes[inner_pos..inner_pos+3] == b"pub" {
+                            inner_pos += 3;
+                            // skip spaces
+                            while inner_pos < bytes.len() && bytes[inner_pos] == b' ' { inner_pos += 1; }
+                            // 读取内层类型名
+                            let inner_type_start = inner_pos;
+                            while inner_pos < bytes.len() && bytes[inner_pos] != b')' && bytes[inner_pos] != b' ' {
+                                inner_pos += 1;
+                            }
+                            let inner_type = String::from_utf8_lossy(&bytes[inner_type_start..inner_pos]).to_string();
+                            if INT_TYPES.contains(&inner_type.as_str()) {
+                                newtype_inner.insert(name.clone(), inner_type);
+                            }
+                        }
+                        true
+                    } else {
+                        false
+                    }
+                };
+
+                if !is_newtype {
+                    // regular struct/enum — only add if not already present
+                    if !types.contains(&name) {
+                        types.push(name);
+                    }
+                } else {
+                    // newtype — only add if not already present
+                    if !types.contains(&name) {
+                        types.push(name);
+                    }
+                }
+                pos = skip_paren_block(&bytes, pos);
             }
             None => break,
         }
@@ -79,10 +119,10 @@ fn main() {
     types.dedup();
 
     // 第 3 步：生成 FFI dispatch 代码
-    generate_ffi_dispatch(&types, "src/ffi_auto.rs");
+    generate_ffi_dispatch(&types, &newtype_inner, "src/ffi_auto.rs");
 }
 
-fn generate_ffi_dispatch(types: &[String], output_path: &str) {
+fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, String>, output_path: &str) {
     let mut code = String::new();
     code.push_str(&format!(
         "// 自动生成 - 勿手动编辑\n\
@@ -95,17 +135,18 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
          mod generated;\n\
          use generated::dlt2811_data_types::*;\n\n\
          /* ---- Jackson JSON ↔ JER adapter ---- */\n\
-         /// If json is `{{\"value\": X}}`, extract X; otherwise return as-is.\n\
-         /// Only unwraps when the value is NOT a JSON object, to avoid\n\
-         /// breaking CHOICE types (which serialize as {{\"variant\": {{...}}}}).\n\
+         /// Strips Jackson's `_choice` helper field, then unwraps `{{\"value\": X}}` if scalar.\n\
          fn unwrap_jackson_value<'a>(json: &'a str) -> Cow<'a, str> {{\n\
-             if let Ok(serde_json::Value::Object(map)) = serde_json::from_str(json.trim()) {{\n\
+             if let Ok(serde_json::Value::Object(mut map)) = serde_json::from_str(json.trim()) {{\n\
+                 map.remove(\"_choice\");\n\
                  if map.len() == 1 {{\n\
+                     // Only unwrap `{{\"value\": X}}` — CHOICE variants keep their object wrapper\n\
                      if let Some(value) = map.get(\"value\") {{\n\
                          if !value.is_object() {{\n\
                              return Cow::Owned(serde_json::to_string(value).unwrap_or_default());\n\
                          }}\n\
                      }}\n\
+                     return Cow::Owned(serde_json::to_string(&map).unwrap_or_default());\n\
                  }}\n\
              }}\n\
              Cow::Borrowed(json)\n\
@@ -122,19 +163,10 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
         types.len()
     ));
 
-    // also add CString to imports at line 95
-    // encode_json dispatch（支持编码方式选择）
-    code.push_str(
-        "fn encode_json(type_name: &str, encoding: &str, json: &str) -> Result<Vec<u8>, String> {\n\
-         let enc = encoding.to_lowercase();\n\
-         match type_name {\n"
-    );
-    for t in types {
-        code.push_str(&format!(
-            "        \"{t}\" => {{\n\
-             let v: {t} = rasn::jer::decode(&unwrap_jackson_value(json))\n\
-             .map_err(|e| format!(\"JER decode {{type_name}}: {{e:?}}\"))?;\n\
-             match enc.as_str() {{\n\
+    // Helper: generate the encode-encoding dispatch (BER/DER/APER/UPER)
+    fn encode_dispatch(t: &str) -> String {
+        format!(
+            "match enc.as_str() {{\n\
              \"ber\" | \"\" | \"per\" => rasn::ber::encode(&v)\n\
              .map_err(|e| format!(\"BER encode {{type_name}}: {{e:?}}\")),\n\
              \"der\" => rasn::der::encode(&v)\n\
@@ -144,9 +176,41 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
              \"uper\" => rasn::uper::encode(&v)\n\
              .map_err(|e| format!(\"UPER encode {{type_name}}: {{e:?}}\")),\n\
              _ => Err(format!(\"Unsupported encoding: {{enc}}\")),\n\
-             }}\n\
-             }}\n"
-        ));
+             }}"
+        )
+    }
+
+    // encode_json dispatch
+    code.push_str(
+        "fn encode_json(type_name: &str, encoding: &str, json: &str) -> Result<Vec<u8>, String> {\n\
+         let enc = encoding.to_lowercase();\n\
+         match type_name {\n"
+    );
+    for t in types {
+        // For integer newtypes, use serde_json directly (bypass rasn JER decode bug for u32 values > i32::MAX)
+        if let Some(inner) = newtype_inner.get(t) {
+            code.push_str(&format!(
+                "        \"{t}\" => {{\n\
+                 let unwrapped = unwrap_jackson_value(json);\n\
+                 let v: {t} = {{\n\
+                 let n: {inner} = serde_json::from_str(&unwrapped)\n\
+                 .map_err(|e| format!(\"Failed to parse {{type_name}} JSON: {{e}}\"))?;\n\
+                 {t}(n)\n\
+                 }};\n\
+                 {encode}\n\
+                 }}\n",
+                encode = encode_dispatch(t)
+            ));
+        } else {
+            code.push_str(&format!(
+                "        \"{t}\" => {{\n\
+                 let v: {t} = rasn::jer::decode(&unwrap_jackson_value(json))\n\
+                 .map_err(|e| format!(\"JER decode {{type_name}}: {{e:?}}\"))?;\n\
+                 {encode}\n\
+                 }}\n",
+                encode = encode_dispatch(t)
+            ));
+        }
     }
     code.push_str(
         "        _ => Err(format!(\"Unknown type: {}\", type_name))\n\
@@ -185,7 +249,6 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
     );
 
     // -- C API: all functions return *mut c_char (JSON response string) --
-    // csasn1_encode returns JSON: {"ok":true,"bytes":"<base64>"} or {"ok":false,"error":"<msg>"}
     code.push_str(
         "#[unsafe(no_mangle)]\npub extern \"C\" fn csasn1_encode(\n\
          type_name: *const c_char,\n\
@@ -203,7 +266,6 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
          }\n\n"
     );
 
-    // csasn1_decode returns JSON: {"ok":true,"value":<json>} or {"ok":false,"error":"<msg>"}
     code.push_str(
         "#[unsafe(no_mangle)]\npub extern \"C\" fn csasn1_decode(\n\
          type_name: *const c_char,\n\
@@ -238,22 +300,18 @@ fn generate_ffi_dispatch(types: &[String], output_path: &str) {
     file.write_all(code.as_bytes()).expect("写入失败");
     println!("cargo:info=生成了 {} 个类型的 FFI dispatch", types.len());
 
-    // 告诉链接器使用 .def 文件导出符号（仅 cdylib，不影响二进制）
     #[cfg(target_os = "windows")]
     {
         println!("cargo:rustc-cdylib-link-arg=/DEF:asn1.def");
     }
 }
 
-/// 在字节切片中查找子序列
 fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack.windows(needle.len())
         .position(|window| window == needle)
 }
 
-/// 跳过括号块（匹配括号对，支持嵌套）
 fn skip_paren_block(bytes: &[u8], mut pos: usize) -> usize {
-    // 找到第一个非空白字符
     while pos < bytes.len() && bytes[pos] == b' ' { pos += 1; }
     if pos >= bytes.len() { return pos; }
 

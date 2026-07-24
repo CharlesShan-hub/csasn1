@@ -55,6 +55,13 @@ pub fn generate(
         c.push_str(&helpers::ln(1, &format!("@JsonIgnore public {} {};", jt, fname)));
     }
 
+    // Detect variable-length BIT STRING: inner_type starts with "BitString" but NOT "FixedBitString"
+    fn is_variable_bit_string(inner_type: &str) -> bool {
+        inner_type.trim_start_matches("Option<").trim_end_matches('>').trim()
+            .starts_with("BitString")
+            && !inner_type.contains("FixedBitString")
+    }
+
     // Serialize (only output the active branch)
     c.push_str(&helpers::ln(1, "@JsonAnyGetter"));
     c.push_str(&helpers::ln(1, "public java.util.Map<String, Object> serializeChoice() {"));
@@ -63,7 +70,20 @@ pub fn generate(
     for v in variants {
         let fname = safe_field_name(&v.name);
         let json_key = v.identifier.as_deref().unwrap_or(&v.name);
-        c.push_str(&helpers::ln(3, &format!("if (\"{}\".equals(_choice)) map.put(\"{}\", {});", json_key, json_key, fname)));
+        if is_variable_bit_string(&v.inner_type) {
+            // JER variable-length BIT STRING requires {"value":<hex>,"length":<bits>}
+            c.push_str(&helpers::ln(3, &format!(
+                "if (\"{}\".equals(_choice)) {{\
+                 java.util.Map<String, Object> bs = new java.util.HashMap<>();\
+                 bs.put(\"value\", {}.hex({}));\
+                 bs.put(\"length\", {}.length * 8);\
+                 map.put(\"{}\", bs);\
+                 }}",
+                json_key, base, fname, fname, json_key
+            )));
+        } else {
+            c.push_str(&helpers::ln(3, &format!("if (\"{}\".equals(_choice)) map.put(\"{}\", {});", json_key, json_key, fname)));
+        }
     }
     c.push_str(&helpers::ln(2, "}"));
     c.push_str(&helpers::ln(2, "return map;"));
@@ -77,10 +97,19 @@ pub fn generate(
     for v in variants {
         let fname = safe_field_name(&v.name);
         let jt = resolve_wrapper_type(&v.inner_type, all, prefix);
-        let tref = java_type_ref(&jt);
         let json_key = v.identifier.as_deref().unwrap_or(&v.name);
         c.push_str(&helpers::ln(2, &format!("if (\"{}\".equals(key)) {{", json_key)));
-        c.push_str(&helpers::ln(3, &format!("this.{} = MAPPER.convertValue(value, {});", fname, tref)));
+        if jt == "byte[]" && is_variable_bit_string(&v.inner_type) {
+            // JER variable-length BIT STRING: extract "value" field from the map
+            c.push_str(&helpers::ln(3, &format!(
+                "if (value instanceof java.util.Map) {{\
+                 this.{} = {}.unhex(((java.util.Map<String, String>) value).get(\"value\"));\
+                 }}",
+                fname, base
+            )));
+        } else {
+            c.push_str(&helpers::ln(3, &format!("this.{} = MAPPER.convertValue(value, {});", fname, java_type_ref(&jt))));
+        }
         c.push_str(&helpers::ln(2, "}"));
     }
     c.push_str(&helpers::ln(1, "}"));

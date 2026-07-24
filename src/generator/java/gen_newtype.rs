@@ -19,6 +19,15 @@ pub fn generate(
         }
         _ => false,
     };
+
+    // Detect unsigned 32-bit integer types that need unsigned long conversion
+    // u32 maps to Java int but values > i32::MAX (2147483647) can't be represented
+    let inner_unsigned_int = match &ti.kind {
+        TypeKind::Newtype { inner_type } => {
+            inner_type == "u32"
+        }
+        _ => false,
+    };
     let (hex_digits, bit_count) = if inner_bit_string || named_consts.contains_key(&ti.name) {
         if let Some(def) = asn_defs.get(&ti.name) {
             if let Some((Some(min), Some(max))) = helpers::parse_asn1_size(def) {
@@ -68,10 +77,19 @@ pub fn generate(
             _ if jt.starts_with("java.util.List<") => " = new java.util.ArrayList<>()".to_string(),
             _ => "".to_string(),
         };
-        c.push_str(&helpers::ln(1, &format!("@JsonValue public {} value{};", jt, default_val)));
-        c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
-        c.push_str(&helpers::ln(1, "@JsonCreator"));
-        c.push_str(&helpers::ln(1, &format!("public {}({} value) {{ this.value = value; }}", cn, jt)));
+        if inner_unsigned_int {
+            c.push_str(&helpers::ln(1, &format!("public {} value{};", jt, default_val)));
+            c.push_str(&helpers::ln(1, "@JsonValue"));
+            c.push_str(&helpers::ln(1, &format!("public long toJsonValue() {{ return Integer.toUnsignedLong(this.value); }}")));
+            c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
+            c.push_str(&helpers::ln(1, "@JsonCreator"));
+            c.push_str(&helpers::ln(1, &format!("public {}(long value) {{ this.value = (int) value; }}", cn)));
+        } else {
+            c.push_str(&helpers::ln(1, &format!("@JsonValue public {} value{};", jt, default_val)));
+            c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
+            c.push_str(&helpers::ln(1, "@JsonCreator"));
+            c.push_str(&helpers::ln(1, &format!("public {}({} value) {{ this.value = value; }}", cn, jt)));
+        }
     }
 
     let (encode_arg, wrap_try): (String, bool) = if jt.starts_with("java.util.List<") {
@@ -86,6 +104,8 @@ pub fn generate(
         ("\"null\"".into(), false)
     } else if jt.starts_with(prefix) {
         ("MAPPER.writeValueAsString(this.value)".into(), true)
+    } else if inner_unsigned_int {
+        ("String.valueOf(Integer.toUnsignedLong(this.value))".into(), false)
     } else {
         ("String.valueOf(this.value)".into(), false)
     };

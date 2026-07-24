@@ -1,3 +1,9 @@
+# ─── Platform paths ──────────────────────────────────────
+# dlt2811bean project root — override via env var JCMS_DIR or edit below
+#   Windows default: d:\project\work\standard\dlt2811bean
+#   Linux default: /home/user/projects/dlt2811bean
+jcms_dir := if os() == "windows" { "d:/project/work/standard/dlt2811bean" } else { "/home/user/projects/dlt2811bean" }
+
 # ─── Build ───────────────────────────────────────────────
 # Compile Rust binary + library
 build:
@@ -14,8 +20,8 @@ test-java: gen-java
 
 # Generate Java classes directly into the jcms-data Maven module
 gen-jcms-data:
-    rm -rf ../dlt2811bean/jcms/jcms-data
-    cargo run --release -- --src specs/dlt2811.asn --dest ../dlt2811bean/jcms/jcms-data --prefix Inner --enc aper --package com.ysh.jcms.data
+    rm -rf {{jcms_dir}}/cms/jcms/jcms-data
+    cargo run --release -- --src specs/dlt2811.asn --dest {{jcms_dir}}/cms/jcms/jcms-data --prefix Inner --enc aper --package com.ysh.jcms.data
 
 # Run a single Java test by class name (e.g. just test-java-one CmsObjectNameTest)
 test-java-one cls:
