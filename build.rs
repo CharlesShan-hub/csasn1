@@ -164,7 +164,7 @@ fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, Strin
     ));
 
     // Helper: generate the encode-encoding dispatch (BER/DER/APER/UPER)
-    fn encode_dispatch(t: &str) -> String {
+    fn encode_dispatch(_t: &str) -> String {
         format!(
             "match enc.as_str() {{\n\
              \"ber\" | \"\" | \"per\" => rasn::ber::encode(&v)\n\

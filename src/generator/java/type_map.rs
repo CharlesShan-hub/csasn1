@@ -43,15 +43,15 @@ pub fn resolve_java_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
     }
 
     let base = match rt {
-        "bool" => "boolean",
-        "u8" | "i8" | "u16" | "i16" | "u32" | "i32" => "int",
-        "u64" | "i64" => "long",
-        "f32" => "float",
-        "f64" => "double",
+        "bool" => boxed("boolean"),
+        "u8" | "i8" | "u16" | "i16" | "u32" | "i32" => boxed("int"),
+        "u64" | "i64" => boxed("long"),
+        "f32" => boxed("float"),
+        "f64" => boxed("double"),
         s if s == "String" || s.starts_with("Utf8String") || s.starts_with("VisibleString") => "String",
         s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "byte[]",
-        s if s.starts_with("Integer") => "int",
-        s if s.starts_with("FixedBitString") => "int",
+        s if s.starts_with("Integer") => boxed("int"),
+        s if s.starts_with("FixedBitString") => boxed("int"),
         s if s.starts_with("BitString") => "byte[]",
         "()" => "Object",
         s => {
@@ -98,15 +98,15 @@ pub fn resolve_wrapper_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String 
     }
 
     let base = match rt {
-        "bool" => "boolean",
-        "u8" | "i8" | "u16" | "i16" | "u32" | "i32" => "int",
-        "u64" | "i64" => "long",
-        "f32" => "float",
-        "f64" => "double",
+        "bool" => boxed("boolean"),
+        "u8" | "i8" | "u16" | "i16" | "u32" | "i32" => boxed("int"),
+        "u64" | "i64" => boxed("long"),
+        "f32" => boxed("float"),
+        "f64" => boxed("double"),
         s if s == "String" || s.starts_with("Utf8String") || s.starts_with("VisibleString") => "String",
         s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "byte[]",
-        s if s.starts_with("Integer") => "int",
-        s if s.starts_with("FixedBitString") => "int",
+        s if s.starts_with("Integer") => boxed("int"),
+        s if s.starts_with("FixedBitString") => boxed("int"),
         s if s.starts_with("BitString") => "byte[]",
         "()" => "Object",
         // For any user-defined type (including newtypes), return the wrapper name.
@@ -135,11 +135,11 @@ pub fn java_type_ref(jt: &str) -> String {
         )
     } else {
         match jt {
-            "int" => "int.class",
-            "long" => "long.class",
-            "boolean" => "boolean.class",
-            "float" => "float.class",
-            "double" => "double.class",
+            "int" | "Integer" => "Integer.class",
+            "long" | "Long" => "Long.class",
+            "boolean" | "Boolean" => "Boolean.class",
+            "float" | "Float" => "Float.class",
+            "double" | "Double" => "Double.class",
             "byte[]" => "byte[].class",
             "String" => "String.class",
             _ => return format!("{}.class", jt),

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use super::super::*;
-use super::type_map::{resolve_wrapper_type, java_type_ref};
+use super::type_map::{resolve_wrapper_type, resolve_java_type, java_type_ref};
 use super::helpers;
 use super::helpers::safe_field_name;
 
@@ -49,17 +49,53 @@ pub fn generate(
         c.push_str(&helpers::ln(1, "}"));
     }
 
-    for v in variants {
+    for (i, v) in variants.iter().enumerate() {
         let jt = resolve_wrapper_type(&v.inner_type, all, prefix);
         let fname = safe_field_name(&v.name);
         c.push_str(&helpers::ln(1, &format!("@JsonIgnore public {} {};", jt, fname)));
+        // Named int constant for this variant
+        let const_name = v.name.to_uppercase();
+        c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", const_name, i)));
     }
+
+    // Typesafe setters — set _choice + field in one call
+    for v in variants {
+        let jt = resolve_wrapper_type(&v.inner_type, all, prefix);
+        let fname = safe_field_name(&v.name);
+        let json_key = v.identifier.as_deref().unwrap_or(&v.name);
+        let setter_name = format!("set{}{}", &v.name[..1].to_uppercase(), &v.name[1..]);
+        c.push_str(&helpers::ln(1, &format!("public void {}({} v) {{", setter_name, jt)));
+        c.push_str(&helpers::ln(2, &format!("this._choice = \"{}\";", json_key)));
+        c.push_str(&helpers::ln(2, &format!("this.{} = v;", fname)));
+        c.push_str(&helpers::ln(1, "}"));
+    }
+
+    // Generic value(int choice, Object val) using named constants
+    c.push_str(&helpers::ln(1, "public void value(int choice, Object val) {"));
+    c.push_str(&helpers::ln(2, "switch (choice) {"));
+    for v in variants {
+        let jt = resolve_wrapper_type(&v.inner_type, all, prefix);
+        let const_name = v.name.to_uppercase();
+        let setter_name = format!("set{}{}", &v.name[..1].to_uppercase(), &v.name[1..]);
+        c.push_str(&helpers::ln(3, &format!("case {}: {}(({}) val); break;", const_name, setter_name, jt)));
+    }
+    c.push_str(&helpers::ln(2, "}"));
+    c.push_str(&helpers::ln(1, "}"));
 
     // Detect variable-length BIT STRING: inner_type starts with "BitString" but NOT "FixedBitString"
     fn is_variable_bit_string(inner_type: &str) -> bool {
         inner_type.trim_start_matches("Option<").trim_end_matches('>').trim()
             .starts_with("BitString")
             && !inner_type.contains("FixedBitString")
+    }
+
+    /// Detect types that wrap a @JsonValue byte[] (e.g. InnerFloat32 wraps byte[] via FixedOctetString).
+    /// These need special handling in serialize/deserialize because Jackson's @JsonAnyGetter
+    /// may not respect @JsonValue on the wrapper object.
+    fn is_byte_array_wrapper(inner_type: &str, all: &[TypeInfo], prefix: &str) -> bool {
+        let wrapper = resolve_wrapper_type(inner_type, all, prefix);
+        let inner = resolve_java_type(inner_type, all, prefix);
+        wrapper != inner && inner == "byte[]"
     }
 
     // Serialize (only output the active branch)
@@ -80,6 +116,12 @@ pub fn generate(
                  map.put(\"{}\", bs);\
                  }}",
                 json_key, base, fname, fname, json_key
+            )));
+        } else if is_byte_array_wrapper(&v.inner_type, all, prefix) {
+            // @JsonValue byte[] wrapper: serialize as bare hex string (rasn JER expects hex, not {"value":...})
+            c.push_str(&helpers::ln(3, &format!(
+                "if (\"{}\".equals(_choice)) map.put(\"{}\", {}.hex({}.value));",
+                json_key, json_key, base, fname
             )));
         } else {
             c.push_str(&helpers::ln(3, &format!("if (\"{}\".equals(_choice)) map.put(\"{}\", {});", json_key, json_key, fname)));
@@ -106,6 +148,15 @@ pub fn generate(
                  this.{} = {}.unhex(((java.util.Map<String, String>) value).get(\"value\"));\
                  }}",
                 fname, base
+            )));
+        } else if is_byte_array_wrapper(&v.inner_type, all, prefix) {
+            // @JsonValue byte[] wrapper: value is a hex string from JER
+            c.push_str(&helpers::ln(3, &format!(
+                "if (value instanceof String) {{\
+                 this.{} = new {}();\
+                 this.{}.value = {}.unhex((String) value);\
+                 }}",
+                fname, jt, fname, base
             )));
         } else {
             c.push_str(&helpers::ln(3, &format!("this.{} = MAPPER.convertValue(value, {});", fname, java_type_ref(&jt))));
