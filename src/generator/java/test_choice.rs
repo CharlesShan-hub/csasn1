@@ -34,6 +34,21 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, variant
             "double" => {
                 c.push_str(&helpers::ln(2, &format!("obj.{} = 2.5;", fname)));
             }
+            "Integer" => {
+                c.push_str(&helpers::ln(2, &format!("obj.{} = 42;", fname)));
+            }
+            "Long" => {
+                c.push_str(&helpers::ln(2, &format!("obj.{} = 42L;", fname)));
+            }
+            "Boolean" => {
+                c.push_str(&helpers::ln(2, &format!("obj.{} = true;", fname)));
+            }
+            "Float" => {
+                c.push_str(&helpers::ln(2, &format!("obj.{} = 1.5f;", fname)));
+            }
+            "Double" => {
+                c.push_str(&helpers::ln(2, &format!("obj.{} = 2.5;", fname)));
+            }
             "String" => {
                 c.push_str(&helpers::ln(2, &format!("obj.{} = \"test-value\";", fname)));
             }

@@ -18,8 +18,14 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, asn_def
 
     c.push_str(&helpers::ln(1, "@Test"));
     c.push_str(&helpers::ln(1, "public void testEncodeDecodeAper() throws Exception {"));
-    if jt == "int" || jt == "long" || jt == "float" || jt == "double" {
+    if jt == "int" || jt == "Integer" || jt == "boolean" || jt == "Boolean" {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}(1);", cn, cn)));
+    } else if jt == "long" || jt == "Long" {
+        c.push_str(&helpers::ln(2, &format!("{} obj = new {}(1L);", cn, cn)));
+    } else if jt == "float" || jt == "Float" {
+        c.push_str(&helpers::ln(2, &format!("{} obj = new {}(1.5f);", cn, cn)));
+    } else if jt == "double" || jt == "Double" {
+        c.push_str(&helpers::ln(2, &format!("{} obj = new {}(2.5);", cn, cn)));
     } else if jt == "String" {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
         c.push_str(&helpers::ln(2, &format!("obj.value = \"{}\";", "x".repeat(size))));

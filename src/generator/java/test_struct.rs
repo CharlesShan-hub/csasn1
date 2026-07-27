@@ -58,6 +58,11 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                 s if s.starts_with("java.util.Map<") => {
                     c.push_str(&helpers::ln(indent, &format!("obj.{} = new java.util.HashMap<>();", fname)));
                 }
+                "Integer" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 0;", fname))); }
+                "Long" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 0L;", fname))); }
+                "Boolean" => { /* no default needed, null is fine */ }
+                "Float" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 0.0f;", fname))); }
+                "Double" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 0.0;", fname))); }
                 _ => {
                     c.push_str(&helpers::ln(indent, &format!("obj.{} = new {}();", fname, jt)));
                     if let Some(ti) = find_type(&jt, all, prefix) {
@@ -72,6 +77,11 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                                     "long" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 1L;", fname, vfname))),
                                     "float" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 1.5f;", fname, vfname))),
                                     "double" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 2.5;", fname, vfname))),
+                                    "Integer" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 0;", fname, vfname))),
+                                    "Long" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 0L;", fname, vfname))),
+                                    "Boolean" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = false;", fname, vfname))),
+                                    "Float" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 0.0f;", fname, vfname))),
+                                    "Double" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = 0.0;", fname, vfname))),
                                     "String" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = \"test\";", fname, vfname))),
                                     "byte[]" => c.push_str(&helpers::ln(indent, &format!("obj.{}.{} = new byte[0];", fname, vfname))),
                                     _ => {
@@ -148,6 +158,21 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                             if sz > 1 {
                                 c.push_str(&helpers::ln(indent, &format!("{}.{} = \"{}\";", obj_prefix, sfname, "x".repeat(sz))));
                             }
+                        }
+                        "Integer" => {
+                            c.push_str(&helpers::ln(indent, &format!("{}.{} = 0;", obj_prefix, sfname)));
+                        }
+                        "Long" => {
+                            c.push_str(&helpers::ln(indent, &format!("{}.{} = 0L;", obj_prefix, sfname)));
+                        }
+                        "Boolean" => {
+                            c.push_str(&helpers::ln(indent, &format!("{}.{} = false;", obj_prefix, sfname)));
+                        }
+                        "Float" => {
+                            c.push_str(&helpers::ln(indent, &format!("{}.{} = 0.0f;", obj_prefix, sfname)));
+                        }
+                        "Double" => {
+                            c.push_str(&helpers::ln(indent, &format!("{}.{} = 0.0;", obj_prefix, sfname)));
                         }
                         _ => {
                             if let Some(sf_ti) = find_type(&s_jt, all, prefix) {
