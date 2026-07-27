@@ -48,12 +48,12 @@ pub fn resolve_java_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
         "u64" | "i64" => boxed("long"),
         "f32" => boxed("float"),
         "f64" => boxed("double"),
-        s if s == "String" || s.starts_with("Utf8String") || s.starts_with("VisibleString") => "String",
-        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "byte[]",
+        s if s == "String" || s.starts_with("Utf8String") || s.starts_with("VisibleString") => "String".to_string(),
+        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "byte[]".to_string(),
         s if s.starts_with("Integer") => boxed("int"),
         s if s.starts_with("FixedBitString") => boxed("int"),
-        s if s.starts_with("BitString") => "byte[]",
-        "()" => "Object",
+        s if s.starts_with("BitString") => "byte[]".to_string(),
+        "()" => "Object".to_string(),
         s => {
             if let Some(ti) = all.iter().find(|t| t.name == s) {
                 if let TypeKind::Newtype { ref inner_type } = ti.kind {
@@ -103,12 +103,12 @@ pub fn resolve_wrapper_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String 
         "u64" | "i64" => boxed("long"),
         "f32" => boxed("float"),
         "f64" => boxed("double"),
-        s if s == "String" || s.starts_with("Utf8String") || s.starts_with("VisibleString") => "String",
-        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "byte[]",
+        s if s == "String" || s.starts_with("Utf8String") || s.starts_with("VisibleString") => "String".to_string(),
+        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "byte[]".to_string(),
         s if s.starts_with("Integer") => boxed("int"),
         s if s.starts_with("FixedBitString") => boxed("int"),
-        s if s.starts_with("BitString") => "byte[]",
-        "()" => "Object",
+        s if s.starts_with("BitString") => "byte[]".to_string(),
+        "()" => "Object".to_string(),
         // For any user-defined type (including newtypes), return the wrapper name.
         // Unlike resolve_java_type, we do NOT recurse into newtypes here.
         s => return format!("{}{}", prefix, s),
