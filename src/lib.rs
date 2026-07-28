@@ -221,6 +221,35 @@ mod tests {
         assert_eq!(orig, decoded, "Array mixed APER roundtrip failed");
     }
 
+    /// Roundtrip GetAllDataDefinitionResponsePDU with moreFollows DEFAULT TRUE.
+    /// Verifies the PER encoder/decoder handles BOOLEAN DEFAULT correctly.
+    #[test]
+    fn test_morefollows_default_true_aper_roundtrip() {
+        // moreFollows has DEFAULT TRUE (Boolean(1)) — same as default
+        // data is empty SEQUENCE OF (wrapped in [0] IMPLICIT tag)
+        let orig = GetAllDataDefinitionResponsePDU {
+            data: GetAllDataDefinitionResponsePDUData(vec![]),
+            more_follows: Boolean(1),
+        };
+        eprintln!("orig.more_follows = {:?}", orig.more_follows);
+
+        // APER encode
+        let encoded = rasn::aper::encode(&orig).expect("APER encode");
+        eprintln!("APER encoded ({} bytes): {:02x?}", encoded.len(), encoded);
+
+        // APER decode
+        let decoded: GetAllDataDefinitionResponsePDU =
+            rasn::aper::decode(&encoded).expect("APER decode");
+        eprintln!("decoded.more_follows = {:?}", decoded.more_follows);
+
+        // The DEFAULT TRUE should survive the roundtrip
+        assert_eq!(
+            orig.more_follows, decoded.more_follows,
+            "moreFollows DEFAULT TRUE should survive APER roundtrip"
+        );
+        assert_eq!(orig, decoded, "Full roundtrip");
+    }
+
     /// Test a single float32 CHOICE going through the FFI path using InnerNative-style JSON
     #[test]
     fn test_ffi_encode_decode_float32() {

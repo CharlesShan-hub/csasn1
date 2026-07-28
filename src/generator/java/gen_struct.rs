@@ -74,7 +74,14 @@ pub fn generate(
                     "new DefaultInnerVisibleString()".to_string()
                 }
             }
-            _ => jdefault(&jt, f.is_list),
+            _ => {
+                if let Some(ref dv) = f.default_value {
+                    // Rust default expression like "Boolean (1)" → new InnerBoolean(1)
+                    helpers::jdefault_with_value(&jt, dv)
+                } else {
+                    jdefault(&jt, f.is_list)
+                }
+            }
         };
         if fname != raw_name {
             c.push_str(&helpers::ln(1, &format!("@JsonProperty(\"{}\") public {} {} = {};", raw_name, jt, fname, dflt)));

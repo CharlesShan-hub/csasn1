@@ -20,6 +20,24 @@ pub fn safe_field_name(name: &str) -> String {
     }
 }
 
+/// Generate a Java default initialization from a Rust default expression.
+///
+/// Rust defaults look like `Type(value)`, e.g. `Boolean(1)` or `Int32(5)`.
+/// Maps to `new JavaType(value)`, e.g. `new InnerBoolean(1)`.
+pub fn jdefault_with_value(jt: &str, rust_expr: &str) -> String {
+    // Parse "Type(value)" or "Type ( value )" to extract the inner value
+    let trimmed = rust_expr.trim();
+    if let Some(paren_start) = trimmed.find('(') {
+        if let Some(paren_end) = trimmed.rfind(')') {
+            let value = trimmed[paren_start + 1..paren_end].trim();
+            // For simple numeric/string values, pass directly
+            return format!("new {}({})", jt, value);
+        }
+    }
+    // Fallback: treat the whole expression as a single value
+    format!("new {}({})", jt, trimmed)
+}
+
 /// Default value for a Java type (used in field initialization).
 pub fn jdefault(jt: &str, is_list: bool) -> String {
     if is_list {

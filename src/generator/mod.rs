@@ -21,6 +21,9 @@ pub struct FieldInfo {
     pub identifier: Option<String>,
     pub size_from_attr: Option<usize>,
     pub size_attr_raw: Option<String>,
+    /// Default value extracted from rasn `default = "fn_name"` attribute,
+    /// resolved by looking up the function body (e.g. "Boolean(1)").
+    pub default_value: Option<String>,
 }
 
 #[derive(Debug)]
@@ -57,13 +60,47 @@ pub fn prompt(msg: &str, default: &str) -> String {
 
 pub fn extract_types(ast: &syn::File) -> Vec<TypeInfo> {
     let mut types = Vec::new();
+
+    // Build a map of default function name → function body expression
+    // by regex-searching the original source text of generated.rs.
+    let mut default_fns: HashMap<String, String> = HashMap::new();
+    // Read the raw source text from the file that `ast` was parsed from.
+    // We can't get the original file path from `ast`, so we search `ast`'s
+    // token-stream output.  The format is: fn <name> () -> <Type> { <body> }
+    let source_text = ast.into_token_stream().to_string();
+    let mut search_pos = 0;
+    while let Some(fn_start) = source_text[search_pos..].find("fn ") {
+        let fn_abs = search_pos + fn_start;
+        let after_fn = &source_text[fn_abs + 3..];
+        // Find the end of the function name (before '(')
+        let paren_pos = after_fn.find(|c: char| c == '(' || c == '<').unwrap_or(0);
+        let name = after_fn[..paren_pos].trim();
+        if !name.ends_with("_default") {
+            search_pos = fn_abs + 3;
+            continue;
+        }
+        // Find the return type and body
+        if let Some(body_start) = after_fn[paren_pos..].find('{') {
+            let body_abs = fn_abs + 3 + paren_pos + body_start;
+            let after_open = &source_text[body_abs + 1..];
+            if let Some(body_end) = after_open.find('}') {
+                let expr = after_open[..body_end].trim();
+                default_fns.insert(name.to_string(), expr.to_string());
+                search_pos = body_abs + 1 + body_end + 1;
+                continue;
+            }
+        }
+        search_pos = fn_abs + 3;
+    }
+
+    // Extract types from the module items
     if let Some(syn::Item::Mod(m)) = ast.items.first() {
         if let Some((_, items)) = &m.content {
             for inner in items {
                 match inner {
                     Item::Struct(s) => types.push(TypeInfo {
                         name: s.ident.to_string(),
-                        kind: analyze_struct(s),
+                        kind: analyze_struct(s, &default_fns),
                     }),
                     Item::Enum(e) => types.push(TypeInfo {
                         name: e.ident.to_string(),
@@ -84,7 +121,7 @@ fn attr_contains(attrs: &[syn::Attribute], pat: &str) -> bool {
         .any(|a| a.into_token_stream().to_string().contains(pat))
 }
 
-fn analyze_struct(s: &syn::ItemStruct) -> TypeKind {
+fn analyze_struct(s: &syn::ItemStruct, default_fns: &HashMap<String, String>) -> TypeKind {
     if attr_contains(&s.attrs, "delegate") {
         if let Fields::Unnamed(ref u) = s.fields {
             if let Some(f) = u.unnamed.first() {
@@ -155,6 +192,19 @@ fn analyze_struct(s: &syn::ItemStruct) -> TypeKind {
             }
         });
 
+        // Extract default value from rasn attribute: default = "fn_name"
+        let default_value = f.attrs.iter().find_map(|attr| {
+            let ts = attr.to_token_stream().to_string();
+            if let Some(pos) = ts.find("default = \"") {
+                let after = &ts[pos + 11..];
+                let end = after.find('"')?;
+                let fn_name = &after[..end];
+                default_fns.get(fn_name).cloned()
+            } else {
+                None
+            }
+        });
+
         fields.push(FieldInfo {
             name,
             rust_type: rt,
@@ -163,6 +213,7 @@ fn analyze_struct(s: &syn::ItemStruct) -> TypeKind {
             identifier,
             size_from_attr,
             size_attr_raw,
+            default_value,
         });
     }
     TypeKind::Struct { fields }
