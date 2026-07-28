@@ -31,40 +31,47 @@ pub fn generate(
     c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.createMapper();", base)));
 
     for f in fields {
-        let jt = if f.optional {
+        let mut jt = if f.optional {
             resolve_wrapper_type_nullable(&f.rust_type, all, prefix)
         } else {
             resolve_wrapper_type(&f.rust_type, all, prefix)
         };
+        // Wrap built-in Java types in DefaultInner* wrappers so they
+        // become InnerBase subtypes (enabling @InnerField injection).
+        match jt.as_str() {
+            "String" => jt = "DefaultInnerVisibleString".to_string(),
+            "byte[]" => jt = "DefaultInnerOctetString".to_string(),
+            _ => {}
+        }
         let raw_name = f.identifier.as_deref().unwrap_or(&f.name);
         let fname = safe_field_name(raw_name);
         let dflt = match jt.as_str() {
-            "byte[]" => {
+            "DefaultInnerOctetString" => {
                 let is_fixed = f.size_attr_raw.as_deref()
                     .and_then(|r| r.parse::<usize>().ok())
                     .is_some();
                 if is_fixed {
                     if let Some(n) = f.size_from_attr {
-                        format!("new byte[{}]", n)
+                        format!("new DefaultInnerOctetString(new byte[{}])", n)
                     } else {
-                        "new byte[0]".to_string()
+                        "new DefaultInnerOctetString()".to_string()
                     }
                 } else {
-                    "new byte[0]".to_string()
+                    "new DefaultInnerOctetString()".to_string()
                 }
             }
-            "String" => {
+            "DefaultInnerVisibleString" | "DefaultInnerUtf8String" => {
                 let is_fixed = f.size_attr_raw.as_deref()
                     .and_then(|r| r.parse::<usize>().ok())
                     .is_some();
                 if is_fixed {
                     if let Some(n) = f.size_from_attr {
-                        format!("\"{}\"", "x".repeat(n))
+                        format!("new DefaultInnerVisibleString(\"{}\")", "x".repeat(n))
                     } else {
-                        "\"\"".to_string()
+                        "new DefaultInnerVisibleString()".to_string()
                     }
                 } else {
-                    "\"\"".to_string()
+                    "new DefaultInnerVisibleString()".to_string()
                 }
             }
             _ => jdefault(&jt, f.is_list),

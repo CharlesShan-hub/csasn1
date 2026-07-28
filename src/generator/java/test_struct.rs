@@ -58,6 +58,16 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, fields
                 s if s.starts_with("java.util.Map<") => {
                     c.push_str(&helpers::ln(indent, &format!("obj.{} = new java.util.HashMap<>();", fname)));
                 }
+                s if s == "DefaultInnerOctetString" => {
+                    let sz = helpers::test_data_size(asn_defs.get(&f.rust_type).map(|s| s.as_str()));
+                    let sz = if sz <= 2 && f.size_from_attr.is_some() {
+                        let is_fixed = f.size_attr_raw.as_deref()
+                            .and_then(|r| r.parse::<usize>().ok())
+                            .is_some();
+                        if is_fixed { f.size_from_attr.unwrap() } else { sz }
+                    } else { sz };
+                    c.push_str(&helpers::ln(indent, &format!("obj.{} = new DefaultInnerOctetString(new byte[{}]);", fname, sz)));
+                }
                 "Integer" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 0;", fname))); }
                 "Long" => { c.push_str(&helpers::ln(indent, &format!("obj.{} = 0L;", fname))); }
                 "Boolean" => { /* no default needed, null is fine */ }
