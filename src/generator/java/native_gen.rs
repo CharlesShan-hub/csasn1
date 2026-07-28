@@ -185,17 +185,29 @@ public abstract class {pfx}Base {{
                 result |= (1 << (bytePos * 8 + bitPos));
             }}
         }}
-        return String.format("%0" + (bytes * 2) + "x", result);
+        // Output bytes LSB-first — matches Rust JER byte ordering
+        StringBuilder sb = new StringBuilder();
+        for (int j = 0; j < bytes; j++) {{
+            sb.append(String.format("%02x", (result >> (j * 8)) & 0xFF));
+        }}
+        return sb.toString();
     }}
 
     /** Parse BIT STRING JER hex back to integer value. */
     public static int parseBitStringHex(String hex, int numBits) {{
-        int bytes = Integer.parseInt(hex, 16);
+        int bytes = hex.length() / 2;
+        // Parse LSB-first hex bytes back to integer
+        int packed = 0;
+        for (int b = 0; b < bytes; b++) {{
+            int byteVal = Integer.parseInt(hex.substring(b * 2, b * 2 + 2), 16);
+            packed |= (byteVal << (b * 8));
+        }}
+        // Convert from MSB-first byte packing to LSB-0 packed value
         int result = 0;
         for (int i = 0; i < numBits; i++) {{
             int bytePos = i / 8;
             int bitPos = 7 - (i % 8);
-            if ((bytes & (1 << (bytePos * 8 + bitPos))) != 0) {{
+            if ((packed & (1 << (bytePos * 8 + bitPos))) != 0) {{
                 result |= (1 << i);
             }}
         }}

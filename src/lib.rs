@@ -115,6 +115,32 @@ mod tests {
         assert_eq!(orig, decoded, "BitString APER roundtrip failed");
     }
 
+    /// JER→APER→JER roundtrip for FixedBitString<10> (RcbOptFlds).
+    /// Matches the Java flow: encode sends JER hex "0068" (bits 1,2,4 set).
+    #[test]
+    fn test_rcboptflds_jer_aper_jer() {
+        // bits 1,2,4 set → byte0=0x68 (MSB: bit0→bit7, bit1→bit6, bit2→bit5, bit4→bit3)
+        let bit_data: [u8; 10] = [0x68, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let orig = RcbOptFlds(FixedBitString::<10>::new(bit_data));
+        eprintln!("orig: {orig:?}");
+
+        // Step 1: JER encode
+        let jer = rasn::jer::encode(&orig).expect("JER encode");
+        eprintln!("JER: {}", String::from_utf8_lossy(&jer.as_bytes()));
+
+        // Step 2: JER decode → APER encode (Java's InnerNative.encode path)
+        let decoded: RcbOptFlds = rasn::jer::decode(&jer).expect("JER decode back");
+        let aper = rasn::aper::encode(&decoded).expect("APER encode");
+        eprintln!("APER encoded ({} bytes): {:02x?}", aper.len(), aper);
+
+        // Step 3: APER decode → JER encode (Java's InnerNative.decode path)
+        let aper_decoded: RcbOptFlds = rasn::aper::decode(&aper).expect("APER decode");
+        let jer2 = rasn::jer::encode(&aper_decoded).expect("JER encode");
+        eprintln!("JER after APER: {}", String::from_utf8_lossy(&jer2.as_bytes()));
+
+        assert_eq!(orig, aper_decoded, "RcbOptFlds JER→APER→JER roundtrip failed");
+    }
+
     /// Roundtrip Data::Boolean via APER.
     #[test]
     fn test_data_boolean_aper_roundtrip() {
