@@ -30,6 +30,8 @@ pub fn generate(
     c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.createMapper();", base)));
 
     // No-arg constructor picks the first variant as default
+    // and initializes ALL variant fields so that Lombok Inner*.equals()
+    // works correctly (no null-vs-default mismatches after decode).
     if let Some(first) = variants.first() {
         let fname = safe_field_name(&first.name);
         let json_key = first.identifier.as_deref().unwrap_or(&first.name);
@@ -41,11 +43,33 @@ pub fn generate(
             "double" => " = 2.5".to_string(),
             "String" => " = \"\"".to_string(),
             "byte[]" => " = new byte[0]".to_string(),
+            "boolean" => " = true".to_string(),
             _ => format!(" = new {}()", jt),
         };
+        let def_init = |jt: &str| -> String {
+              match jt {
+                  "int" => " = 0".to_string(),
+                  "Integer" => " = 0".to_string(),
+                  "long" => " = 0L".to_string(),
+                  "float" => " = 0.0f".to_string(),
+                  "double" => " = 0.0".to_string(),
+                  "String" => " = \"\"".to_string(),
+                  "byte[]" => " = new byte[0]".to_string(),
+                  "boolean" => " = false".to_string(),
+                  _ if jt.starts_with("java.util.List") => " = new java.util.ArrayList<>()".to_string(),
+                  // All object types: leave null to avoid circular init and Jackson errors.
+                  // CmsChoice.syncFromInner handles null → default via reflection when selected.
+                  _ => " = null".to_string(),
+              }
+          };
         c.push_str(&helpers::ln(1, &format!("public {}() {{", cn)));
         c.push_str(&helpers::ln(2, &format!("this._choice = \"{}\";", json_key)));
         c.push_str(&helpers::ln(2, &format!("this.{}{};", fname, init)));
+        for v in variants.iter().skip(1) {
+            let v_jt = resolve_wrapper_type(&v.inner_type, all, prefix);
+            let v_fname = safe_field_name(&v.name);
+            c.push_str(&helpers::ln(2, &format!("this.{}{};", v_fname, def_init(&v_jt))));
+        }
         c.push_str(&helpers::ln(1, "}"));
     }
 
@@ -171,6 +195,28 @@ pub fn generate(
 
     // decode
     helpers::gen_decode_method(&mut c, cn, &native, &ti.name);
+
+    // Custom equals — compares only _choice + selected variant value
+    c.push_str(&helpers::ln(1, "@Override"));
+    c.push_str(&helpers::ln(1, "public boolean equals(Object o) {"));
+    c.push_str(&helpers::ln(2, "if (this == o) return true;"));
+    c.push_str(&helpers::ln(2, "if (o == null || getClass() != o.getClass()) return false;"));
+    c.push_str(&helpers::ln(2, &format!("{} that = ({}) o;", cn, cn)));
+    c.push_str(&helpers::ln(2, "if (!java.util.Objects.equals(_choice, that._choice)) return false;"));
+    c.push_str(&helpers::ln(2, "if (_choice == null) return false;"));
+    c.push_str(&helpers::ln(2, "String c = _choice;"));
+    for v in variants {
+        let json_key = v.identifier.as_deref().unwrap_or(&v.name);
+        let fname = safe_field_name(&v.name);
+        c.push_str(&helpers::ln(2, &format!("if (\"{}\".equals(c)) return java.util.Objects.equals({}, that.{});", json_key, fname, fname)));
+    }
+    c.push_str(&helpers::ln(2, "return false;"));
+    c.push_str(&helpers::ln(1, "}"));
+    c.push_str(&helpers::ln(1, "@Override"));
+    c.push_str(&helpers::ln(1, "public int hashCode() {"));
+    c.push_str(&helpers::ln(2, "return java.util.Objects.hash(_choice);"));
+    c.push_str(&helpers::ln(1, "}"));
+
     c.push_str("}\n");
     c
 }
