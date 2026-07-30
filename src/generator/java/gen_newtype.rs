@@ -57,76 +57,116 @@ pub fn generate(
     }
     c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.createMapper();", base)));
     if hex_digits > 0 {
-        c.push_str(&helpers::ln(1, &format!("public {} value = 0;", jt)));
-        c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
-        c.push_str(&helpers::ln(1, &format!("public {}({} value) {{ this.value = value; }}", cn, jt)));
+        let default_hex = "0".repeat(hex_digits);
+        c.push_str(&helpers::ln(1, &format!("public {}() {{ _v.put(\"_\", \"{}\"); }}", cn, default_hex)));
+        c.push_str(&helpers::ln(1, &format!("public {}({} v) {{ this(); _v.put(\"_\", {}.bitStringHex(v, {})); }}", cn, jt, base, bit_count)));
         c.push_str(&helpers::ln(1, "@JsonValue"));
-        c.push_str(&helpers::ln(1, &format!("public String toJsonValue() {{ return {}.bitStringHex(this.value, {}); }}", base, bit_count)));
+        c.push_str(&helpers::ln(1, "@Override"));
+        c.push_str(&helpers::ln(1, &format!("public Object toJsonValue() {{ return _v.get(\"_\"); }}")));
         c.push_str(&helpers::ln(1, "@JsonCreator"));
-        c.push_str(&helpers::ln(1, &format!("public {}(String hex) {{ this.value = {}.parseBitStringHex(hex, {}); }}", cn, base, bit_count)));
+        c.push_str(&helpers::ln(1, &format!("public static {} fromJson(String hex) {{ return new {}(hex); }}", cn, cn)));
+        c.push_str(&helpers::ln(1, &format!("public {}(String hex) {{ this(); _v.put(\"_\", hex); }}", cn)));
     } else {
-        let default_val = match jt {
-            "String" => {
-                let sz = helpers::resolve_size(&ti.name, asn_defs);
-                if sz > 0 { format!(" = \"{}\"", "x".repeat(sz)) } else { " = \"\"".to_string() }
-            }
-            "byte[]" => {
-                let sz = helpers::resolve_size(&ti.name, asn_defs);
-                if sz > 0 { format!(" = new byte[{}]", sz) } else { " = new byte[0]".to_string() }
-            }
-            _ if jt.starts_with("java.util.List<") => " = new java.util.ArrayList<>()".to_string(),
-            "Integer" => " = 0".to_string(),
-            "Long" => " = 0L".to_string(),
-            "Float" => " = 0.0f".to_string(),
-            "Double" => " = 0.0".to_string(),
-            "Boolean" => " = false".to_string(),
-            _ if jt.starts_with("DefaultInner") => {
-                let sz = helpers::resolve_size(&ti.name, asn_defs);
-                if sz > 0 && jt == "DefaultInnerOctetString" {
-                    format!(" = new DefaultInnerOctetString(new byte[{}])", sz)
-                } else if sz > 0 && (jt == "DefaultInnerVisibleString" || jt == "DefaultInnerUtf8String") {
-                    format!(" = new DefaultInnerVisibleString(\"{}\")", "x".repeat(sz))
-                } else {
-                    format!(" = new {}()", jt)
-                }
-            },
-            _ => "".to_string(),
-        };
         if inner_unsigned_int {
-            c.push_str(&helpers::ln(1, &format!("public {} value{};", jt, default_val)));
+            c.push_str(&helpers::ln(1, &format!("public {}() {{ _v.put(\"_\", 0); }}", cn)));
             c.push_str(&helpers::ln(1, "@JsonValue"));
-            c.push_str(&helpers::ln(1, &format!("public long toJsonValue() {{ return Integer.toUnsignedLong(this.value); }}")));
-            c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
+            c.push_str(&helpers::ln(1, "@Override"));
+            c.push_str(&helpers::ln(1, &format!("public Object toJsonValue() {{ return Integer.toUnsignedLong((int) _v.get(\"_\")); }}")));
+            c.push_str(&helpers::ln(1, &format!("public {}(long v) {{ this(); _v.put(\"_\", (int) v); }}", cn)));
             c.push_str(&helpers::ln(1, "@JsonCreator"));
-            c.push_str(&helpers::ln(1, &format!("public {}(long value) {{ this.value = (int) value; }}", cn)));
+            c.push_str(&helpers::ln(1, &format!("public static {} fromJson(long v) {{ return new {}(v); }}", cn, cn)));
         } else {
-            c.push_str(&helpers::ln(1, &format!("@JsonValue public {} value{};", jt, default_val)));
-            c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
+            let default_val = match jt {
+                "String" => {
+                    let sz = helpers::resolve_size(&ti.name, asn_defs);
+                    if sz > 0 { format!("\"{}\"", "x".repeat(sz)) } else { "\"\"".to_string() }
+                }
+                "byte[]" => {
+                    let sz = helpers::resolve_size(&ti.name, asn_defs);
+                    if sz > 0 { format!("new byte[{}]", sz) } else { "new byte[0]".to_string() }
+                }
+                _ if jt.starts_with("java.util.List<") => "new java.util.ArrayList<>()".to_string(),
+                "int" | "Integer" => "1".to_string(),
+                "long" | "Long" => "1L".to_string(),
+                "float" | "Float" => "1.5f".to_string(),
+                "double" | "Double" => "2.5".to_string(),
+                "boolean" | "Boolean" => "true".to_string(),
+                _ if jt.starts_with("DefaultInner") => {
+                    let sz = helpers::resolve_size(&ti.name, asn_defs);
+                    if sz > 0 && jt == "DefaultInnerOctetString" {
+                        let bytes: Vec<String> = std::iter::repeat("1".to_string()).take(sz).collect();
+                        format!("new byte[] {{ {} }}", bytes.join(", "))
+                    } else if sz > 0 && (jt == "DefaultInnerVisibleString" || jt == "DefaultInnerUtf8String") {
+                        format!("\"{}\"", "x".repeat(sz))
+                    } else {
+                        format!("new {}()", jt)
+                    }
+                },
+                _ => format!("new {}()", jt),
+            };
+            if default_val.is_empty() {
+                c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
+            } else {
+                c.push_str(&helpers::ln(1, &format!("public {}() {{ _v.put(\"_\", {}); }}", cn, default_val)));
+            }
+            let json_creator_type = if jt.starts_with("java.util.List<") {
+                "Object"
+            } else {
+                match jt {
+                    "int" | "Integer" => "int",
+                    "long" | "Long" => "long",
+                    "boolean" | "Boolean" => "boolean",
+                    "float" | "Float" | "double" | "Double" => "double",
+                    _ => "String",
+                }
+            };
+            let json_creator_body = if jt.starts_with("java.util.List<") {
+                let inner = jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
+                format!("{{ {} r = new {}(); r._v.put(\"_\", MAPPER.convertValue(v, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}})); return r; }}", cn, cn, inner)
+            } else if jt == "byte[]" {
+                format!("{{ {} r = new {}(); r._v.put(\"_\", {}.unhex(v)); return r; }}", cn, cn, base)
+            } else {
+                format!("{{ {} r = new {}(); r._v.put(\"_\", v); return r; }}", cn, cn)
+            };
             c.push_str(&helpers::ln(1, "@JsonCreator"));
-            c.push_str(&helpers::ln(1, &format!("public {}({} value) {{ this.value = value; }}", cn, jt)));
+            c.push_str(&helpers::ln(1, &format!("public static {} fromJson({} v) {}", cn, json_creator_type, json_creator_body)));
+            let ctor_type = match jt {
+                "Integer" | "int" => "Integer",
+                "Long" | "long" => "Long",
+                "Boolean" | "boolean" => "Boolean",
+                "Float" | "float" => "Float",
+                "Double" | "double" => "Double",
+                "String" => "String",
+                _ => jt,
+            };
+            if ctor_type != jt || !jt.starts_with("DefaultInner") {
+                c.push_str(&helpers::ln(1, &format!("public {}({} v) {{ this(); _v.put(\"_\", v); }}", cn, ctor_type)));
+            }
+            c.push_str(&helpers::ln(1, "@JsonValue"));
+            c.push_str(&helpers::ln(1, "public Object toJsonValue() { return _v.get(\"_\"); }"));
         }
     }
 
     let (encode_arg, wrap_try): (String, bool) = if jt.starts_with("java.util.List<") {
-        ("MAPPER.writeValueAsString(this.value)".into(), true)
+        (format!("MAPPER.writeValueAsString({}.toJson(_v.get(\"_\")))", base), true)
     } else if jt == "byte[]" {
-        (format!("MAPPER.writeValueAsString({}.hex(this.value))", base), true)
+        (format!("MAPPER.writeValueAsString({}.hex((byte[]) _v.get(\"_\")))", base), true)
     } else if hex_digits > 0 {
-        (format!("MAPPER.writeValueAsString({}.bitStringHex(this.value, {}))", base, bit_count), true)
+        ("MAPPER.writeValueAsString(_v.get(\"_\"))".into(), true)
     } else if jt == "String" {
-        ("MAPPER.writeValueAsString(this.value)".into(), true)
+        ("MAPPER.writeValueAsString(_v.get(\"_\"))".into(), true)
     } else if jt == "Object" {
         ("\"null\"".into(), false)
     } else if jt.starts_with(prefix) {
-        ("MAPPER.writeValueAsString(this.value)".into(), true)
+        (format!("MAPPER.writeValueAsString({}.toJson(_v.get(\"_\")))", base), true)
     } else if jt == "DefaultInnerOctetString" {
-        (format!("MAPPER.writeValueAsString({}.hex(this.value.value))", base), true)
+        (format!("MAPPER.writeValueAsString({}.hex((byte[]) _v.get(\"_\")))", base), true)
     } else if jt.starts_with("DefaultInner") {
-        ("MAPPER.writeValueAsString(this.value.value)".into(), true)
+        ("MAPPER.writeValueAsString(_v.get(\"_\"))".into(), true)
     } else if inner_unsigned_int {
-        ("String.valueOf(Integer.toUnsignedLong(this.value))".into(), false)
+        ("String.valueOf(Integer.toUnsignedLong((int) _v.get(\"_\")))".into(), false)
     } else {
-        ("String.valueOf(this.value)".into(), false)
+        ("String.valueOf(_v.get(\"_\"))".into(), false)
     };
 
     if wrap_try {
@@ -160,34 +200,29 @@ pub fn generate(
     c.push_str(&helpers::ln(3, &format!("{} r = new {}();", cn, cn)));
     if jt.starts_with("java.util.List<") {
         let inner = jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
+        c.push_str(&helpers::ln(3, "com.fasterxml.jackson.databind.JsonNode _node = MAPPER.readTree(json);"));
         c.push_str(&helpers::ln(3, &format!(
-            "r.value = MAPPER.convertValue(MAPPER.readTree(json).get(\"value\"), new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}});",
+            "r._v.put(\"_\", MAPPER.convertValue(_node.isArray() ? _node : _node.elements().next(), new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}}));",
             inner
         )));
     } else if jt == "byte[]" {
-        c.push_str(&helpers::ln(3, &format!("r.value = {}.unhex(MAPPER.readTree(json).get(\"value\").asText());", base)));
-    } else if jt == "Object" {
-        c.push_str(&helpers::ln(3, "r.value = null;"));
-    } else if jt == "long" || jt == "Long" {
-        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asLong();"));
+        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", {}.unhex(MAPPER.readTree(json).asText()));", base)));
     } else if jt == "String" {
-        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asText();"));
-    } else if jt == "boolean" || jt == "Boolean" {
-        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asBoolean();"));
-    } else if jt == "float" || jt == "Float" {
-        c.push_str(&helpers::ln(3, "r.value = (float) MAPPER.readTree(json).get(\"value\").asDouble();"));
-    } else if jt == "double" || jt == "Double" {
-        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asDouble();"));
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", MAPPER.readTree(json).asText());"));
     } else if hex_digits > 0 {
-        c.push_str(&helpers::ln(3, &format!("r.value = {}.parseBitStringHex(MAPPER.readTree(json).get(\"value\").asText(), {});", base, bit_count)));
-    } else if jt == "int" || jt == "Integer" {
-        c.push_str(&helpers::ln(3, "r.value = MAPPER.readTree(json).get(\"value\").asInt();"));
-    } else if jt == "DefaultInnerOctetString" {
-        c.push_str(&helpers::ln(3, &format!("r.value = new DefaultInnerOctetString({}.unhex(MAPPER.readTree(json).get(\"value\").asText()));", base)));
-    } else if jt.starts_with("DefaultInner") {
-        c.push_str(&helpers::ln(3, &format!("r.value = new {}(MAPPER.readTree(json).get(\"value\").asText());", jt)));
+        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", {}.parseBitStringHex(MAPPER.readTree(json).asText(), {}));", base, bit_count)));
+    } else if jt == "int" || jt == "Integer" || jt == "long" || jt == "Long" {
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", MAPPER.readTree(json).asInt());"));
+    } else if jt == "boolean" || jt == "Boolean" {
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", MAPPER.readTree(json).asBoolean());"));
+    } else if jt == "float" || jt == "Float" {
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", (float) MAPPER.readTree(json).asDouble());"));
+    } else if jt == "double" || jt == "Double" {
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", MAPPER.readTree(json).asDouble());"));
+    } else if jt == "Object" {
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", null);"));
     } else {
-        c.push_str(&helpers::ln(3, &format!("r.value = MAPPER.readValue(json.trim(), {}.class);", jt)));
+        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", MAPPER.readValue(json.trim(), {}.class));", jt)));
     }
     c.push_str(&helpers::ln(3, "return r;"));
     c.push_str(&helpers::ln(2, "} catch (Exception e) {"));

@@ -28,21 +28,17 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, asn_def
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}(2.5);", cn, cn)));
     } else if jt == "String" {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
-        c.push_str(&helpers::ln(2, &format!("obj.value = \"{}\";", "x".repeat(size))));
+        c.push_str(&helpers::ln(2, &format!("obj._v.put(\"_\", \"{}\");", "x".repeat(size))));
     } else if jt == "byte[]" {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
-        c.push_str(&helpers::ln(2, &format!("obj.value = new byte[{}];", size)));
+        let bytes: String = std::iter::repeat("1").take(size).collect::<Vec<_>>().join(", ");
+        c.push_str(&helpers::ln(2, &format!("obj._v.put(\"_\", new byte[] {{ {} }});", bytes)));
     } else if jt.starts_with("java.util.List<") {
+        let inner = jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
-        c.push_str(&helpers::ln(2, "obj.value = new java.util.ArrayList<>();"));
+        c.push_str(&helpers::ln(2, &format!("obj._v.put(\"_\", java.util.Collections.singletonList(new {}()));", inner)));
     } else {
         c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
-        if let TypeKind::Newtype { inner_type } = &ti.kind {
-            let inner_jt = resolve_java_type(inner_type, all, prefix);
-            if inner_jt.starts_with(prefix) && !inner_jt.contains("Anonymous") {
-                c.push_str(&helpers::ln(2, &format!("obj.value = new {}();", inner_jt)));
-            }
-        }
     }
     c.push_str(&helpers::ln(2, "byte[] data = obj.encodeTest();"));
     c.push_str(&helpers::ln(2, &format!("{} d = {}.decode(data);", cn, cn)));

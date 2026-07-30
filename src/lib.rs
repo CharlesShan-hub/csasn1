@@ -282,4 +282,124 @@ mod tests {
         eprintln!("Wrapped: {wrapped}");
         assert!(wrapped.contains("4048F5C3"), "Missing expected hex in decoded JSON");
     }
+
+    /// URCB 的 JER 输出（"上帝格式"），查看 Rust JER 编码后的 JSON 长什么样子。
+    #[test]
+    fn test_urcb_jer_god_format() {
+        use rasn::prelude::*;
+
+        let urcb = URCB {
+            rpt_id: VisibleString::from_iso646_bytes(b"report1").unwrap(),
+            rpt_ena: Boolean(1),                                    // true
+            dat_set: ObjectReference(VisibleString::from_iso646_bytes(b"PROT/LLN0.RPIT.Ena").unwrap()),
+            conf_rev: Int32U(1),
+            opt_flds: RcbOptFlds(FixedBitString::<10>::new([
+                0x68, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ])), // bits 1,2,4 set
+            buf_tm: Int32U(1000),
+            sq_num: Int16U(1),
+            trg_ops: TriggerConditions(FixedBitString::<6>::new([0x01, 0, 0, 0, 0, 0])),
+            intg_pd: Int32U(5000),
+            gi: Boolean(0),                                          // false
+            resv: Boolean(0),                                        // false
+            owner: Some(OctetString::from(vec![0x01, 0x02, 0x03])),  // OPTIONAL
+        };
+
+        let jer = rasn::jer::encode(&urcb).expect("JER encode URCB");
+        eprintln!("=== URCB 上帝格式 (JER) ===");
+        eprintln!("{}", String::from_utf8_lossy(&jer.as_bytes()));
+        eprintln!("=== END ===");
+    }
+
+    /// Boolean 的 JER 输出
+    #[test]
+    fn test_Boolean_jer_god_format() {
+        let v_true = Boolean(1);
+        let v_false = Boolean(0);
+        let jer_true = rasn::jer::encode(&v_true).expect("JER encode Boolean true");
+        let jer_false = rasn::jer::encode(&v_false).expect("JER encode Boolean false");
+        eprintln!("=== Boolean 上帝格式 (JER) ===");
+        eprintln!("true: {}", String::from_utf8_lossy(&jer_true.as_bytes()));
+        eprintln!("false: {}", String::from_utf8_lossy(&jer_false.as_bytes()));
+        eprintln!("=== END ===");
+    }
+
+    /// Int8U 的 JER 输出
+    #[test]
+    fn test_Int8U_jer_god_format() {
+        let v = Int8U(100);
+        let jer = rasn::jer::encode(&v).expect("JER encode Int8U");
+        eprintln!("=== Int8U 上帝格式 (JER) ===");
+        eprintln!("100: {}", String::from_utf8_lossy(&jer.as_bytes()));
+        eprintln!("=== END ===");
+    }
+
+    /// ServiceError 的 JER 输出
+    #[test]
+    fn test_ServiceError_jer_god_format() {
+        let v = ServiceError(1);
+        let jer = rasn::jer::encode(&v).expect("JER encode ServiceError");
+        eprintln!("=== ServiceError 上帝格式 (JER) ===");
+        eprintln!("1: {}", String::from_utf8_lossy(&jer.as_bytes()));
+        eprintln!("=== END ===");
+    }
+
+    /// Data (CHOICE) 的 JER 输出
+    #[test]
+    fn test_Data_choice_jer_god_format() {
+        use rasn::prelude::*;
+        let v_int32 = Data::int32(Int32(42));
+        let v_bool = Data::Boolean(Boolean(1));
+        let v_str = Data::visible_string(
+            VisibleString::from_iso646_bytes(b"hello").unwrap()
+        );
+        let v_bit = Data::bit_string(BitString::from_vec(vec![0xAA, 0xBB]));
+        let v_null = Data::int8(Int8(0)); // int8 is NULL type — just () in ASN.1
+        let jer_int32 = rasn::jer::encode(&v_int32).expect("JER encode Data::int32");
+        let jer_bool = rasn::jer::encode(&v_bool).expect("JER encode Data::Boolean");
+        let jer_str = rasn::jer::encode(&v_str).expect("JER encode Data::visible_string");
+        let jer_bit = rasn::jer::encode(&v_bit).expect("JER encode Data::bit_string");
+        eprintln!("=== Data CHOICE 上帝格式 (JER) ===");
+        eprintln!("int32(42): {}", String::from_utf8_lossy(&jer_int32.as_bytes()));
+        eprintln!("Boolean(1): {}", String::from_utf8_lossy(&jer_bool.as_bytes()));
+        eprintln!("visible_string: {}", String::from_utf8_lossy(&jer_str.as_bytes()));
+        eprintln!("bit_string: {}", String::from_utf8_lossy(&jer_bit.as_bytes()));
+        eprintln!("=== END ===");
+    }
+
+    /// RcbOptFlds (BIT STRING) 的 JER 输出
+    #[test]
+    fn test_RcbOptFlds_jer_god_format() {
+        let v = RcbOptFlds(FixedBitString::<10>::new([0x68, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
+        let jer = rasn::jer::encode(&v).expect("JER encode RcbOptFlds");
+        eprintln!("=== RcbOptFlds 上帝格式 (JER) ===");
+        eprintln!("{}", String::from_utf8_lossy(&jer.as_bytes()));
+        eprintln!("=== END ===");
+    }
+
+    /// BRCB 的 JER 输出
+    #[test]
+    fn test_BRCB_jer_god_format() {
+        let brcb = BRCB {
+            rpt_id: VisibleString::from_iso646_bytes(b"report1").unwrap(),
+            rpt_ena: Boolean(1),
+            dat_set: ObjectReference(VisibleString::from_iso646_bytes(b"PROT/LLN0.RPIT.Ena").unwrap()),
+            conf_rev: Int32U(1),
+            opt_flds: RcbOptFlds(FixedBitString::<10>::new([0x68, 0, 0, 0, 0, 0, 0, 0, 0, 0])),
+            buf_tm: Int32U(1000),
+            sq_num: Int16U(1),
+            trg_ops: TriggerConditions(FixedBitString::<6>::new([0x01, 0, 0, 0, 0, 0])),
+            intg_pd: Int32U(5000),
+            gi: Boolean(0),
+            purge_buf: Boolean(0),
+            entry_id: EntryID(FixedOctetString::<8>::new([0, 0, 0, 0, 0, 0, 0, 1])),
+            time_of_entry: EntryTime(BinaryTime(FixedOctetString::<6>::new([0x01, 0x02, 0x03, 0x04, 0x05, 0x06]))),
+            resv_tms: None,
+            owner: None,
+        };
+        let jer = rasn::jer::encode(&brcb).expect("JER encode BRCB");
+        eprintln!("=== BRCB 上帝格式 (JER) ===");
+        eprintln!("{}", String::from_utf8_lossy(&jer.as_bytes()));
+        eprintln!("=== END ===");
+    }
 }

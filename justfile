@@ -36,6 +36,25 @@ gen-python:
 test-python: gen-python
     cd assets/python && pixi run test
 
+# ─── Debug / Explore ─────────────────────────────────────
+# List all ASN.1 type names from the generated Rust code
+rust-all:
+    @powershell -NoProfile -File scripts/list_types.ps1
+
+# Show JER JSON ("上帝格式") via example binary (any type, needs JSON input)
+# 用法: just jer <typename> <json>  如 just jer RcbOptFlds 6800
+jer type json:
+    cargo run --example jer_god -- {{type}} '{{json}}' 2>&1
+
+# Show JER JSON via pre-defined test (only types with a test_*_jer_god_format test)
+# 用法: just json <typename>  如 just json urcb
+json type:
+    cargo test test_{{type}}_jer_god_format -- --nocapture 2>&1
+
+# Run ALL JER god-format tests
+json-all:
+    cargo test jer_god_format -- --nocapture 2>&1
+
 # ─── Build All ───────────────────────────────────────────
 # Build Rust + generate both Java and Python
 gen-all: build gen-java gen-python

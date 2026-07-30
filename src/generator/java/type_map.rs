@@ -43,17 +43,17 @@ pub fn resolve_java_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
     }
 
     let base = match rt {
-        "bool" => boxed("boolean"),
-        "u8" | "i8" | "u16" | "i16" | "u32" | "i32" => boxed("int"),
-        "u64" | "i64" => boxed("long"),
-        "f32" => boxed("float"),
-        "f64" => boxed("double"),
+        "bool" => "boolean".to_string(),
+        "u8" | "i8" | "u16" | "i16" | "u32" | "i32" => "int".to_string(),
+        "u64" | "i64" => "long".to_string(),
+        "f32" => "float".to_string(),
+        "f64" => "double".to_string(),
         s if s == "String" => "String".to_string(),
         s if s.starts_with("VisibleString") => "DefaultInnerVisibleString".to_string(),
         s if s.starts_with("Utf8String") => "DefaultInnerUtf8String".to_string(),
         s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "DefaultInnerOctetString".to_string(),
-        s if s.starts_with("Integer") => boxed("int"),
-        s if s.starts_with("FixedBitString") => boxed("int"),
+        s if s.starts_with("Integer") => "int".to_string(),
+        s if s.starts_with("FixedBitString") => "int".to_string(),
         s if s.starts_with("BitString") => "byte[]".to_string(),
         "()" => "Object".to_string(),
         s => {
@@ -127,6 +127,7 @@ pub fn resolve_wrapper_type_nullable(rt: &str, all: &[TypeInfo], prefix: &str) -
 
 /// Generate a type literal for Jackson convertValue.
 /// Uses TypeReference for List<T>, .class for everything else.
+#[allow(dead_code)]
 pub fn java_type_ref(jt: &str) -> String {
     if jt.starts_with("java.util.List<") {
         let inner = jt

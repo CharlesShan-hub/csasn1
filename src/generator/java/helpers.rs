@@ -12,6 +12,7 @@ const JAVA_KEYWORDS: &[&str] = &[
 ];
 
 /// Convert a Rust-style name to a safe Java field name (avoid keywords, no camelCase).
+#[allow(dead_code)]
 pub fn safe_field_name(name: &str) -> String {
     if JAVA_KEYWORDS.contains(&name) {
         format!("_{}", name)
@@ -27,15 +28,20 @@ pub fn safe_field_name(name: &str) -> String {
 pub fn jdefault_with_value(jt: &str, rust_expr: &str) -> String {
     // Parse "Type(value)" or "Type ( value )" to extract the inner value
     let trimmed = rust_expr.trim();
-    if let Some(paren_start) = trimmed.find('(') {
+    let raw_value = if let Some(paren_start) = trimmed.find('(') {
         if let Some(paren_end) = trimmed.rfind(')') {
-            let value = trimmed[paren_start + 1..paren_end].trim();
-            // For simple numeric/string values, pass directly
-            return format!("new {}({})", jt, value);
+            trimmed[paren_start + 1..paren_end].trim().to_string()
+        } else {
+            trimmed.to_string()
         }
+    } else {
+        trimmed.to_string()
+    };
+    // For primitive Java types, return just the value, not "new int(value)"
+    match jt {
+        "int" | "long" | "boolean" | "float" | "double" => return raw_value,
+        _ => format!("new {}({})", jt, raw_value),
     }
-    // Fallback: treat the whole expression as a single value
-    format!("new {}({})", jt, trimmed)
 }
 
 /// Default value for a Java type (used in field initialization).
@@ -44,14 +50,14 @@ pub fn jdefault(jt: &str, is_list: bool) -> String {
         return "new java.util.ArrayList<>()".to_string();
     }
     match jt {
-        "int" => "0".to_string(),
-        "long" => "0L".to_string(),
-        "boolean" => "false".to_string(),
-        "float" => "0.0f".to_string(),
-        "double" => "0.0".to_string(),
+        "int" => "1".to_string(),
+        "long" => "1L".to_string(),
+        "boolean" => "true".to_string(),
+        "float" => "1.5f".to_string(),
+        "double" => "2.5".to_string(),
         "Integer" | "Long" | "Boolean" | "Float" | "Double" => "null".to_string(),
-        "String" => "\"\"".to_string(),
-        "byte[]" => "new byte[0]".to_string(),
+        "String" => "\"x\"".to_string(),
+        "byte[]" => "new byte[]{ 1 }".to_string(),
         // Wrapper types (user-defined ASN.1 types) — create new instance for non-null default
         _ => format!("new {}()", jt),
     }
@@ -78,29 +84,37 @@ pub fn gen_encode_methods(c: &mut String, _cn: &str, native: &str, type_name: &s
                           encode_arg: &str, has_optional: bool, opt_fields: &[&str]) {
     // encode() — strict
     c.push_str(&ln(1, "public byte[] encode() {"));
+    c.push_str(&ln(2, "String _json = null;"));
+    c.push_str(&ln(2, "String _vStr = null;"));
     c.push_str(&ln(2, "try {"));
     if has_optional {
         c.push_str(&ln(3, "com.fasterxml.jackson.databind.node.ObjectNode _root = MAPPER.valueToTree(this);"));
         for fname in opt_fields {
             c.push_str(&ln(3, &format!("if (!_set.contains(\"{}\")) _root.remove(\"{}\");", fname, fname)));
         }
-        c.push_str(&ln(3, &format!("String _json = MAPPER.writeValueAsString(_root);")));
+        c.push_str(&ln(3, "_json = MAPPER.writeValueAsString(_root);"));
     } else {
-        c.push_str(&ln(3, &format!("String _json = {};", encode_arg)));
+        c.push_str(&ln(3, "_vStr = MAPPER.writeValueAsString(_v);"));
+        c.push_str(&ln(3, &format!("_json = {};", encode_arg)));
     }
     c.push_str(&ln(3, &format!("return {}.encode(\"{}\", DEFAULT_ENCODING, _json);", native, type_name)));
     c.push_str(&ln(2, "} catch (Exception e) {"));
-    c.push_str(&ln(3, "throw new RuntimeException(e);"));
+    c.push_str(&ln(3, &format!("throw new RuntimeException(\"encode {} failed, _v=\" + _vStr + \", json=\" + _json, e);", type_name)));
     c.push_str(&ln(2, "}"));
     c.push_str(&ln(1, "}"));
 
     // encodeTest() — lenient (all fields)
     c.push_str(&ln(1, "public byte[] encodeTest() {"));
+    c.push_str(&ln(2, "String _json = null;"));
+    c.push_str(&ln(2, "String _vStr = null;"));
     c.push_str(&ln(2, "try {"));
-    c.push_str(&ln(3, &format!("String _json = {};", encode_arg)));
+    c.push_str(&ln(3, "_vStr = MAPPER.writeValueAsString(_v);"));
+    c.push_str(&ln(3, &format!("_json = {};", encode_arg)));
+    c.push_str(&ln(3, "System.err.println(\"_v: \" + _vStr);"));
+    c.push_str(&ln(3, "System.err.println(\"JSON: \" + _json);"));
     c.push_str(&ln(3, &format!("return {}.encode(\"{}\", DEFAULT_ENCODING, _json);", native, type_name)));
     c.push_str(&ln(2, "} catch (Exception e) {"));
-    c.push_str(&ln(3, "throw new RuntimeException(e);"));
+    c.push_str(&ln(3, &format!("throw new RuntimeException(\"encodeTest {} failed, _v=\" + _vStr + \", json=\" + _json, e);", type_name)));
     c.push_str(&ln(2, "}"));
     c.push_str(&ln(1, "}"));
 }
@@ -192,13 +206,13 @@ pub fn parse_asn1_size(def: &str) -> Option<(Option<usize>, Option<usize>)> {
 /// Falls back to 2 if no SIZE constraint is found.
 pub fn test_data_size(def: Option<&str>) -> usize {
     let size = match def.and_then(parse_asn1_size) {
-        Some((Some(min), Some(max))) if min == max => max,       // fixed
-        Some((Some(min), Some(max))) => std::cmp::max(2, (min + max) / 2 + 1), // mid-range, min 2
-        Some((_, Some(max))) => max,                              // max only
-        Some((Some(min), None)) => min + 1,                       // min only
-        _ => return 2,                                            // default
+        Some((Some(min), Some(max))) if min == max => max as usize, // fixed SIZE(N) -> N
+        Some((Some(min), None)) => (min + 1) as usize,              // min only -> min+1
+        Some((Some(min), Some(_))) if min > 0 => (min + 1) as usize, // range with min>0 -> min+1
+        Some((_, Some(_))) => 1,                                     // range min=0 or max-only -> 1
+        _ => 2,                                                      // default
     };
-    if size == 0 { 2 } else { size }
+    if size == 0 { 1 } else { size }
 }
 
 /// Resolve test data size through ASN.1 type alias chain.

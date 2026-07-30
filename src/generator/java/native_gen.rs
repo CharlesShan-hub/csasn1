@@ -116,6 +116,10 @@ import java.io.IOException;
 public abstract class {pfx}Base {{
     public static final String DEFAULT_ENCODING = "{enc}";
 
+    /** The unified data store: all scalar/SEQUENCE/CHOICE fields live here. Underscore prefix avoids conflict with ASN.1 field names. */
+    @JsonIgnore
+    public java.util.LinkedHashMap<String, Object> _v = new java.util.LinkedHashMap<>();
+
     /** Convert byte array to lowercase hex string. */
     public static String hex(byte[] bytes) {{
         if (bytes == null) return "";
@@ -212,6 +216,86 @@ public abstract class {pfx}Base {{
             }}
         }}
         return result;
+    }}
+
+    /**
+     * Unified serialization via _v map:
+     * - Scalars: _v has only "_" → returns the scalar value directly
+     * - CHOICE: _v has "_choice" → returns {{"variant": value}}
+     * - SEQUENCE: all fields in _v → returns recursively processed map
+     */
+    @JsonValue
+    public Object toJsonValue() {{
+        if (_v.containsKey("_choice")) {{
+            String choice = (String) _v.get("_choice");
+            java.util.LinkedHashMap<String, Object> out = new java.util.LinkedHashMap<>();
+            if (choice != null && _v.containsKey(choice)) {{
+                out.put(choice, toJson(_v.get(choice)));
+            }}
+            return out;
+        }}
+        if (_v.size() == 1 && _v.containsKey("_")) {{
+            return toJson(_v.get("_"));
+        }}
+        // Recursively process _v content to unwrap nested scalar wrappers {{"_": value}}.
+        // This handles the case where _v stores raw Maps like {{"_": 0}} (from InnerInt32U()._v).
+        return toJson(_v);
+    }}
+
+    /** Return the scalar value stored under {{@code _}}. */
+    @JsonIgnore
+    public Object getValue() {{ return _v.get("_"); }}
+
+    /** Set the scalar value under {{@code _}}. */
+    public void setValue(Object v) {{ _v.put("_", v); }}
+
+    /**
+     * Recursively flatten _v content for correct JSON encoding:
+     * - InnerBase instances -> their toJsonValue()
+     * - Maps with only "_" (scalar wrappers) -> the scalar value
+     * - Other Maps/Lists -> recursively processed
+     * - Primitives -> as-is
+     */
+    public static Object toJson(Object val) {{
+        if (val instanceof InnerBase) {{
+            // Recursively process toJsonValue() result so that Map branch strips _-prefixed keys
+            return toJson(((InnerBase) val).toJsonValue());
+        }}
+        if (val instanceof java.util.Map) {{
+            java.util.Map<String, Object> m = (java.util.Map<String, Object>) val;
+            // CHOICE map: {{"_choice": "variant", "variant": value}} -> {{"variant": value}}
+            if (m.containsKey("_choice")) {{
+                String choice = (String) m.get("_choice");
+                java.util.LinkedHashMap<String, Object> out = new java.util.LinkedHashMap<>();
+                if (choice != null && m.containsKey(choice)) {{
+                    out.put(choice, toJson(m.get(choice)));
+                }}
+                return out;
+            }}
+            // Scalar wrapper: {{"_": value}} -> value
+            if (m.size() == 1 && m.containsKey("_")) {{
+                return toJson(m.get("_"));
+            }}
+            // Regular map — recursively process values, skip nulls and metadata
+            java.util.LinkedHashMap<String, Object> result = new java.util.LinkedHashMap<>();
+            for (java.util.Map.Entry<String, Object> e : m.entrySet()) {{
+                if (e.getKey().startsWith("_")) continue;
+                Object v = toJson(e.getValue());
+                if (v != null) {{
+                    result.put(e.getKey(), v);
+                }}
+            }}
+            return result;
+        }}
+        if (val instanceof java.util.List) {{
+            java.util.List<Object> list = (java.util.List<Object>) val;
+            java.util.ArrayList<Object> result = new java.util.ArrayList<>();
+            for (Object item : list) {{
+                result.add(toJson(item));
+            }}
+            return result;
+        }}
+        return val;
     }}
 }}
 "#,

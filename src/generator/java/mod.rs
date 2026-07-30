@@ -86,9 +86,9 @@ pub fn generate(
 
     // —— DefaultInner* wrappers for built-in ASN.1 types —————————
     let defaults: &[(&str, &str, &str)] = &[
-        ("DefaultInnerVisibleString", "String", "\"\""),
-        ("DefaultInnerUtf8String", "String", "\"\""),
-        ("DefaultInnerOctetString", "byte[]", "new byte[0]"),
+        ("DefaultInnerVisibleString", "String", "\"x\""),
+        ("DefaultInnerUtf8String", "String", "\"x\""),
+        ("DefaultInnerOctetString", "byte[]", "new byte[]{ 1 }"),
     ];
     for (name, jtype, init) in defaults {
         let (body, field_decl, ctor_param) = match *jtype {

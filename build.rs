@@ -248,6 +248,40 @@ fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, Strin
          }\n}\n\n"
     );
 
+    // jer_normalize dispatch — JER decode then JER encode (show canonical format)
+    code.push_str(
+        "pub fn jer_normalize(type_name: &str, json: &str) -> Result<String, String> {\n\
+         match type_name {\n"
+    );
+    for t in types {
+        if let Some(inner) = newtype_inner.get(t) {
+            code.push_str(&format!(
+                "        \"{t}\" => {{\n\
+                 let n: {inner} = serde_json::from_str(json)\n\
+                 .map_err(|e| format!(\"Failed to parse {{type_name}}: {{e}}\"))?;\n\
+                 let v = {t}(n);\n\
+                 let jer = rasn::jer::encode(&v)\n\
+                 .map_err(|e| format!(\"JER encode {{type_name}}: {{e:?}}\"))?;\n\
+                 Ok(jer)\n\
+                 }}\n",
+            ));
+        } else {
+            code.push_str(&format!(
+                "        \"{t}\" => {{\n\
+                 let v: {t} = rasn::jer::decode(json)\n\
+                 .map_err(|e| format!(\"JER decode {{type_name}}: {{e:?}}\"))?;\n\
+                 let jer = rasn::jer::encode(&v)\n\
+                 .map_err(|e| format!(\"JER encode {{type_name}}: {{e:?}}\"))?;\n\
+                 Ok(jer)\n\
+                 }}\n",
+            ));
+        }
+    }
+    code.push_str(
+        "        _ => Err(format!(\"Unknown type: {}\", type_name))\n\
+         }\n}\n\n"
+    );
+
     // -- C API: all functions return *mut c_char (JSON response string) --
     code.push_str(
         "#[unsafe(no_mangle)]\npub extern \"C\" fn csasn1_encode(\n\
