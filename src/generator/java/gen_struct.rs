@@ -27,10 +27,16 @@ pub fn generate(
     }
     c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.createMapper();", base)));
 
-    // Constructor — populate _v with defaults for ALL fields.
-    // OPTIONAL fields get valid defaults too; encode always serialises whatever is in _v.
+    // Constructor — populate _v with defaults.
+    // OPTIONAL fields without an ASN.1 DEFAULT get NO default: Jackson decode
+    // runs this ctor first, so a default here would survive deserialization and
+    // resurface on the next encode. Required fields keep defaults so a fresh
+    // instance is always encodeable.
     c.push_str(&helpers::ln(1, &format!("public {}() {{", cn)));
     for f in fields {
+        if f.optional && f.default_value.is_none() {
+            continue;
+        }
         let raw_name = f.identifier.as_deref().unwrap_or(&f.name);
         let jt = resolve_wrapper_type(&f.rust_type, all, prefix);
         let dflt = match jt.as_str() {

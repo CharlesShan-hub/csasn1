@@ -152,6 +152,12 @@ pub fn generate(
         }
     }
 
+    let inner_octet_string = match &ti.kind {
+        TypeKind::Newtype { inner_type, .. } => {
+            inner_type.starts_with("OctetString") || inner_type.starts_with("FixedOctetString")
+        }
+        _ => false,
+    };
     let (encode_arg, wrap_try): (String, bool) = if jt.starts_with("java.util.List<") {
         (format!("MAPPER.writeValueAsString({}.toJson(_v.get(\"_\")))", base), true)
     } else if jt == "byte[]" {
@@ -231,8 +237,10 @@ pub fn generate(
         c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asDouble());"));
     } else if jt == "Object" {
         c.push_str(&helpers::ln(3, "r._v.put(\"_\", null);"));
+    } else if inner_octet_string {
+        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", _node.asText().isEmpty() ? new byte[0] : {}.unhex(_node.asText()));", base)));
     } else {
-        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", MAPPER.readValue(json.trim(), {}.class));", jt)));
+        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", MAPPER.readValue(_node.toString(), {}.class));", jt)));
     }
     c.push_str(&helpers::ln(3, "return r;"));
     c.push_str(&helpers::ln(2, "} catch (Exception e) {"));

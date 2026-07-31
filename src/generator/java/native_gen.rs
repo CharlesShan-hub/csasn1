@@ -126,12 +126,12 @@ public abstract class {pfx}Base {{
     /** Decode APER bytes into a new instance of this type. */
     public static {pfx}Base decode(byte[] data) {{ throw new UnsupportedOperationException("Use concrete subclass decode()"); }}
 
-    /** Convert byte array to lowercase hex string. */
+    /** Convert byte array to uppercase hex string (matches Rust JER output). */
     public static String hex(byte[] bytes) {{
         if (bytes == null) return "";
         StringBuilder sb = new StringBuilder(bytes.length * 2);
         for (byte b : bytes) {{
-            sb.append(String.format("%02x", b & 0xFF));
+            sb.append(String.format("%02X", b & 0xFF));
         }}
         return sb.toString();
     }}
@@ -318,6 +318,21 @@ public abstract class {pfx}Base {{
                 result.add(toJson(item));
             }}
             return result;
+        }}
+        if (val instanceof Integer || val instanceof Long || val instanceof Short || val instanceof Byte) {{
+            return ((Number) val).longValue();
+        }}
+        if (val instanceof Float || val instanceof Double) {{
+            return ((Number) val).doubleValue();
+        }}
+        if (val instanceof String) {{
+            // Hex-shaped strings ("0102AB", "0A0B0C0D") → uppercase canonical form.
+            // Rust JER emits uppercase hex; Java-generated defaults were lowercase.
+            String s = (String) val;
+            if (!s.isEmpty() && s.chars().allMatch(c -> Character.digit(c, 16) >= 0)) {{
+                return s.toUpperCase();
+            }}
+            return s;
         }}
         return val;
     }}

@@ -226,7 +226,6 @@ fn gen_pom(prefix: &str, package: &str) -> String {
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <junit.version>4.13.2</junit.version>
-        <lombok.version>1.18.36</lombok.version>
         <jna.version>5.14.0</jna.version>
     </properties>
 
@@ -241,12 +240,6 @@ fn gen_pom(prefix: &str, package: &str) -> String {
             <artifactId>junit</artifactId>
             <version>${{junit.version}}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${{lombok.version}}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
