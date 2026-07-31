@@ -59,7 +59,7 @@ pub fn generate(
             c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
         }
     }
-    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.createMapper();", base)));
+    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.MAPPER;", base)));
     if hex_digits > 0 {
         let default_hex = "0".repeat(hex_digits);
         c.push_str(&helpers::ln(1, &format!("public {}() {{ _v.put(\"_\", \"{}\"); }}", cn, default_hex)));

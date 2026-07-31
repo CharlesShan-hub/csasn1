@@ -24,7 +24,7 @@ pub fn generate(
             c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
         }
     }
-    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.createMapper();", base)));
+    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.MAPPER;", base)));
 
     // No-arg constructor picks the first variant as default.
     // All data stored in _v: {"_choice": "variantName", "variantName": value}.

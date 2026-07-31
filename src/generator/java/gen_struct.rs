@@ -25,7 +25,7 @@ pub fn generate(
             c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
         }
     }
-    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.createMapper();", base)));
+    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.MAPPER;", base)));
 
     // Constructor — populate _v with defaults.
     // OPTIONAL fields without an ASN.1 DEFAULT get NO default: Jackson decode

@@ -1,0 +1,14 @@
+[project]
+name = "__PKG_NAME__"
+version = "0.1.0"
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-64"]
+
+[tasks.test]
+cmd = "pytest -v tests"
+env = { PYTHONPATH = "src" }
+
+[dependencies]
+python = ">=3.11"
+pytest = ">=8"
+pytest-xdist = "*"

@@ -214,69 +214,8 @@ fn gen_pom(prefix: &str, package: &str) -> String {
         .map(|(head, _)| head.to_string())
         .unwrap_or_else(|| "com.example".to_string());
     let artifact_id = format!("{}-data", prefix.to_lowercase());
-    format!(
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>{group_id}</groupId>
-    <artifactId>{artifact_id}</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
-
-    <name>{artifact_id} — Auto-generated ASN.1 POJO data types</name>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <junit.version>4.13.2</junit.version>
-        <jna.version>5.14.0</jna.version>
-    </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.17.0</version>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${{junit.version}}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>${{jna.version}}</version>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <argLine>-Djava.library.path=${{project.basedir}}/src/main/resources</argLine>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-</project>
-"#,
-        group_id = group_id,
-        artifact_id = artifact_id,
-    )
+    include_str!("templates/pom.xml.txt")
+        .replace("__GROUP_ID__", &group_id)
+        .replace("__ARTIFACT_ID__", &artifact_id)
+        .to_string()
 }

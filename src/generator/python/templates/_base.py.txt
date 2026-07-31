@@ -1,0 +1,177 @@
+__VER__
+# Base utilities
+
+import json
+from dataclasses import dataclass, field
+from typing import Any
+
+from ._native import encode, decode_raw
+
+# --- Lenient serialization (skips None, used by encode_test) ---
+def to_json(obj) -> str:
+    return json.dumps(_to_dict(obj))
+
+def _to_dict(obj) -> Any:
+    if obj is None:
+        return None
+    if isinstance(obj, bytes):
+        return obj.hex()
+    if isinstance(obj, list):
+        return [_to_dict(x) for x in obj]
+    # BIT STRING with _bit_count: convert int to hex string
+    if hasattr(obj, '_bit_count') and hasattr(obj, 'value'):
+        return bit_string_hex(obj.value, obj._bit_count)
+    # Newtype wrapper: unwrap to raw value
+    if hasattr(obj, '__dataclass_fields__'):
+        fields = obj.__dataclass_fields__
+        if set(fields.keys()) == {'value'}:
+            return _to_dict(obj.value)
+    # CHOICE: only serialize the selected variant
+    if hasattr(obj, '_choice') and obj._choice:
+        v = getattr(obj, obj._choice, None)
+        if v is not None:
+            return {obj._choice: _to_dict(v)}
+        return {}
+    # Dataclass: skip None values (lenient mode)
+    if hasattr(obj, '__dataclass_fields__'):
+        d = {}
+        for k in obj.__dataclass_fields__:
+            if k in ('_set', '_choice', '_bit_count'):
+                continue
+            v = obj.__dict__.get(k)
+            if v is None:
+                continue
+            d[k] = _to_dict(v)
+        return d
+    return obj
+
+# --- Strict serialization (checks _set, used by encode) ---
+def to_json_strict(obj) -> str:
+    return json.dumps(_to_dict_strict(obj))
+
+def _to_dict_strict(obj) -> Any:
+    if obj is None:
+        return None
+    if isinstance(obj, bytes):
+        return obj.hex()
+    if isinstance(obj, list):
+        return [_to_dict_strict(x) for x in obj]
+    # BIT STRING with _bit_count: convert int to hex string
+    if hasattr(obj, '_bit_count') and hasattr(obj, 'value'):
+        return bit_string_hex(obj.value, obj._bit_count)
+    # Newtype wrapper
+    if hasattr(obj, '__dataclass_fields__'):
+        fields = obj.__dataclass_fields__
+        if set(fields.keys()) == {'value'}:
+            return _to_dict_strict(obj.value)
+    # CHOICE: only serialize the selected variant
+    if hasattr(obj, '_choice') and obj._choice:
+        v = getattr(obj, obj._choice, None)
+        if v is not None:
+            return {obj._choice: _to_dict_strict(v)}
+        return {}
+    # Has _set: only include explicitly set fields
+    if hasattr(obj, '_set'):
+        d = {}
+        for k in obj.__dataclass_fields__:
+            if k in ('_set', '_choice', '_bit_count'):
+                continue
+            if k in obj._set:
+                d[k] = _to_dict_strict(obj.__dict__.get(k))
+        return d
+    # No _set nor _choice: include all non-None
+    if hasattr(obj, '__dataclass_fields__'):
+        d = {}
+        for k in obj.__dataclass_fields__:
+            if k in ('_set', '_choice', '_bit_count'):
+                continue
+            v = obj.__dict__.get(k)
+            if v is not None:
+                d[k] = _to_dict_strict(v)
+        return d
+    return obj
+
+# --- Decode ---
+def _convert_bytes(val, target_type) -> Any:
+    if val is None:
+        return None
+    if target_type is bytes and isinstance(val, str):
+        try:
+            return bytes.fromhex(val)
+        except (ValueError, AttributeError):
+            pass
+    return val
+
+# --- BIT STRING hex conversion (matching Java CmsBase.bitStringHex) ---
+def bit_string_hex(value: int, num_bits: int) -> str:
+    num_bytes = (num_bits + 7) // 8
+    result = 0
+    for i in range(num_bits):
+        if (value >> i) & 1:
+            byte_pos = i // 8
+            bit_pos = 7 - (i % 8)
+            result |= 1 << (byte_pos * 8 + bit_pos)
+    return format(result, '0{}x'.format(num_bytes * 2))
+
+def parse_bit_string_hex(hex_str: str, num_bits: int) -> int:
+    raw = int(hex_str, 16)
+    result = 0
+    for i in range(num_bits):
+        byte_pos = i // 8
+        bit_pos = 7 - (i % 8)
+        if (raw >> (byte_pos * 8 + bit_pos)) & 1:
+            result |= 1 << i
+    return result
+
+def from_json(json_str: str, cls) -> Any:
+    data = json.loads(json_str)
+    return _from_dict(data, cls)
+
+import typing as _typing
+
+def _resolve_type(tp):
+    if isinstance(tp, _typing.ForwardRef):
+        name = tp.__forward_arg__
+        import sys as _sys
+        for _m in ['cms_data._types', '__main__']:
+            _mod = _sys.modules.get(_m)
+            if _mod and hasattr(_mod, name):
+                return getattr(_mod, name)
+    return tp
+
+def _from_dict(data, cls) -> Any:
+    if data is None:
+        return None
+    cls = _resolve_type(cls)
+    if hasattr(cls, '__dataclass_fields__'):
+        fields = cls.__dataclass_fields__
+        # BIT STRING: parse hex string back to int
+        if hasattr(cls, '_bit_count') and 'value' in fields:
+            hex_val = data['value'] if isinstance(data, dict) and 'value' in data else data
+            return cls(value=parse_bit_string_hex(str(hex_val) if hex_val is not None else '0', cls._bit_count))
+        # Newtype: always recursively wrap, even when data is scalar
+        if set(fields.keys()) == {'value'}:
+            val = data['value'] if isinstance(data, dict) and 'value' in data else data
+            result = _from_dict(val, _resolve_type(fields['value'].type))
+            result = _convert_bytes(result, _resolve_type(fields['value'].type))
+            return cls(value=result)
+        # CHOICE: data has a single key matching a variant
+        if hasattr(cls, '_choice') and isinstance(data, dict):
+            for key in data:
+                if key in fields and key != '_choice':
+                    val = _from_dict(data[key], _resolve_type(fields[key].type))
+                    return cls(**{key: val, '_choice': key})
+        # Regular dataclass
+        if isinstance(data, dict):
+            kwargs = {}
+            for name, field_type in fields.items():
+                if name in ('_set', '_choice', '_bit_count'):
+                    continue
+                if name in data:
+                    resolved = _resolve_type(field_type.type)
+                    val = _from_dict(data[name], resolved)
+                    kwargs[name] = _convert_bytes(val, resolved)
+            return cls(**kwargs)
+    if isinstance(data, list):
+        return data
+    return data

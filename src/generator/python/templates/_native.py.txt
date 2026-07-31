@@ -1,0 +1,62 @@
+__VER__
+# ctypes bridge to native asn1.dll
+
+import ctypes
+import json
+import os
+import sys
+
+_lib = None
+
+def _load_lib():
+    global _lib
+    if _lib is not None:
+        return _lib
+    dll_name = "asn1.dll" if sys.platform == "win32" else "libasn1.so"
+    search_paths = [
+        os.path.dirname(__file__),
+        os.path.join(os.path.dirname(__file__), "resources"),
+        os.path.join(os.path.dirname(__file__), "..", "resources"),
+    ]
+    for p in search_paths:
+        full = os.path.join(p, dll_name)
+        if os.path.exists(full):
+            _lib = ctypes.cdll.LoadLibrary(full)
+            _lib.csasn1_encode.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+            _lib.csasn1_encode.restype = ctypes.c_void_p
+            _lib.csasn1_decode.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
+            _lib.csasn1_decode.restype = ctypes.c_void_p
+            _lib.csasn1_free_string.argtypes = [ctypes.c_void_p]
+            _lib.csasn1_free_string.restype = None
+            return _lib
+    raise RuntimeError(f"Cannot find {dll_name}")
+
+def _read_and_free(ptr) -> str:
+    try:
+        return ctypes.cast(ptr, ctypes.c_char_p).value.decode("utf-8")
+    finally:
+        _load_lib().csasn1_free_string(ptr)
+
+_ENCODING = "__ENC__"
+
+def encode(json_str: str, type_name: str | None = None) -> bytes:
+    lib = _load_lib()
+    tn = (type_name or "UNKNOWN").encode()
+    enc = _ENCODING.encode()
+    js = json_str.encode()
+    resp = _read_and_free(lib.csasn1_encode(tn, enc, js))
+    result = json.loads(resp)
+    if result.get("ok"):
+        return bytes(result["bytes"])
+    raise RuntimeError(f"encode failed: {result.get('error')}")
+
+def decode_raw(data: bytes, type_name: str | None = None) -> str:
+    lib = _load_lib()
+    tn = (type_name or "UNKNOWN").encode()
+    enc = _ENCODING.encode()
+    buf = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
+    resp = _read_and_free(lib.csasn1_decode(tn, enc, buf, len(data)))
+    result = json.loads(resp)
+    if result.get("ok"):
+        return json.dumps(result["value"])
+    raise RuntimeError(f"decode failed: {result.get('error')}")
