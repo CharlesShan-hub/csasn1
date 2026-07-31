@@ -58,7 +58,7 @@ pub fn resolve_java_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
         "()" => "Object".to_string(),
         s => {
             if let Some(ti) = all.iter().find(|t| t.name == s) {
-                if let TypeKind::Newtype { ref inner_type } = ti.kind {
+                if let TypeKind::Newtype { ref inner_type, .. } = ti.kind {
                     return resolve_java_type(inner_type, all, prefix);
                 }
             }
@@ -118,11 +118,6 @@ pub fn resolve_wrapper_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String 
         s => return format!("{}{}", prefix, s),
     };
     base.to_string()
-}
-
-/// Nullable variant of resolve_wrapper_type — wrapper types are already objects.
-pub fn resolve_wrapper_type_nullable(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
-    resolve_wrapper_type(rt, all, prefix)
 }
 
 /// Generate a type literal for Jackson convertValue.

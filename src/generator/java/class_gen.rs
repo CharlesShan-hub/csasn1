@@ -43,7 +43,7 @@ pub fn gen_class(
             let jt = if jt == cn {
                 resolve_java_type(
                     match &ti.kind {
-                        TypeKind::Newtype { inner_type } => inner_type,
+                        TypeKind::Newtype { inner_type, .. } => inner_type,
                         _ => unreachable!(),
                     },
                     all, prefix,

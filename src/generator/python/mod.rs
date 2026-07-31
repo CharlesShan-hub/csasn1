@@ -55,7 +55,7 @@ fn topo_sort_types(types: &[TypeInfo], prefix: &str) -> Vec<usize> {
 
     for i in 0..n {
         let deps: Vec<String> = match &types[i].kind {
-            TypeKind::Newtype { inner_type } => extract_dep(inner_type, prefix, &all_names),
+            TypeKind::Newtype { inner_type, .. } => extract_dep(inner_type, prefix, &all_names),
             TypeKind::Struct { fields } => {
                 fields.iter().flat_map(|f| extract_dep(&f.rust_type, prefix, &all_names)).collect()
             }

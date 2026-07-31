@@ -120,6 +120,12 @@ public abstract class {pfx}Base {{
     @JsonIgnore
     public java.util.LinkedHashMap<String, Object> _v = new java.util.LinkedHashMap<>();
 
+    /** Encode this type to APER bytes via Rust FFI. Implemented by each generated subclass. */
+    public abstract byte[] encode();
+
+    /** Decode APER bytes into a new instance of this type. */
+    public static {pfx}Base decode(byte[] data) {{ throw new UnsupportedOperationException("Use concrete subclass decode()"); }}
+
     /** Convert byte array to lowercase hex string. */
     public static String hex(byte[] bytes) {{
         if (bytes == null) return "";

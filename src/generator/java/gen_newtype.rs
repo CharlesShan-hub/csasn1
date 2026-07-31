@@ -14,7 +14,7 @@ pub fn generate(
 ) -> String {
     // Detect BIT STRING → need hex formatting in JER
     let inner_bit_string = match &ti.kind {
-        TypeKind::Newtype { inner_type } => {
+        TypeKind::Newtype { inner_type, .. } => {
             inner_type.starts_with("FixedBitString") || inner_type.starts_with("BitString")
         }
         _ => false,
@@ -23,7 +23,7 @@ pub fn generate(
     // Detect unsigned 32-bit integer types that need unsigned long conversion
     // u32 maps to Java int but values > i32::MAX (2147483647) can't be represented
     let inner_unsigned_int = match &ti.kind {
-        TypeKind::Newtype { inner_type } => {
+        TypeKind::Newtype { inner_type, .. } => {
             inner_type == "u32"
         }
         _ => false,
@@ -41,6 +41,12 @@ pub fn generate(
             (2, 8)
         }
     } else { (0, 0) };
+
+    // Size from #[size] attribute on the newtype struct, fallback to ASN.1 text parsing
+    let size = match &ti.kind {
+        TypeKind::Newtype { size_from_attr, .. } => size_from_attr.unwrap_or_else(|| helpers::resolve_size(&ti.name, asn_defs)),
+        _ => helpers::resolve_size(&ti.name, asn_defs),
+    };
 
     let base = format!("{}Base", prefix);
     let native = format!("{}Native", prefix);
@@ -78,11 +84,11 @@ pub fn generate(
         } else {
             let default_val = match jt {
                 "String" => {
-                    let sz = helpers::resolve_size(&ti.name, asn_defs);
+                    let sz = size;
                     if sz > 0 { format!("\"{}\"", "x".repeat(sz)) } else { "\"\"".to_string() }
                 }
                 "byte[]" => {
-                    let sz = helpers::resolve_size(&ti.name, asn_defs);
+                    let sz = size;
                     if sz > 0 { format!("new byte[{}]", sz) } else { "new byte[0]".to_string() }
                 }
                 _ if jt.starts_with("java.util.List<") => "new java.util.ArrayList<>()".to_string(),
@@ -92,7 +98,7 @@ pub fn generate(
                 "double" | "Double" => "2.5".to_string(),
                 "boolean" | "Boolean" => "true".to_string(),
                 _ if jt.starts_with("DefaultInner") => {
-                    let sz = helpers::resolve_size(&ti.name, asn_defs);
+                    let sz = size;
                     if sz > 0 && jt == "DefaultInnerOctetString" {
                         let bytes: Vec<String> = std::iter::repeat("1".to_string()).take(sz).collect();
                         format!("new byte[] {{ {} }}", bytes.join(", "))

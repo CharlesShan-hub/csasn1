@@ -17,7 +17,7 @@ pub fn gen_test(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &str,
     }
 
     match &ti.kind {
-        TypeKind::Newtype { inner_type } => {
+        TypeKind::Newtype { inner_type, .. } => {
             let py_type = helpers::resolve_py_type(inner_type, all, prefix);
             match py_type.as_str() {
                 "int" => c.push_str("        obj.value = 1\n"),

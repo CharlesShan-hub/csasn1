@@ -7,7 +7,7 @@ pub mod python;
 
 #[derive(Debug)]
 pub enum TypeKind {
-    Newtype { inner_type: String },
+    Newtype { inner_type: String, size_from_attr: Option<usize> },
     Struct { fields: Vec<FieldInfo> },
     Choice { variants: Vec<VariantInfo> },
 }
@@ -121,18 +121,53 @@ fn attr_contains(attrs: &[syn::Attribute], pat: &str) -> bool {
         .any(|a| a.into_token_stream().to_string().contains(pat))
 }
 
+/// Extract size attributes from a list of syn attributes (works for both struct-level and field-level).
+fn extract_size_from_attrs(attrs: &[syn::Attribute]) -> (Option<usize>, Option<String>) {
+    let size_from_attr = attrs.iter().find_map(|attr| {
+        let ts = attr.to_token_stream().to_string();
+        if let Some(pos) = ts.find("size (\"") {
+            let after = &ts[pos + 7..];
+            let end = after.find('"')?;
+            let val = &after[..end];
+            if let Ok(n) = val.parse::<usize>() {
+                return Some(n);
+            }
+            if let Some(eq_pos) = val.find("..=") {
+                let max_str = val[eq_pos + 3..].trim();
+                return max_str.parse::<usize>().ok();
+            }
+            None
+        } else {
+            None
+        }
+    });
+    let size_attr_raw = attrs.iter().find_map(|attr| {
+        let ts = attr.to_token_stream().to_string();
+        if let Some(pos) = ts.find("size (\"") {
+            let after = &ts[pos + 7..];
+            let end = after.find('"')?;
+            Some(after[..end].to_string())
+        } else {
+            None
+        }
+    });
+    (size_from_attr, size_attr_raw)
+}
+
 fn analyze_struct(s: &syn::ItemStruct, default_fns: &HashMap<String, String>) -> TypeKind {
     if attr_contains(&s.attrs, "delegate") {
+        let size_from_attr = extract_size_from_attrs(&s.attrs).0;
         if let Fields::Unnamed(ref u) = s.fields {
             if let Some(f) = u.unnamed.first() {
-                // Store raw Rust type string; language generators resolve it
                 return TypeKind::Newtype {
                     inner_type: type_str(&f.ty),
+                    size_from_attr,
                 };
             }
         }
         return TypeKind::Newtype {
             inner_type: "int".into(),
+            size_from_attr,
         };
     }
     let mut fields = Vec::new();
@@ -160,37 +195,7 @@ fn analyze_struct(s: &syn::ItemStruct, default_fns: &HashMap<String, String>) ->
         });
 
         // Extract size from rasn attribute: size ("N") or size ("min..=max")
-        let size_from_attr = f.attrs.iter().find_map(|attr| {
-            let ts = attr.to_token_stream().to_string();
-            if let Some(pos) = ts.find("size (\"") {
-                let after = &ts[pos + 7..];
-                let end = after.find('"')?;
-                let val = &after[..end];
-                // For fixed size like "6", parse directly
-                if let Ok(n) = val.parse::<usize>() {
-                    return Some(n);
-                }
-                // For range like "0..=64", use the max
-                if let Some(eq_pos) = val.find("..=") {
-                    let max_str = val[eq_pos + 3..].trim();
-                    return max_str.parse::<usize>().ok();
-                }
-                None
-            } else {
-                None
-            }
-        });
-        // Extract raw size constraint string to distinguish fixed vs range
-        let size_attr_raw = f.attrs.iter().find_map(|attr| {
-            let ts = attr.to_token_stream().to_string();
-            if let Some(pos) = ts.find("size (\"") {
-                let after = &ts[pos + 7..];
-                let end = after.find('"')?;
-                Some(after[..end].to_string())
-            } else {
-                None
-            }
-        });
+        let (size_from_attr, size_attr_raw) = extract_size_from_attrs(&f.attrs);
 
         // Extract default value from rasn attribute: default = "fn_name"
         let default_value = f.attrs.iter().find_map(|attr| {

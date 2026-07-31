@@ -26,7 +26,7 @@ pub fn gen_type_class(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &
     let mut field_names: Vec<(String, bool)> = Vec::new(); // (name, is_optional) for Struct types
 
     match &ti.kind {
-        TypeKind::Newtype { inner_type } => {
+        TypeKind::Newtype { inner_type, .. } => {
             let py_type = helpers::resolve_py_type(inner_type, all, prefix);
             let default = helpers::py_default(&py_type);
             if py_type == "bytes" && inner_type.starts_with("FixedOctetString") {

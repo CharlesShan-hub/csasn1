@@ -7,12 +7,15 @@ pub fn generate(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, asn_def
     let jt = resolve_java_type(&ti.name, all, prefix);
     let jt = if jt == cn {
         resolve_java_type(
-            match &ti.kind { TypeKind::Newtype { inner_type } => inner_type, _ => unreachable!() },
+            match &ti.kind { TypeKind::Newtype { inner_type, .. } => inner_type, _ => unreachable!() },
             all, prefix,
         )
     } else { jt };
 
-    let size = helpers::resolve_size(&ti.name, asn_defs);
+    let size = match &ti.kind {
+        TypeKind::Newtype { size_from_attr, .. } => size_from_attr.unwrap_or_else(|| helpers::resolve_size(&ti.name, asn_defs)),
+        _ => helpers::resolve_size(&ti.name, asn_defs),
+    };
 
     let mut c = String::new();
 
