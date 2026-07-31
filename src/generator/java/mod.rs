@@ -165,6 +165,13 @@ public class InnerEmpty extends InnerBase {{
     );
     fs::write(main_dir.join("InnerEmpty.java"), &empty_code).unwrap();
 
+    // V — semantic helpers for the _v unified data store
+    fs::write(
+        main_dir.join("V.java"),
+        &native_gen::gen_v(&cfg.package),
+    )
+    .unwrap();
+
     // —— Maven pom.xml ———————————————————————————————
     let pom_path = project_root.join("pom.xml");
     if !pom_path.exists() {
