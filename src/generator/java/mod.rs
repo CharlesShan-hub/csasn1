@@ -85,26 +85,70 @@ pub fn generate(
     .unwrap();
 
     // —— DefaultInner* wrappers for built-in ASN.1 types —————————
+    // Data lives only in _v (no Lombok `value` field, no Lombok @Data):
+    // getters/setters must not shadow InnerBase.getValue()/setValue().
     let defaults: &[(&str, &str, &str)] = &[
         ("DefaultInnerVisibleString", "String", "\"x\""),
         ("DefaultInnerUtf8String", "String", "\"x\""),
         ("DefaultInnerOctetString", "byte[]", "new byte[]{ 1 }"),
     ];
     for (name, jtype, init) in defaults {
-        let (body, field_decl, ctor_param) = match *jtype {
+        let (body, eq, ctor_param) = match *jtype {
             "byte[]" => {
                 let body = format!(r#"    @JsonValue
-    public String toJsonValue() {{ return InnerBase.hex(this.value); }}
+    public Object toJsonValue() {{ Object v = _v.get("_"); if (v instanceof byte[]) return InnerBase.hex((byte[]) v); return v != null ? v : ""; }}
+    @SuppressWarnings("unchecked")
     @JsonCreator
-    public static {name} fromJson(String hex) {{ return new {name}(InnerBase.unhex(hex)); }}"#, name = name);
-                (body, "public byte[] value;".to_string(), "byte[] value".to_string())
+    public static {name} fromJson(Object v) {{
+        if (v instanceof java.util.Map) {{
+            Object hex = ((java.util.Map<String, Object>) v).get("value");
+            if (hex instanceof String) return new {name}(InnerBase.unhex((String) hex));
+            return new {name}();
+        }}
+        return new {name}(v instanceof String ? InnerBase.unhex((String) v) : new byte[0]);
+    }}"#, name = name);
+                let eq = format!(r#"    @Override
+    public boolean equals(Object o) {{
+        if (this == o) return true;
+        if (!(o instanceof {name})) return false;
+        Object a = _v.get("_");
+        Object b = (({name}) o)._v.get("_");
+        if (a instanceof byte[] && b instanceof byte[]) return java.util.Arrays.equals((byte[]) a, (byte[]) b);
+        return a == null ? b == null : a.equals(b);
+    }}
+    @Override
+    public int hashCode() {{
+        Object v = _v.get("_");
+        return v instanceof byte[] ? java.util.Arrays.hashCode((byte[]) v) : (v == null ? 0 : v.hashCode());
+    }}"#, name = name);
+                (body, eq, "byte[] value".to_string())
             }
             _ => {
                 let body = format!(r#"    @JsonValue
-    public String toJsonValue() {{ return this.value; }}
+    public Object toJsonValue() {{ return _v.get("_"); }}
+    @SuppressWarnings("unchecked")
     @JsonCreator
-    public static {name} fromJson(String v) {{ return new {name}(v); }}"#, name = name);
-                (body, "public String value;".to_string(), "String value".to_string())
+    public static {name} fromJson(Object v) {{
+        if (v instanceof java.util.Map) {{
+            Object s = ((java.util.Map<String, Object>) v).get("value");
+            return new {name}(s instanceof String ? (String) s : "x");
+        }}
+        return new {name}(v instanceof String ? (String) v : "x");
+    }}"#, name = name);
+                let eq = format!(r#"    @Override
+    public boolean equals(Object o) {{
+        if (this == o) return true;
+        if (!(o instanceof {name})) return false;
+        Object a = _v.get("_");
+        Object b = (({name}) o)._v.get("_");
+        return a == null ? b == null : a.equals(b);
+    }}
+    @Override
+    public int hashCode() {{
+        Object v = _v.get("_");
+        return v == null ? 0 : v.hashCode();
+    }}"#, name = name);
+                (body, eq, "String value".to_string())
             }
         };
         let code = format!(
@@ -113,14 +157,12 @@ pub fn generate(
 package {pkg};
 
 import com.fasterxml.jackson.annotation.*;
-import lombok.Data;
 
-@Data
 public class {name} extends InnerBase {{
-    {field_decl}
-    public {name}() {{ this.value = {init}; }}
-    public {name}({ctor_param}) {{ this.value = value; }}
+    public {name}() {{ _v.put("_", {init}); }}
+    public {name}({ctor_param}) {{ _v.put("_", value); }}
     {body}
+    {eq}
     public byte[] encode() {{ throw new UnsupportedOperationException("{name} has no standalone ASN.1 definition"); }}
     public static {name} decode(byte[] data) {{ return new {name}(); }}
 }}
@@ -129,9 +171,9 @@ public class {name} extends InnerBase {{
             pkg = cfg.package,
             name = name,
             init = init,
-            field_decl = field_decl,
             ctor_param = ctor_param,
             body = body,
+            eq = eq,
         );
         fs::write(main_dir.join(format!("{}.java", name)), &code).unwrap();
     }
