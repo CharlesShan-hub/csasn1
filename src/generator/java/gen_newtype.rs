@@ -53,8 +53,6 @@ pub fn generate(
 
     let mut c = String::new();
     if let Some(doc) = asn_doc { c.push_str(doc); }
-    c.push_str("@Data\n");
-    c.push_str("@lombok.experimental.Accessors(chain = true, fluent = true)\n");
     c.push_str(&format!("public class {} extends {}Base {{\n", cn, prefix));
     if let Some(entries) = named_consts.get(&ti.name) {
         for (name, val) in entries {
@@ -97,6 +95,7 @@ pub fn generate(
                 "float" | "Float" => "1.5f".to_string(),
                 "double" | "Double" => "2.5".to_string(),
                 "boolean" | "Boolean" => "true".to_string(),
+                "Object" => "null".to_string(),
                 _ if jt.starts_with("DefaultInner") => {
                     let sz = size;
                     if sz > 0 && jt == "DefaultInnerOctetString" {
@@ -204,27 +203,32 @@ pub fn generate(
     c.push_str(&helpers::ln(2, "try {"));
     c.push_str(&helpers::ln(3, &format!("String json = {}.decode(\"{}\", DEFAULT_ENCODING, data);", native, ti.name)));
     c.push_str(&helpers::ln(3, &format!("{} r = new {}();", cn, cn)));
+    // Rust wraps bare values as {"value": X} — unwrap before extracting
+    c.push_str(&helpers::ln(3, "com.fasterxml.jackson.databind.JsonNode _node = MAPPER.readTree(json);"));
+    c.push_str(&helpers::ln(3, "if (_node.isObject() && _node.has(\"value\")) _node = _node.get(\"value\");"));
     if jt.starts_with("java.util.List<") {
         let inner = jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
-        c.push_str(&helpers::ln(3, "com.fasterxml.jackson.databind.JsonNode _node = MAPPER.readTree(json);"));
         c.push_str(&helpers::ln(3, &format!(
-            "r._v.put(\"_\", MAPPER.convertValue(_node.isArray() ? _node : _node.elements().next(), new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}}));",
+            "r._v.put(\"_\", MAPPER.convertValue(_node, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}}));",
             inner
         )));
     } else if jt == "byte[]" {
-        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", {}.unhex(MAPPER.readTree(json).asText()));", base)));
+        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", {}.unhex(_node.asText()));", base)));
     } else if jt == "String" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", MAPPER.readTree(json).asText());"));
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asText());"));
     } else if hex_digits > 0 {
-        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", {}.parseBitStringHex(MAPPER.readTree(json).asText(), {}));", base, bit_count)));
-    } else if jt == "int" || jt == "Integer" || jt == "long" || jt == "Long" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", MAPPER.readTree(json).asInt());"));
+        // BIT STRING stores hex string in _v (same shape as constructor)
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asText());"));
+    } else if jt == "int" || jt == "Integer" {
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asInt());"));
+    } else if jt == "long" || jt == "Long" {
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asLong());"));
     } else if jt == "boolean" || jt == "Boolean" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", MAPPER.readTree(json).asBoolean());"));
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asBoolean());"));
     } else if jt == "float" || jt == "Float" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", (float) MAPPER.readTree(json).asDouble());"));
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", (float) _node.asDouble());"));
     } else if jt == "double" || jt == "Double" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", MAPPER.readTree(json).asDouble());"));
+        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asDouble());"));
     } else if jt == "Object" {
         c.push_str(&helpers::ln(3, "r._v.put(\"_\", null);"));
     } else {

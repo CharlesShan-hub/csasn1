@@ -23,8 +23,7 @@ pub fn gen_class(
         c.push_str(&format!("package {};\n\n", package));
     }
     c.push_str("import com.fasterxml.jackson.annotation.*;\n");
-    c.push_str("import com.fasterxml.jackson.databind.*;\n");
-    c.push_str("import lombok.Data;\n\n");
+    c.push_str("import com.fasterxml.jackson.databind.*;\n\n");
 
     let asn_doc = asn_defs.get(&ti.name).map(|def| {
         let mut d = format!("/**\n");

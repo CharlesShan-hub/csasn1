@@ -18,8 +18,6 @@ pub fn generate(
     if let Some(doc) = asn_doc { c.push_str(doc); }
     c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
     c.push_str("@JsonInclude(JsonInclude.Include.NON_NULL)\n");
-    c.push_str("@Data\n");
-    c.push_str("@lombok.experimental.Accessors(chain = true, fluent = true)\n");
     c.push_str(&format!("public class {} extends {}Base {{\n", cn, prefix));
     if let Some(entries) = named_consts.get(&ti.name) {
         for (name, val) in entries {
@@ -83,26 +81,6 @@ pub fn generate(
     // decode
     helpers::gen_decode_method(&mut c, cn, &native, &ti.name);
 
-    // Custom equals — compares only _choice + selected variant value from _v
-    c.push_str(&helpers::ln(1, "@Override"));
-    c.push_str(&helpers::ln(1, "public boolean equals(Object o) {"));
-    c.push_str(&helpers::ln(2, "if (this == o) return true;"));
-    c.push_str(&helpers::ln(2, "if (o == null || getClass() != o.getClass()) return false;"));
-    c.push_str(&helpers::ln(2, &format!("{} that = ({}) o;", cn, cn)));
-    c.push_str(&helpers::ln(2, "String _c = (String) _v.get(\"_choice\");"));
-    c.push_str(&helpers::ln(2, "String _tc = (String) that._v.get(\"_choice\");"));
-    c.push_str(&helpers::ln(2, "if (!java.util.Objects.equals(_c, _tc)) return false;"));
-    c.push_str(&helpers::ln(2, "if (_c == null) return false;"));
-    for v in variants {
-        let json_key = v.identifier.as_deref().unwrap_or(&v.name);
-        c.push_str(&helpers::ln(2, &format!("if (\"{}\".equals(_c)) return java.util.Objects.equals(_v.get(\"{}\"), that._v.get(\"{}\"));", json_key, json_key, json_key)));
-    }
-    c.push_str(&helpers::ln(2, "return false;"));
-    c.push_str(&helpers::ln(1, "}"));
-    c.push_str(&helpers::ln(1, "@Override"));
-    c.push_str(&helpers::ln(1, "public int hashCode() {"));
-    c.push_str(&helpers::ln(2, "return java.util.Objects.hash(_v.get(\"_choice\"));"));
-    c.push_str(&helpers::ln(1, "}"));
     c.push_str("}\n");
     c
 }

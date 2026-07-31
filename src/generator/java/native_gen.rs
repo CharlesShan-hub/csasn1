@@ -159,6 +159,19 @@ public abstract class {pfx}Base {{
         }}
     }}
 
+    /** Structural equality: both sides normalized via toJson() before comparison. */
+    @Override
+    public boolean equals(Object o) {{
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        return java.util.Objects.equals(toJson(toJsonValue()), toJson((({pfx}Base) o).toJsonValue()));
+    }}
+
+    @Override
+    public int hashCode() {{
+        return java.util.Objects.hashCode(toJson(toJsonValue()));
+    }}
+
     /** Create an ObjectMapper configured for JER-compatible serialization. */
     protected static ObjectMapper createMapper() {{
         ObjectMapper m = new ObjectMapper();
@@ -266,6 +279,11 @@ public abstract class {pfx}Base {{
         if (val instanceof InnerBase) {{
             // Recursively process toJsonValue() result so that Map branch strips _-prefixed keys
             return toJson(((InnerBase) val).toJsonValue());
+        }}
+        // byte[] -> hex string: canonical form never holds raw arrays (identity
+        // equals/hashCode would break structural equality)
+        if (val instanceof byte[]) {{
+            return hex((byte[]) val);
         }}
         if (val instanceof java.util.Map) {{
             java.util.Map<String, Object> m = (java.util.Map<String, Object>) val;

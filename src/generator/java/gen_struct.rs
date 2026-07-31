@@ -19,8 +19,6 @@ pub fn generate(
     if let Some(doc) = asn_doc { c.push_str(doc); }
     c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
     c.push_str("@JsonInclude(JsonInclude.Include.NON_NULL)\n");
-    c.push_str("@Data\n");
-    c.push_str("@lombok.experimental.Accessors(chain = true, fluent = true)\n");
     c.push_str(&format!("public class {} extends {}Base {{\n", cn, prefix));
     if let Some(entries) = named_consts.get(&ti.name) {
         for (name, val) in entries {

@@ -93,7 +93,7 @@ pub fn generate(
         ("DefaultInnerOctetString", "byte[]", "new byte[]{ 1 }"),
     ];
     for (name, jtype, init) in defaults {
-        let (body, eq, ctor_param) = match *jtype {
+        let (body, ctor_param) = match *jtype {
             "byte[]" => {
                 let body = format!(r#"    @JsonValue
     public Object toJsonValue() {{ Object v = _v.get("_"); if (v instanceof byte[]) return InnerBase.hex((byte[]) v); return v != null ? v : ""; }}
@@ -107,21 +107,7 @@ pub fn generate(
         }}
         return new {name}(v instanceof String ? InnerBase.unhex((String) v) : new byte[0]);
     }}"#, name = name);
-                let eq = format!(r#"    @Override
-    public boolean equals(Object o) {{
-        if (this == o) return true;
-        if (!(o instanceof {name})) return false;
-        Object a = _v.get("_");
-        Object b = (({name}) o)._v.get("_");
-        if (a instanceof byte[] && b instanceof byte[]) return java.util.Arrays.equals((byte[]) a, (byte[]) b);
-        return a == null ? b == null : a.equals(b);
-    }}
-    @Override
-    public int hashCode() {{
-        Object v = _v.get("_");
-        return v instanceof byte[] ? java.util.Arrays.hashCode((byte[]) v) : (v == null ? 0 : v.hashCode());
-    }}"#, name = name);
-                (body, eq, "byte[] value".to_string())
+                (body, "byte[] value".to_string())
             }
             _ => {
                 let body = format!(r#"    @JsonValue
@@ -135,20 +121,7 @@ pub fn generate(
         }}
         return new {name}(v instanceof String ? (String) v : "x");
     }}"#, name = name);
-                let eq = format!(r#"    @Override
-    public boolean equals(Object o) {{
-        if (this == o) return true;
-        if (!(o instanceof {name})) return false;
-        Object a = _v.get("_");
-        Object b = (({name}) o)._v.get("_");
-        return a == null ? b == null : a.equals(b);
-    }}
-    @Override
-    public int hashCode() {{
-        Object v = _v.get("_");
-        return v == null ? 0 : v.hashCode();
-    }}"#, name = name);
-                (body, eq, "String value".to_string())
+                (body, "String value".to_string())
             }
         };
         let code = format!(
@@ -162,7 +135,6 @@ public class {name} extends InnerBase {{
     public {name}() {{ _v.put("_", {init}); }}
     public {name}({ctor_param}) {{ _v.put("_", value); }}
     {body}
-    {eq}
     public byte[] encode() {{ throw new UnsupportedOperationException("{name} has no standalone ASN.1 definition"); }}
     public static {name} decode(byte[] data) {{ return new {name}(); }}
 }}
@@ -173,7 +145,6 @@ public class {name} extends InnerBase {{
             init = init,
             ctor_param = ctor_param,
             body = body,
-            eq = eq,
         );
         fs::write(main_dir.join(format!("{}.java", name)), &code).unwrap();
     }
