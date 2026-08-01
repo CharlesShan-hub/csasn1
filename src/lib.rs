@@ -402,4 +402,33 @@ mod tests {
         eprintln!("{}", String::from_utf8_lossy(&jer.as_bytes()));
         eprintln!("=== END ===");
     }
+
+    /// BRCB APER 往返：模拟 Java InnerGetAllCBValuesResponsePDUCbValueTest 默认值场景
+    #[test]
+    fn test_BRCB_aper_roundtrip_defaults() {
+        let brcb = BRCB {
+            rpt_id: VisibleString::from_iso646_bytes(b"x").unwrap(),
+            rpt_ena: Boolean(1),
+            dat_set: ObjectReference(
+                VisibleString::from_iso646_bytes(b"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx").unwrap(),
+            ),
+            conf_rev: Int32U(0),
+            opt_flds: RcbOptFlds(FixedBitString::<10>::new([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])),
+            buf_tm: Int32U(0),
+            sq_num: Int16U(1),
+            trg_ops: TriggerConditions(FixedBitString::<6>::new([0, 0, 0, 0, 0, 0])),
+            intg_pd: Int32U(0),
+            gi: Boolean(1),
+            purge_buf: Boolean(1),
+            entry_id: EntryID(FixedOctetString::<8>::new([1, 1, 1, 1, 1, 1, 1, 1])),
+            time_of_entry: EntryTime(BinaryTime(FixedOctetString::<6>::new([1, 1, 1, 1, 1, 1]))),
+            resv_tms: None,
+            owner: None,
+        };
+        let encoded = rasn::aper::encode(&brcb).expect("APER encode BRCB");
+        eprintln!("BRCB APER encoded ({} bytes): {:02x?}", encoded.len(), encoded);
+        let decoded: BRCB = rasn::aper::decode(&encoded).expect("APER decode BRCB");
+        eprintln!("decoded: {:?}", decoded);
+        assert_eq!(brcb, decoded, "BRCB APER roundtrip failed (entryID/timeOfEntry?)");
+    }
 }
