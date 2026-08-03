@@ -1,11 +1,8 @@
 # ─── Platform paths ──────────────────────────────────────
-# dlt2811bean project root — override via env var JCMS_DIR or edit below
-#   Windows (SVN 多一层 cms): d:\project\work\standard\dlt2811bean\cms\jcms\...
-#   Linux/其他 (无 cms 层):     ../dlt2811bean/jcms/...
-# 自动检测 cms 层是否存在，兼容两种结构
-jcms_dir := env_var_or_default("JCMS_DIR", "../dlt2811bean")
-# Windows (SVN) 结构多一层 cms，其余平台没有；JCMS_DIR 可直接指向 cms 层
-jcms_root := if os() == "windows" { join(jcms_dir, "cms") } else { jcms_dir }
+# csasn1 与 jcms 同级（均在 cms 目录下），从 csasn1 出发 .. 即 cms 层
+# 可用环境变量 JCMS_DIR 覆盖，直接指向 cms 层（jcms 的上级）
+jcms_dir := env_var_or_default("JCMS_DIR", "..")
+jcms_root := jcms_dir
 
 # ─── Build ───────────────────────────────────────────────
 # Compile Rust binary + library
@@ -15,7 +12,8 @@ build:
 # ─── Java ────────────────────────────────────────────────
 # Generate Java classes from ASN.1 spec (standalone test project)
 gen-java:
-    cargo run --release -- --src specs/dlt2811.asn --dest assets/java --prefix Cms --enc aper --package com.ysh.jcms.data
+    rm -rf assets/java
+    cargo run --release -- --src specs/dlt2811.asn --dest assets/java --prefix Inner --enc aper --package com.ysh.jcms.data
 
 # Build + generate + run Java standalone tests
 test-java: gen-java
@@ -33,7 +31,8 @@ test-java-one cls:
 # ─── Python ──────────────────────────────────────────────
 # Generate Python package from ASN.1 spec
 gen-python:
-    cargo run --release -- --lang python --src specs/dlt2811.asn --dest assets/python --prefix Cms --enc aper --package com.ysh.jcms.data
+    rm -rf assets/python
+    cargo run --release -- --lang python --src specs/dlt2811.asn --dest assets/python --prefix Inner --enc aper --package com.ysh.jcms.data
 
 # Generate + run Python tests (requires pixi installed)
 test-python: gen-python
