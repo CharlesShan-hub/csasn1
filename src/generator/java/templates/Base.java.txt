@@ -93,6 +93,26 @@ public abstract class __PFX__Base {
         m.setVisibility(PropertyAccessor.SETTER, JsonAutoDetect.Visibility.NONE);
         m.setVisibility(PropertyAccessor.CREATOR, JsonAutoDetect.Visibility.NONE);
         SimpleModule mod = new SimpleModule();
+        // MapSerializer's null handling is influenced by the @JsonInclude(NON_NULL)
+        // on generated classes (which wins over the mapper-wide inclusion above),
+        // so plain-Map nulls (e.g. NULL choice variants {"Boolean": null}) would be
+        // silently dropped. Force them out as real JSON null instead.
+        mod.addSerializer(java.util.LinkedHashMap.class, new JsonSerializer<Object>() {
+            @Override
+            public void serialize(Object value, JsonGenerator gen, SerializerProvider prov) throws IOException {
+                java.util.LinkedHashMap<String, Object> m = (java.util.LinkedHashMap<String, Object>) value;
+                gen.writeStartObject();
+                for (java.util.Map.Entry<String, Object> e : m.entrySet()) {
+                    Object v = e.getValue();
+                    if (v == null) {
+                        gen.writeNullField(e.getKey());
+                    } else {
+                        gen.writeObjectField(e.getKey(), v);
+                    }
+                }
+                gen.writeEndObject();
+            }
+        });
         mod.addSerializer(byte[].class, new JsonSerializer<byte[]>() {
             @Override
             public void serialize(byte[] value, JsonGenerator gen, SerializerProvider prov) throws IOException {
@@ -191,8 +211,12 @@ public abstract class __PFX__Base {
      */
     public static Object toJson(Object val) {
         if (val instanceof InnerBase) {
-            // Recursively process toJsonValue() result so that Map branch strips _-prefixed keys
-            return toJson(((InnerBase) val).toJsonValue());
+            // toJsonValue() already runs toJson() recursively — do NOT re-run
+            // toJson() on its result. On a second pass a CHOICE NULL variant map
+            // {"Boolean": null} is treated as a plain map and the null value is
+            // dropped again (plain-map branch skips nulls), emitting {} which the
+            // native decoder rejects (NoValidChoice).
+            return ((InnerBase) val).toJsonValue();
         }
         // byte[] -> hex string: canonical form never holds raw arrays (identity
         // equals/hashCode would break structural equality)
