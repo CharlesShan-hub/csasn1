@@ -59,7 +59,6 @@ pub fn generate(
             c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
         }
     }
-    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.MAPPER;", base)));
     if hex_digits > 0 {
         let default_hex = "0".repeat(hex_digits);
         c.push_str(&helpers::ln(1, &format!("public {}() {{ _v.put(\"_\", \"{}\"); }}", cn, default_hex)));
@@ -127,7 +126,7 @@ pub fn generate(
             };
             let json_creator_body = if jt.starts_with("java.util.List<") {
                 let inner = jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
-                format!("{{ {} r = new {}(); r._v.put(\"_\", MAPPER.convertValue(v, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}})); return r; }}", cn, cn, inner)
+                format!("{{ {} r = new {}(); r._v.put(\"_\", {}.MAPPER.convertValue(v, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}})); return r; }}", cn, cn, base, inner)
             } else if jt == "byte[]" {
                 format!("{{ {} r = new {}(); r._v.put(\"_\", {}.unhex(v)); return r; }}", cn, cn, base)
             } else {
@@ -159,21 +158,21 @@ pub fn generate(
         _ => false,
     };
     let (encode_arg, wrap_try): (String, bool) = if jt.starts_with("java.util.List<") {
-        (format!("MAPPER.writeValueAsString({}.toJson(_v.get(\"_\")))", base), true)
+        (format!("{}.MAPPER.writeValueAsString({}.toJson(_v.get(\"_\")))", base, base), true)
     } else if jt == "byte[]" {
-        (format!("MAPPER.writeValueAsString({}.hex((byte[]) _v.get(\"_\")))", base), true)
+        (format!("{}.MAPPER.writeValueAsString({}.hex((byte[]) _v.get(\"_\")))", base, base), true)
     } else if hex_digits > 0 {
-        ("MAPPER.writeValueAsString(_v.get(\"_\"))".into(), true)
+        (format!("{}.MAPPER.writeValueAsString(_v.get(\"_\"))", base), true)
     } else if jt == "String" {
-        ("MAPPER.writeValueAsString(_v.get(\"_\"))".into(), true)
+        (format!("{}.MAPPER.writeValueAsString(_v.get(\"_\"))", base), true)
     } else if jt == "Object" {
         ("\"null\"".into(), false)
     } else if jt.starts_with(prefix) {
-        (format!("MAPPER.writeValueAsString({}.toJson(_v.get(\"_\")))", base), true)
+        (format!("{}.MAPPER.writeValueAsString({}.toJson(_v.get(\"_\")))", base, base), true)
     } else if jt == "DefaultInnerOctetString" {
-        (format!("MAPPER.writeValueAsString({}.hex((byte[]) _v.get(\"_\")))", base), true)
+        (format!("{}.MAPPER.writeValueAsString({}.hex((byte[]) _v.get(\"_\")))", base, base), true)
     } else if jt.starts_with("DefaultInner") {
-        ("MAPPER.writeValueAsString(_v.get(\"_\"))".into(), true)
+        (format!("{}.MAPPER.writeValueAsString(_v.get(\"_\"))", base), true)
     } else if inner_unsigned_int {
         ("String.valueOf(Integer.toUnsignedLong((int) _v.get(\"_\")))".into(), false)
     } else {
@@ -210,13 +209,13 @@ pub fn generate(
     c.push_str(&helpers::ln(3, &format!("String json = {}.decode(\"{}\", DEFAULT_ENCODING, data);", native, ti.name)));
     c.push_str(&helpers::ln(3, &format!("{} r = new {}();", cn, cn)));
     // Rust wraps bare values as {"value": X} — unwrap before extracting
-    c.push_str(&helpers::ln(3, "com.fasterxml.jackson.databind.JsonNode _node = MAPPER.readTree(json);"));
+    c.push_str(&helpers::ln(3, &format!("com.fasterxml.jackson.databind.JsonNode _node = {}.MAPPER.readTree(json);", base)));
     c.push_str(&helpers::ln(3, "if (_node.isObject() && _node.has(\"value\")) _node = _node.get(\"value\");"));
     if jt.starts_with("java.util.List<") {
         let inner = jt.trim_start_matches("java.util.List<").trim_end_matches('>').trim();
         c.push_str(&helpers::ln(3, &format!(
-            "r._v.put(\"_\", MAPPER.convertValue(_node, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}}));",
-            inner
+            "r._v.put(\"_\", {}.MAPPER.convertValue(_node, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}}));",
+            base, inner
         )));
     } else if jt == "byte[]" {
         c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", {}.unhex(_node.asText()));", base)));
@@ -240,7 +239,7 @@ pub fn generate(
     } else if inner_octet_string {
         c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", _node.asText().isEmpty() ? new byte[0] : {}.unhex(_node.asText()));", base)));
     } else {
-        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", MAPPER.readValue(_node.toString(), {}.class));", jt)));
+        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", {}.MAPPER.readValue(_node.toString(), {}.class));", base, jt)));
     }
     c.push_str(&helpers::ln(3, "return r;"));
     c.push_str(&helpers::ln(2, "} catch (Exception e) {"));

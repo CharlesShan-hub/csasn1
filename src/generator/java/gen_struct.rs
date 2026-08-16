@@ -15,7 +15,6 @@ pub fn generate(
 ) -> String {
     let mut c = String::new();
     let base = format!("{}Base", prefix);
-    let native = format!("{}Native", prefix);
     if let Some(doc) = asn_doc { c.push_str(doc); }
     c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
     c.push_str("@JsonInclude(JsonInclude.Include.NON_NULL)\n");
@@ -25,7 +24,6 @@ pub fn generate(
             c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
         }
     }
-    c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.MAPPER;", base)));
 
     // Constructor — populate _v with defaults.
     // OPTIONAL fields without an ASN.1 DEFAULT get NO default: Jackson decode
@@ -99,36 +97,17 @@ pub fn generate(
     c.push_str(&helpers::ln(2, "_v.put(key, value);"));
     c.push_str(&helpers::ln(1, "}"));
 
-    // encode — serialize _v as-is, call Rust library
-    c.push_str(&helpers::ln(1, "public byte[] encode() {"));
-    c.push_str(&helpers::ln(2, "String _json = null;"));
-    c.push_str(&helpers::ln(2, "try {"));
-    c.push_str(&helpers::ln(3, &format!("_json = MAPPER.writeValueAsString({}.toJson(_v));", base)));
-    c.push_str(&helpers::ln(3, &format!("return {}.encode(\"{}\", DEFAULT_ENCODING, _json);", native, ti.name)));
-    c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
-    c.push_str(&helpers::ln(3, &format!("throw new RuntimeException(\"encode {} failed, json=\" + _json, e);", ti.name)));
-    c.push_str(&helpers::ln(2, "}"));
-    c.push_str(&helpers::ln(1, "}"));
+    // encode()/encodeTest() inherited from {base} — this type has no special
+    // JSON shape (fields live directly in _v), so the base implementation
+    // (InnerBase.toJson(_v) + InnerNative.encode) applies unchanged.
 
-    // encodeTest — same as encode but also prints JSON (for debugging without Rust lib)
-    c.push_str(&helpers::ln(1, "public byte[] encodeTest() {"));
-    c.push_str(&helpers::ln(2, "String _json = null;"));
-    c.push_str(&helpers::ln(2, "try {"));
-    c.push_str(&helpers::ln(3, &format!("_json = MAPPER.writeValueAsString({}.toJson(_v));", base)));
-    c.push_str(&helpers::ln(3, "System.err.println(\"JSON: \" + _json);"));
-    c.push_str(&helpers::ln(3, "return new byte[0];"));
-    c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
-    c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
-    c.push_str(&helpers::ln(2, "}"));
-    c.push_str(&helpers::ln(1, "}"));
+    // typeName — ASN.1 dispatch name for native encode/decode
+    c.push_str(&helpers::ln(1, "@Override"));
+    c.push_str(&helpers::ln(1, &format!("protected String typeName() {{ return \"{}\"; }}", ti.name)));
 
     // decode
     c.push_str(&helpers::ln(1, &format!("public static {} decode(byte[] data) {{", cn)));
-    c.push_str(&helpers::ln(2, "try {"));
-    c.push_str(&helpers::ln(3, &format!("return MAPPER.readValue({}.decode(\"{}\", DEFAULT_ENCODING, data), {}.class);", native, ti.name, cn)));
-    c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
-    c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
-    c.push_str(&helpers::ln(2, "}"));
+    c.push_str(&helpers::ln(2, &format!("return {}.decode({}.class, \"{}\", data);", base, cn, ti.name)));
     c.push_str(&helpers::ln(1, "}"));
     c.push_str("}\n");
     c

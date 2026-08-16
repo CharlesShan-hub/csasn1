@@ -16,11 +16,60 @@ public abstract class __PFX__Base {
     @JsonIgnore
     public java.util.LinkedHashMap<String, Object> _v = new java.util.LinkedHashMap<>();
 
-    /** Encode this type to APER bytes via Rust FFI. Implemented by each generated subclass. */
-    public abstract byte[] encode();
+    /** ASN.1 type name used to dispatch native encode/decode. Overridden by generated subclasses. */
+    protected String typeName() {
+        throw new UnsupportedOperationException("typeName() not implemented: " + getClass().getSimpleName());
+    }
+
+    /** True for CHOICE subclasses — they require "_choice" to be selected before encode. */
+    protected boolean isChoice() { return false; }
+
+    /** Encode this type to APER bytes via Rust FFI. */
+    public byte[] encode() {
+        String _json = null;
+        try {
+            if (isChoice() && !_v.containsKey("_choice")) {
+                throw new IllegalStateException("CHOICE variant not selected: " + typeName());
+            }
+            _json = MAPPER.writeValueAsString(InnerBase.toJson(_v));
+            return InnerNative.encode(typeName(), DEFAULT_ENCODING, _json);
+        } catch (Exception e) {
+            throw new RuntimeException("encode " + typeName() + " failed, json=" + _json, e);
+        }
+    }
+
+    /** Encode and print intermediate JSON to stderr (debugging aid for tests). */
+    public byte[] encodeTest() {
+        try {
+            System.err.println("_v: " + MAPPER.writeValueAsString(_v));
+            return encode();
+        } catch (Exception e) {
+            throw new RuntimeException("encodeTest " + typeName() + " failed", e);
+        }
+    }
 
     /** Decode APER bytes into a new instance of this type. */
     public static __PFX__Base decode(byte[] data) { throw new UnsupportedOperationException("Use concrete subclass decode()"); }
+
+    /** Shared decode implementation used by generated subclasses. */
+    protected static <T extends __PFX__Base> T decode(Class<T> type, String typeName, byte[] data) {
+        try {
+            return MAPPER.readValue(InnerNative.decode(typeName, DEFAULT_ENCODING, data), type);
+        } catch (Exception e) {
+            throw new RuntimeException("decode " + typeName + " failed", e);
+        }
+    }
+
+    /** Store a CHOICE variant value under "_", wrapping bare scalars into {"_": v}. */
+    protected void _setValue(Object v) {
+        if (v instanceof java.util.Map) {
+            _v.put("_", v);
+        } else {
+            java.util.LinkedHashMap<String, Object> _w = new java.util.LinkedHashMap<>();
+            _w.put("_", v);
+            _v.put("_", _w);
+        }
+    }
 
     /** Convert byte array to uppercase hex string (matches Rust JER output). */
     public static String hex(byte[] bytes) {
