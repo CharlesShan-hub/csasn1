@@ -27,7 +27,7 @@ pub fn generate(
     c.push_str(&helpers::ln(1, &format!("private static final ObjectMapper MAPPER = {}.MAPPER;", base)));
 
     // No-arg constructor picks the first variant as default.
-    // All data stored in _v: {"_choice": "variantName", "variantName": value}.
+    // All data stored in _v: {"_choice": "variantName", "_": value}.
     if let Some(first) = variants.first() {
         let json_key = first.identifier.as_deref().unwrap_or(&first.name);
         let jt = resolve_wrapper_type(&first.inner_type, all, prefix);
@@ -55,7 +55,7 @@ pub fn generate(
         };
         c.push_str(&helpers::ln(1, &format!("public {}() {{", cn)));
         c.push_str(&helpers::ln(2, &format!("_v.put(\"_choice\", \"{}\");", json_key)));
-        c.push_str(&helpers::ln(2, &format!("_v.put(\"{}\", {});", json_key, init_val)));
+        c.push_str(&helpers::ln(2, &format!("_v.put(\"{}\", {});", "_", init_val)));
         c.push_str(&helpers::ln(1, "}"));
     }
 
@@ -69,7 +69,7 @@ pub fn generate(
         c.push_str(&helpers::ln(1, &format!("@JsonSetter(\"{}\")", json_key)));
         c.push_str(&helpers::ln(1, &format!("public void {}({} v) {{", setter_name, param_type)));
         c.push_str(&helpers::ln(2, &format!("_v.put(\"_choice\", \"{}\");", json_key)));
-        c.push_str(&helpers::ln(2, &format!("if (v instanceof java.util.Map) {{ _v.put(\"{}\", v); }} else {{ java.util.LinkedHashMap<String, Object> _w = new java.util.LinkedHashMap<>(); _w.put(\"_\", v); _v.put(\"{}\", _w); }}", json_key, json_key)));
+        c.push_str(&helpers::ln(2, &format!("if (v instanceof java.util.Map) {{ _v.put(\"{}\", v); }} else {{ java.util.LinkedHashMap<String, Object> _w = new java.util.LinkedHashMap<>(); _w.put(\"_\", v); _v.put(\"{}\", _w); }}", "_", "_")));
         c.push_str(&helpers::ln(1, "}"));
     }
 

@@ -19,7 +19,7 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, varian
 
         // Handle NULL types separately — no roundtrip decode/assert
         if jt == "Object" {
-            c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", null);", json_key)));
+            c.push_str(&helpers::ln(2, "obj._v.put(\"_\", null);"));
             c.push_str(&helpers::ln(2, "// ASN.1 NULL type: just verify encode doesn't crash"));
             c.push_str(&helpers::ln(2, "obj.encodeTest();"));
             c.push_str(&helpers::ln(1, "}"));
@@ -29,40 +29,40 @@ pub fn generate(_ti: &TypeInfo, all: &[TypeInfo], prefix: &str, cn: &str, varian
 
         match jt.as_str() {
             "int" | "Integer" => {
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", 42);", json_key)));
+                c.push_str(&helpers::ln(2, "obj._v.put(\"_\", 42);"));
             }
             "long" | "Long" => {
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", 42L);", json_key)));
+                c.push_str(&helpers::ln(2, "obj._v.put(\"_\", 42L);"));
             }
             "boolean" | "Boolean" => {
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", true);", json_key)));
+                c.push_str(&helpers::ln(2, "obj._v.put(\"_\", true);"));
             }
             "float" | "Float" => {
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", 1.5f);", json_key)));
+                c.push_str(&helpers::ln(2, "obj._v.put(\"_\", 1.5f);"));
             }
             "double" | "Double" => {
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", 2.5);", json_key)));
+                c.push_str(&helpers::ln(2, "obj._v.put(\"_\", 2.5);"));
             }
             "String" => {
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", \"test-value\");", json_key)));
+                c.push_str(&helpers::ln(2, "obj._v.put(\"_\", \"test-value\");"));
             }
             "byte[]" => {
                 // BIT STRING in JER: {"length": N, "value": "HEX"}
                 c.push_str(&helpers::ln(2, &format!("java.util.LinkedHashMap<String, Object> _bs = new java.util.LinkedHashMap<>();")));
                 c.push_str(&helpers::ln(2, "_bs.put(\"length\", 2);"));
                 c.push_str(&helpers::ln(2, &format!("_bs.put(\"value\", \"AA\");")));
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", _bs);", json_key)));
+                c.push_str(&helpers::ln(2, "obj._v.put(\"_\", _bs);"));
             }
             s if s.starts_with("java.util.List<") => {
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", new java.util.ArrayList<>());", json_key)));
+                c.push_str(&helpers::ln(2, "obj._v.put(\"_\", new java.util.ArrayList<>());"));
             }
             s if s.starts_with(prefix) && !s.starts_with("DefaultInner") => {
                 // User-defined Inner* type: store its _v map
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", new {}()._v);", json_key, s)));
+                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"_\", new {}()._v);", s)));
             }
             _ => {
                 // DefaultInner* or other — create instance directly
-                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"{}\", new {}());", json_key, jt)));
+                c.push_str(&helpers::ln(2, &format!("obj._v.put(\"_\", new {}());", jt)));
             }
         }
 

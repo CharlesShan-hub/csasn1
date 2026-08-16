@@ -182,8 +182,8 @@ public abstract class __PFX__Base {
         if (_v.containsKey("_choice")) {
             String choice = (String) _v.get("_choice");
             java.util.LinkedHashMap<String, Object> out = new java.util.LinkedHashMap<>();
-            if (choice != null && _v.containsKey(choice)) {
-                out.put(choice, toJson(_v.get(choice)));
+            if (choice != null && _v.containsKey("_")) {
+                out.put(choice, toJson(_v.get("_")));
             }
             return out;
         }
@@ -225,12 +225,12 @@ public abstract class __PFX__Base {
         }
         if (val instanceof java.util.Map) {
             java.util.Map<String, Object> m = (java.util.Map<String, Object>) val;
-            // CHOICE map: {"_choice": "variant", "variant": value} -> {"variant": value}
+            // CHOICE map: {"_choice": "variant", "_": value} -> {"variant": value}
             if (m.containsKey("_choice")) {
                 String choice = (String) m.get("_choice");
                 java.util.LinkedHashMap<String, Object> out = new java.util.LinkedHashMap<>();
-                if (choice != null && m.containsKey(choice)) {
-                    out.put(choice, toJson(m.get(choice)));
+                if (choice != null && m.containsKey("_")) {
+                    out.put(choice, toJson(m.get("_")));
                 }
                 return out;
             }
