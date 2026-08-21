@@ -363,7 +363,7 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
 name = "rasn"
-version = "0.28.13"
+version = "0.28.14"
 dependencies = [
  "bitvec",
  "bitvec-nom2",
@@ -399,7 +399,7 @@ dependencies = [
 
 [[package]]
 name = "rasn-derive"
-version = "0.28.13"
+version = "0.28.14"
 dependencies = [
  "proc-macro2",
  "rasn-derive-impl",
@@ -408,7 +408,7 @@ dependencies = [
 
 [[package]]
 name = "rasn-derive-impl"
-version = "0.28.13"
+version = "0.28.14"
 dependencies = [
  "either",
  "itertools",
