@@ -132,7 +132,7 @@ pub fn generate(
     )
     .expect("failed to write _base.py");
 
-    // pixi.toml — 仅首次生成
+    // pixi.toml — generated only on first run
     let pixi_path = project_root.join("pixi.toml");
     if !pixi_path.exists() {
         fs::write(
@@ -144,21 +144,8 @@ pub fn generate(
     }
 
     // Copy asn1.dll to resources
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            let dll_name = if cfg!(target_os = "windows") {
-                "asn1.dll"
-            } else {
-                "libasn1.so"
-            };
-            let dll_src = exe_dir.join(dll_name);
-            if dll_src.exists() {
-                let res_dir = src_dir.join("resources");
-                fs::create_dir_all(&res_dir).ok();
-                fs::copy(&dll_src, res_dir.join(dll_name)).expect("failed to copy asn1.dll");
-            }
-        }
-    }
+    let res_dir = src_dir.join("resources");
+    deploy_native_lib(&res_dir);
 
     // tests/__init__.py
     fs::write(test_dir.join("__init__.py"), "").expect("failed to write tests/__init__.py");

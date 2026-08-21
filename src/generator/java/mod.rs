@@ -190,24 +190,12 @@ public class InnerEmpty extends InnerBase {{
     }
 
     // —— Copy DLL to resources ——————————————————————
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            let dll_name = if cfg!(target_os = "windows") {
-                "asn1.dll"
-            } else {
-                "libasn1.so"
-            };
-            let dll_src = exe_dir.join(dll_name);
-            if dll_src.exists() {
-                fs::copy(&dll_src, res_dir.join(dll_name))
-                    .expect("failed to copy asn1.dll to resources");
-                let jna_plat_dir = res_dir.join("win32-x86-64");
-                fs::create_dir_all(&jna_plat_dir).ok();
-                fs::copy(&dll_src, jna_plat_dir.join(dll_name))
-                    .expect("failed to copy asn1.dll to resources/win32-x86-64/");
-                println!("  copied {} to resources/ (incl. win32-x86-64)", dll_name);
-            }
-        }
+    // Java needs the DLL in two places: the JNA platform dir (win32-x86-64) and the resources root.
+    if deploy_native_lib(&res_dir) {
+        let jna_plat_dir = res_dir.join("win32-x86-64");
+        fs::create_dir_all(&jna_plat_dir).ok();
+        deploy_native_lib(&jna_plat_dir);
+        println!("  deployed to resources/ (incl. win32-x86-64)");
     }
 
     println!(

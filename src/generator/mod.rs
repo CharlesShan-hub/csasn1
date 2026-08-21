@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use syn::{Fields, Type};
 
 pub mod java;
@@ -45,6 +47,51 @@ pub struct TypeInfo {
     pub kind: TypeKind,
 }
 
+/// Locates and deploys the native codec library (asn1.dll / libasn1.so) into the
+/// `resources` directory of a generated artifact.
+///
+/// The DLL is produced by `cargo build` next to the generator executable; this
+/// helper centralizes find-and-copy so Java and Python generators share one
+/// implementation instead of duplicating deployment logic.
+///
+/// Returns whether deployment succeeded (a missing DLL is not an error, it is
+/// simply skipped).
+pub fn deploy_native_lib(resources_dir: &Path) -> bool {
+    let Ok(exe_path) = std::env::current_exe() else {
+        return false;
+    };
+    let Some(exe_dir) = exe_path.parent() else {
+        return false;
+    };
+
+    let dll_name = if cfg!(target_os = "windows") {
+        "asn1.dll"
+    } else {
+        "libasn1.so"
+    };
+    let dll_src = exe_dir.join(dll_name);
+    if !dll_src.exists() {
+        return false;
+    }
+
+    fs::create_dir_all(resources_dir).ok();
+    match fs::copy(&dll_src, resources_dir.join(dll_name)) {
+        Ok(_) => {
+            println!("  copied {} to {}", dll_name, resources_dir.display());
+            true
+        }
+        Err(e) => {
+            eprintln!(
+                "  warning: failed to copy {} to {}: {}",
+                dll_name,
+                resources_dir.display(),
+                e
+            );
+            false
+        }
+    }
+}
+
 pub fn prompt(msg: &str, default: &str) -> String {
     use std::io::{BufRead, Write};
     let full = if default.is_empty() {
@@ -79,7 +126,7 @@ pub fn extract_types(ast: &syn::File) -> Vec<TypeInfo> {
         return types;
     };
 
-    // 第一遍：收集 `*_default` 函数的函数体表达式
+    // Pass 1: collect the body expressions of every `*_default` function.
     for inner in items {
         if let syn::Item::Fn(func) = inner {
             let name = func.sig.ident.to_string();
@@ -89,7 +136,7 @@ pub fn extract_types(ast: &syn::File) -> Vec<TypeInfo> {
         }
     }
 
-    // 第二遍：收集结构体 / 枚举类型
+    // Pass 2: collect struct and enum types.
     for inner in items {
         match inner {
             syn::Item::Struct(s) => types.push(TypeInfo {
@@ -106,7 +153,8 @@ pub fn extract_types(ast: &syn::File) -> Vec<TypeInfo> {
     types
 }
 
-/// 提取函数体的表达式字符串（去掉外层 `{` `}` 及首尾空白）。
+/// Extracts the expression inside a function body block as a string, stripping the
+/// outer `{` `}` braces and surrounding whitespace.
 fn block_expr(block: &syn::Block) -> String {
     let s = quote::quote!(#block).to_string();
     let s = s.trim();
@@ -115,8 +163,11 @@ fn block_expr(block: &syn::Block) -> String {
     s.trim().to_string()
 }
 
-/// 遍历 `#[rasn(...)]` 里的所有顶层 meta，用闭包处理。
-/// 兼容 `tag(context, 0)` 这种嵌套括号形式（`parse_nested_meta` 不支持）。
+/// Iterates over the top-level metas inside `#[rasn(...)]` attributes, invoking `f`
+/// on each until it returns `true`.
+///
+/// Compatible with nested parenthesized forms such as `tag(context, 0)`, which
+/// `parse_nested_meta` does not handle.
 fn for_each_rasn_meta(attrs: &[syn::Attribute], mut f: impl FnMut(&syn::Meta) -> bool) -> bool {
     for attr in attrs {
         if !attr.path().is_ident("rasn") {
@@ -136,12 +187,12 @@ fn for_each_rasn_meta(attrs: &[syn::Attribute], mut f: impl FnMut(&syn::Meta) ->
     false
 }
 
-/// 判断 `#[rasn(...)]` 属性里是否包含某个标记（如 `delegate`）。
+/// Returns whether a `#[rasn(...)]` attribute contains the given marker (e.g. `delegate`).
 fn attr_contains(attrs: &[syn::Attribute], pat: &str) -> bool {
     for_each_rasn_meta(attrs, |meta| meta.path().is_ident(pat))
 }
 
-/// 提取 `#[rasn(name = "value")]` 里的字符串值，例如 `identifier = "xxx"` → "xxx"。
+/// Extracts a string value from `#[rasn(name = "value")]`, e.g. `identifier = "xxx"` → "xxx".
 fn rasn_str_value(attrs: &[syn::Attribute], name: &str) -> Option<String> {
     let mut result = None;
     for_each_rasn_meta(attrs, |meta| {
@@ -162,7 +213,7 @@ fn rasn_str_value(attrs: &[syn::Attribute], name: &str) -> Option<String> {
     result
 }
 
-/// 提取 `#[rasn(size("..."))]` 里的字符串值。
+/// Extracts the string value of a `#[rasn(size("..."))]` attribute.
 fn rasn_size_str(attrs: &[syn::Attribute]) -> Option<String> {
     let mut result = None;
     for_each_rasn_meta(attrs, |meta| {
@@ -185,7 +236,7 @@ fn rasn_size_str(attrs: &[syn::Attribute]) -> Option<String> {
     result
 }
 
-/// 解析 size 字符串（`"N"` 或 `"min..=max"`）为上限值。
+/// Parses a size string (`"N"` or `"min..=max"`) into its upper bound.
 fn parse_size_value(val: &str) -> Option<usize> {
     if let Ok(n) = val.parse::<usize>() {
         return Some(n);

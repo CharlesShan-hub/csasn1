@@ -1,15 +1,15 @@
-/// 显示任意 ASN.1 类型的 JER（上帝格式）
-/// 用法: cargo run --example jer_god -- <TypeName> <JSON>
-/// 例如: cargo run --example jer_god -- Boolean 1
-///       cargo run --example jer_god -- VisibleString '"hello"'
-/// 提示: 如果 JSON 不以 { [ " 开头，会自动补双引号
+/// Prints the JER ("God format") encoding of any ASN.1 type.
+/// Usage: cargo run --example jer_god -- <TypeName> <JSON>
+/// e.g.   cargo run --example jer_god -- Boolean 1
+///        cargo run --example jer_god -- VisibleString '"hello"'
+/// Hint: if the JSON does not start with { [ or ", double quotes are added automatically.
 use std::env;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
-        eprintln!("用法: cargo run --example jer_god -- <TypeName> <JSON>");
-        eprintln!("示例:");
+        eprintln!("Usage: cargo run --example jer_god -- <TypeName> <JSON>");
+        eprintln!("Examples:");
         eprintln!("  cargo run --example jer_god -- RcbOptFlds 6800");
         eprintln!("  cargo run --example jer_god -- Boolean 1");
         eprintln!("  cargo run --example jer_god -- ServiceError 1");
@@ -21,14 +21,14 @@ fn main() {
     let type_name = &args[1];
     let mut json = args[2].clone();
 
-    // 如果 JSON 没加引号，自动补
+    // Auto-quote JSON if it is not already a string/object/array.
     if !json.starts_with('"') && !json.starts_with('{') && !json.starts_with('[') {
         json = format!("\"{}\"", json);
     }
 
     match asn1::ffi_auto::jer_normalize(type_name, &json) {
         Ok(jer) => {
-            eprintln!("=== {type_name} 上帝格式 (JER) ===");
+            eprintln!("=== {type_name} JER God format ===");
             println!("{jer}");
             eprintln!("=== END ===");
         }
