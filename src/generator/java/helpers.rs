@@ -2,12 +2,58 @@ use std::path::PathBuf;
 
 // Java reserved words — cannot be used as field names
 const JAVA_KEYWORDS: &[&str] = &[
-    "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class",
-    "const", "continue", "default", "do", "double", "else", "enum", "extends", "final",
-    "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int",
-    "interface", "long", "native", "new", "package", "private", "protected", "public",
-    "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this",
-    "throw", "throws", "transient", "try", "void", "volatile", "while", "true", "false",
+    "abstract",
+    "assert",
+    "boolean",
+    "break",
+    "byte",
+    "case",
+    "catch",
+    "char",
+    "class",
+    "const",
+    "continue",
+    "default",
+    "do",
+    "double",
+    "else",
+    "enum",
+    "extends",
+    "final",
+    "finally",
+    "float",
+    "for",
+    "goto",
+    "if",
+    "implements",
+    "import",
+    "instanceof",
+    "int",
+    "interface",
+    "long",
+    "native",
+    "new",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "return",
+    "short",
+    "static",
+    "strictfp",
+    "super",
+    "switch",
+    "synchronized",
+    "this",
+    "throw",
+    "throws",
+    "transient",
+    "try",
+    "void",
+    "volatile",
+    "while",
+    "true",
+    "false",
     "null",
 ];
 
@@ -109,8 +155,16 @@ pub fn parse_asn1_size(def: &str) -> Option<(Option<usize>, Option<usize>)> {
     if let Some(dotdot) = content.find("..") {
         let min_s = content[..dotdot].trim();
         let max_s = content[dotdot + 2..].trim();
-        let min = if min_s.is_empty() { None } else { min_s.parse::<usize>().ok() };
-        let max = if max_s == "MAX" { None } else { max_s.parse::<usize>().ok() };
+        let min = if min_s.is_empty() {
+            None
+        } else {
+            min_s.parse::<usize>().ok()
+        };
+        let max = if max_s == "MAX" {
+            None
+        } else {
+            max_s.parse::<usize>().ok()
+        };
         return Some((min, max));
     }
 
@@ -124,24 +178,31 @@ pub fn test_data_size(def: Option<&str>) -> usize {
         Some((Some(min), Some(max))) if min == max => max as usize, // fixed SIZE(N) -> N
         Some((Some(min), None)) => (min + 1) as usize,              // min only -> min+1
         Some((Some(min), Some(_))) if min > 0 => (min + 1) as usize, // range with min>0 -> min+1
-        Some((_, Some(_))) => 1,                                     // range min=0 or max-only -> 1
-        _ => 2,                                                      // default
+        Some((_, Some(_))) => 1,                                    // range min=0 or max-only -> 1
+        _ => 2,                                                     // default
     };
     if size == 0 { 1 } else { size }
 }
 
 /// Resolve test data size through ASN.1 type alias chain.
 /// e.g. TimeStamp ::= UtcTime → look up UtcTime's SIZE(8).
-pub fn resolve_size(type_name: &str, asn_defs: &std::collections::HashMap<String, String>) -> usize {
+pub fn resolve_size(
+    type_name: &str,
+    asn_defs: &std::collections::HashMap<String, String>,
+) -> usize {
     let mut seen = std::collections::HashSet::new();
     let mut current = type_name.to_string();
     loop {
-        if seen.contains(&current) { return 2; }
+        if seen.contains(&current) {
+            return 2;
+        }
         seen.insert(current.clone());
         match asn_defs.get(&current).map(|s| s.as_str()) {
             Some(def) => {
                 let sz = test_data_size(Some(def));
-                if sz != 2 { return sz; }
+                if sz != 2 {
+                    return sz;
+                }
                 // Check if it's a simple alias: Type ::= OtherType (no {, no BIT STRING)
                 if let Some(eq_pos) = def.find("::=") {
                     let after = def[eq_pos + 3..].trim();

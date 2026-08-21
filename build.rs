@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
-use std::collections::HashMap;
+use std::path::PathBuf;
 
 /// Rust primitive integer types that a newtype may wrap.
 const INT_TYPES: &[&str] = &["u8", "i8", "u16", "i16", "u32", "i32", "u64", "i64"];
@@ -14,107 +14,59 @@ fn main() {
         rasn_compiler::prelude::RasnBackend,
         rasn_compiler::CompilerMissingParams,
     >::new()
-        .set_output_mode(rasn_compiler::OutputMode::SingleFile(
-            PathBuf::from("src/generated.rs"),
-        ))
-        .add_asn_by_path(PathBuf::from("specs/dlt2811.asn"))
-        .compile()
-        .expect("ASN.1 编译失败");
+    .set_output_mode(rasn_compiler::OutputMode::SingleFile(PathBuf::from(
+        "src/generated.rs",
+    )))
+    .add_asn_by_path(PathBuf::from("specs/dlt2811.asn"))
+    .compile()
+    .expect("ASN.1 编译失败");
 
-    // 第 2 步：扫描生成的代码，提取所有结构体类型名以及 newtype 的内层类型
-    let generated = fs::read_to_string("src/generated.rs")
-        .expect("无法读取 generated.rs");
+    // 第 2 步：用 syn 解析生成的代码，提取所有结构体/枚举类型名以及 newtype 的内层类型
+    let generated = fs::read_to_string("src/generated.rs").expect("无法读取 generated.rs");
+    let ast = syn::parse_file(&generated).expect("无法解析 generated.rs");
 
     let mut types: Vec<String> = Vec::new();
     // type_name → inner_type for newtype structs (e.g. "Int32U" → "u32")
     let mut newtype_inner: HashMap<String, String> = HashMap::new();
-    let mut pos = 0;
-    let bytes = generated.as_bytes();
 
-    while pos < bytes.len() {
-        let struct_keyword = b"pub struct ";
-        let enum_keyword = b"pub enum ";
-        let mut found_pos: Option<usize> = None;
-
-        if let Some(p) = find_subsequence(&bytes[pos..], struct_keyword) {
-            found_pos = Some(pos + p);
-        }
-        if let Some(p) = find_subsequence(&bytes[pos..], enum_keyword) {
-            let abs_p = pos + p;
-            found_pos = match found_pos {
-                Some(existing) => Some(existing.min(abs_p)),
-                None => Some(abs_p),
-            };
-        }
-
-        match found_pos {
-            Some(p) => {
-                pos = p;
-                if bytes[pos..].starts_with(struct_keyword) {
-                    pos += struct_keyword.len();
-                } else {
-                    pos += enum_keyword.len();
-                }
-                // 读取类型名
-                let start = pos;
-                while pos < bytes.len() && bytes[pos] != b' ' && bytes[pos] != b'{' && bytes[pos] != b'(' {
-                    pos += 1;
-                }
-                let name = String::from_utf8_lossy(&bytes[start..pos]).to_string();
-
-                if name.starts_with('_') {
-                    pos = skip_paren_block(&bytes, pos);
-                    continue;
-                }
-
-                // 检测 newtype: "pub struct Name (pub InnerType)"
-                // 生成的代码中可能有空格: "pub struct Name(pub u32)" 或 "pub struct Name (pub u32)"
-                let is_newtype = {
-                    // 跳过名字后的空白字符
-                    let mut scan = pos;
-                    while scan < bytes.len() && bytes[scan] == b' ' { scan += 1; }
-                    if scan < bytes.len() && bytes[scan] == b'(' {
-                        // 提取内层类型 "(pub InnerType)"
-                        let mut inner_pos = scan + 1;
-                        while inner_pos < bytes.len() && bytes[inner_pos] != b'p' && bytes[inner_pos] != b')' { inner_pos += 1; }
-                        if inner_pos + 3 < bytes.len() && &bytes[inner_pos..inner_pos+3] == b"pub" {
-                            inner_pos += 3;
-                            // skip spaces
-                            while inner_pos < bytes.len() && bytes[inner_pos] == b' ' { inner_pos += 1; }
-                            // 读取内层类型名
-                            let inner_type_start = inner_pos;
-                            while inner_pos < bytes.len() && bytes[inner_pos] != b')' && bytes[inner_pos] != b' ' {
-                                inner_pos += 1;
-                            }
-                            let inner_type = String::from_utf8_lossy(&bytes[inner_type_start..inner_pos]).to_string();
+    for item in &ast.items {
+        let syn::Item::Mod(module) = item else {
+            continue;
+        };
+        let Some((_, items)) = &module.content else {
+            continue;
+        };
+        for inner in items {
+            match inner {
+                syn::Item::Struct(s) => {
+                    let name = s.ident.to_string();
+                    if name.starts_with('_') {
+                        continue;
+                    }
+                    // newtype：pub struct Name(pub InnerType)
+                    if let syn::Fields::Unnamed(fields) = &s.fields {
+                        if let Some(inner_type) =
+                            fields.unnamed.first().and_then(|f| last_path_ident(&f.ty))
+                        {
                             if INT_TYPES.contains(&inner_type.as_str()) {
                                 newtype_inner.insert(name.clone(), inner_type);
                             }
                         }
-                        true
-                    } else {
-                        false
                     }
-                };
-
-                if !is_newtype {
-                    // regular struct/enum — only add if not already present
-                    if !types.contains(&name) {
-                        types.push(name);
-                    }
-                } else {
-                    // newtype — only add if not already present
-                    if !types.contains(&name) {
-                        types.push(name);
-                    }
+                    types.push(name);
                 }
-                pos = skip_paren_block(&bytes, pos);
+                syn::Item::Enum(e) => {
+                    let name = e.ident.to_string();
+                    if name.starts_with('_') {
+                        continue;
+                    }
+                    types.push(name);
+                }
+                _ => {}
             }
-            None => break,
         }
     }
 
-    // 去重
     types.sort();
     types.dedup();
 
@@ -122,7 +74,11 @@ fn main() {
     generate_ffi_dispatch(&types, &newtype_inner, "src/ffi_auto.rs");
 }
 
-fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, String>, output_path: &str) {
+fn generate_ffi_dispatch(
+    types: &[String],
+    newtype_inner: &HashMap<String, String>,
+    output_path: &str,
+) {
     let mut code = String::new();
     code.push_str(&format!(
         "// 自动生成 - 勿手动编辑\n\
@@ -184,7 +140,7 @@ fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, Strin
     code.push_str(
         "fn encode_json(type_name: &str, encoding: &str, json: &str) -> Result<Vec<u8>, String> {\n\
          let enc = encoding.to_lowercase();\n\
-         match type_name {\n"
+         match type_name {\n",
     );
     for t in types {
         // For integer newtypes, use serde_json directly (bypass rasn JER decode bug for u32 values > i32::MAX)
@@ -214,7 +170,7 @@ fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, Strin
     }
     code.push_str(
         "        _ => Err(format!(\"Unknown type: {}\", type_name))\n\
-         }\n}\n\n"
+         }\n}\n\n",
     );
 
     // decode_to_json dispatch
@@ -245,13 +201,13 @@ fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, Strin
     }
     code.push_str(
         "        _ => Err(format!(\"Unknown type: {}\", type_name))\n\
-         }\n}\n\n"
+         }\n}\n\n",
     );
 
     // jer_normalize dispatch — JER decode then JER encode (show canonical format)
     code.push_str(
         "pub fn jer_normalize(type_name: &str, json: &str) -> Result<String, String> {\n\
-         match type_name {\n"
+         match type_name {\n",
     );
     for t in types {
         if let Some(inner) = newtype_inner.get(t) {
@@ -279,7 +235,7 @@ fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, Strin
     }
     code.push_str(
         "        _ => Err(format!(\"Unknown type: {}\", type_name))\n\
-         }\n}\n\n"
+         }\n}\n\n",
     );
 
     // -- C API: all functions return *mut c_char (JSON response string) --
@@ -327,7 +283,7 @@ fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, Strin
          }\n\n\
          #[unsafe(no_mangle)]\npub extern \"C\" fn csasn1_ping() -> *mut c_char {\n\
          CString::new(\"pong\").unwrap().into_raw()\n\
-         }\n\n"
+         }\n\n",
     );
 
     let mut file = fs::File::create(output_path).expect("无法创建 ffi_auto.rs");
@@ -340,29 +296,16 @@ fn generate_ffi_dispatch(types: &[String], newtype_inner: &HashMap<String, Strin
     }
 }
 
-fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len())
-        .position(|window| window == needle)
-}
-
-fn skip_paren_block(bytes: &[u8], mut pos: usize) -> usize {
-    while pos < bytes.len() && bytes[pos] == b' ' { pos += 1; }
-    if pos >= bytes.len() { return pos; }
-
-    let (open, close) = match bytes[pos] {
-        b'{' => (b'{', b'}'),
-        b'(' => (b'(', b')'),
-        _ => return pos + 1,
-    };
-    pos += 1;
-    let mut depth = 1;
-    while pos < bytes.len() && depth > 0 {
-        match bytes[pos] {
-            c if c == open => depth += 1,
-            c if c == close => depth -= 1,
-            _ => {}
+/// 提取 `Type::Path` 的最后一个路径段标识符，例如 `u32` → "u32"、`FixedOctetString<4>` → "FixedOctetString"。
+fn last_path_ident(ty: &syn::Type) -> Option<String> {
+    if let syn::Type::Path(type_path) = ty {
+        if type_path.qself.is_none() {
+            return type_path
+                .path
+                .segments
+                .last()
+                .map(|seg| seg.ident.to_string());
         }
-        pos += 1;
     }
-    pos
+    None
 }

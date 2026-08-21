@@ -51,7 +51,9 @@ pub fn resolve_java_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
         s if s == "String" => "String".to_string(),
         s if s.starts_with("VisibleString") => "DefaultInnerVisibleString".to_string(),
         s if s.starts_with("Utf8String") => "DefaultInnerUtf8String".to_string(),
-        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "DefaultInnerOctetString".to_string(),
+        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => {
+            "DefaultInnerOctetString".to_string()
+        }
         s if s.starts_with("Integer") => "int".to_string(),
         s if s.starts_with("FixedBitString") => "int".to_string(),
         s if s.starts_with("BitString") => "byte[]".to_string(),
@@ -108,7 +110,9 @@ pub fn resolve_wrapper_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String 
         s if s == "String" => "String".to_string(),
         s if s.starts_with("VisibleString") => "DefaultInnerVisibleString".to_string(),
         s if s.starts_with("Utf8String") => "DefaultInnerUtf8String".to_string(),
-        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => "DefaultInnerOctetString".to_string(),
+        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => {
+            "DefaultInnerOctetString".to_string()
+        }
         s if s.starts_with("Integer") => boxed("int"),
         s if s.starts_with("FixedBitString") => boxed("int"),
         s if s.starts_with("BitString") => "byte[]".to_string(),

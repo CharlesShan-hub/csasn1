@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use super::super::*;
-use super::type_map::resolve_wrapper_type;
 use super::helpers;
+use super::type_map::resolve_wrapper_type;
+use std::collections::HashMap;
 
 pub fn generate(
     ti: &TypeInfo,
@@ -15,13 +15,18 @@ pub fn generate(
 ) -> String {
     let mut c = String::new();
     let base = format!("{}Base", prefix);
-    if let Some(doc) = asn_doc { c.push_str(doc); }
+    if let Some(doc) = asn_doc {
+        c.push_str(doc);
+    }
     c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
     c.push_str("@JsonInclude(JsonInclude.Include.NON_NULL)\n");
     c.push_str(&format!("public class {} extends {}Base {{\n", cn, prefix));
     if let Some(entries) = named_consts.get(&ti.name) {
         for (name, val) in entries {
-            c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
+            c.push_str(&helpers::ln(
+                1,
+                &format!("public static final int {} = {};", name, val),
+            ));
         }
     }
 
@@ -39,30 +44,35 @@ pub fn generate(
         let jt = resolve_wrapper_type(&f.rust_type, all, prefix);
         let dflt = match jt.as_str() {
             "DefaultInnerOctetString" => {
-                let is_fixed = f.size_attr_raw.as_deref()
+                let is_fixed = f
+                    .size_attr_raw
+                    .as_deref()
                     .and_then(|r| r.parse::<usize>().ok())
                     .is_some();
-                let n = if is_fixed { f.size_from_attr } else { None }
-                    .or_else(|| {
-                        let sz = helpers::resolve_size(&f.rust_type, asn_defs);
-                        if sz > 0 && sz != 2 { Some(sz) } else { None }
-                    });
+                let n = if is_fixed { f.size_from_attr } else { None }.or_else(|| {
+                    let sz = helpers::resolve_size(&f.rust_type, asn_defs);
+                    if sz > 0 && sz != 2 { Some(sz) } else { None }
+                });
                 if let Some(n) = n {
                     let bytes: Vec<String> = std::iter::repeat("1".to_string()).take(n).collect();
-                    format!("new DefaultInnerOctetString(new byte[] {{ {} }})", bytes.join(", "))
+                    format!(
+                        "new DefaultInnerOctetString(new byte[] {{ {} }})",
+                        bytes.join(", ")
+                    )
                 } else {
                     "new DefaultInnerOctetString(new byte[]{ 1 })".to_string()
                 }
             }
             "DefaultInnerVisibleString" | "DefaultInnerUtf8String" => {
-                let is_fixed = f.size_attr_raw.as_deref()
+                let is_fixed = f
+                    .size_attr_raw
+                    .as_deref()
                     .and_then(|r| r.parse::<usize>().ok())
                     .is_some();
-                let n = if is_fixed { f.size_from_attr } else { None }
-                    .or_else(|| {
-                        let sz = helpers::resolve_size(&f.rust_type, asn_defs);
-                        if sz > 0 && sz != 2 { Some(sz) } else { None }
-                    });
+                let n = if is_fixed { f.size_from_attr } else { None }.or_else(|| {
+                    let sz = helpers::resolve_size(&f.rust_type, asn_defs);
+                    if sz > 0 && sz != 2 { Some(sz) } else { None }
+                });
                 if let Some(n) = n {
                     format!("new DefaultInnerVisibleString(\"{}\")", "x".repeat(n))
                 } else {
@@ -86,13 +96,19 @@ pub fn generate(
                 }
             }
         };
-        c.push_str(&helpers::ln(2, &format!("_v.put(\"{}\", {});", raw_name, dflt)));
+        c.push_str(&helpers::ln(
+            2,
+            &format!("_v.put(\"{}\", {});", raw_name, dflt),
+        ));
     }
     c.push_str(&helpers::ln(1, "}"));
 
     // @JsonAnySetter — populate _v during Jackson deserialisation (no _optional tracking)
     c.push_str(&helpers::ln(1, "@JsonAnySetter"));
-    c.push_str(&helpers::ln(1, "public void setField(String key, Object value) {"));
+    c.push_str(&helpers::ln(
+        1,
+        "public void setField(String key, Object value) {",
+    ));
     c.push_str(&helpers::ln(2, "if (key.startsWith(\"_\")) return;"));
     c.push_str(&helpers::ln(2, "_v.put(key, value);"));
     c.push_str(&helpers::ln(1, "}"));
@@ -103,11 +119,23 @@ pub fn generate(
 
     // typeName — ASN.1 dispatch name for native encode/decode
     c.push_str(&helpers::ln(1, "@Override"));
-    c.push_str(&helpers::ln(1, &format!("protected String typeName() {{ return \"{}\"; }}", ti.name)));
+    c.push_str(&helpers::ln(
+        1,
+        &format!("protected String typeName() {{ return \"{}\"; }}", ti.name),
+    ));
 
     // decode
-    c.push_str(&helpers::ln(1, &format!("public static {} decode(byte[] data) {{", cn)));
-    c.push_str(&helpers::ln(2, &format!("return {}.decode({}.class, \"{}\", data);", base, cn, ti.name)));
+    c.push_str(&helpers::ln(
+        1,
+        &format!("public static {} decode(byte[] data) {{", cn),
+    ));
+    c.push_str(&helpers::ln(
+        2,
+        &format!(
+            "return {}.decode({}.class, \"{}\", data);",
+            base, cn, ti.name
+        ),
+    ));
     c.push_str(&helpers::ln(1, "}"));
     c.push_str("}\n");
     c

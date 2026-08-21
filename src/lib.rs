@@ -20,7 +20,11 @@ mod tests {
         let bytes = [0x40, 0x48, 0xF5, 0xC3]; // IEEE 754: 3.14f32
         let orig = Data::float32(Float32(FixedOctetString::<4>::new(bytes)));
         let encoded = rasn::aper::encode(&orig).expect("APER encode");
-        eprintln!("Float32 Data APER encoded ({} bytes): {:02x?}", encoded.len(), encoded);
+        eprintln!(
+            "Float32 Data APER encoded ({} bytes): {:02x?}",
+            encoded.len(),
+            encoded
+        );
         let decoded: Data = rasn::aper::decode(&encoded).expect("APER decode as Data");
         assert_eq!(orig, decoded, "Float32 APER roundtrip failed");
     }
@@ -32,7 +36,10 @@ mod tests {
         let bytes = [0x40, 0x48, 0xF5, 0xC3]; // IEEE 754: 3.14f32
         let orig = Data::float32(Float32(FixedOctetString::<4>::new(bytes)));
         let jer_encoded = rasn::jer::encode(&orig).expect("JER encode");
-        eprintln!("Rust JER output: {}", String::from_utf8_lossy(&jer_encoded.as_bytes()));
+        eprintln!(
+            "Rust JER output: {}",
+            String::from_utf8_lossy(&jer_encoded.as_bytes())
+        );
 
         // Now decode the JER back
         let decoded: Data = rasn::jer::decode(&jer_encoded).expect("JER decode back");
@@ -40,10 +47,17 @@ mod tests {
 
         // Now try the full FFI flow: JER→APER encode + APER→JER decode
         let aper_encoded = rasn::aper::encode(&orig).expect("APER encode");
-        eprintln!("APER encoded ({} bytes): {:02x?}", aper_encoded.len(), aper_encoded);
+        eprintln!(
+            "APER encoded ({} bytes): {:02x?}",
+            aper_encoded.len(),
+            aper_encoded
+        );
         let aper_decoded: Data = rasn::aper::decode(&aper_encoded).expect("APER decode");
         let roundtrip_jer = rasn::jer::encode(&aper_decoded).expect("JER encode");
-        eprintln!("Roundtrip JER: {}", String::from_utf8_lossy(&roundtrip_jer.as_bytes()));
+        eprintln!(
+            "Roundtrip JER: {}",
+            String::from_utf8_lossy(&roundtrip_jer.as_bytes())
+        );
         assert_eq!(orig, aper_decoded, "Full FFI roundtrip failed");
     }
 
@@ -90,7 +104,7 @@ mod tests {
     #[test]
     fn test_data_visible_string_aper_roundtrip() {
         let orig = Data::visible_string(
-            VisibleString::from_iso646_bytes(b"hello").expect("valid visible string")
+            VisibleString::from_iso646_bytes(b"hello").expect("valid visible string"),
         );
         let encoded = rasn::aper::encode(&orig).expect("APER encode");
         let decoded: Data = rasn::aper::decode(&encoded).expect("APER decode");
@@ -136,9 +150,15 @@ mod tests {
         // Step 3: APER decode → JER encode (Java's InnerNative.decode path)
         let aper_decoded: RcbOptFlds = rasn::aper::decode(&aper).expect("APER decode");
         let jer2 = rasn::jer::encode(&aper_decoded).expect("JER encode");
-        eprintln!("JER after APER: {}", String::from_utf8_lossy(&jer2.as_bytes()));
+        eprintln!(
+            "JER after APER: {}",
+            String::from_utf8_lossy(&jer2.as_bytes())
+        );
 
-        assert_eq!(orig, aper_decoded, "RcbOptFlds JER→APER→JER roundtrip failed");
+        assert_eq!(
+            orig, aper_decoded,
+            "RcbOptFlds JER→APER→JER roundtrip failed"
+        );
     }
 
     /// Roundtrip Data::Boolean via APER.
@@ -202,7 +222,11 @@ mod tests {
         let inner = Data::float64(Float64(FixedOctetString::<8usize>::new(float64_bytes)));
         let orig = Data::array(vec![inner]);
         let encoded = rasn::aper::encode(&orig).expect("APER encode");
-        eprintln!("Array<Float64> APER encoded ({} bytes): {:02x?}", encoded.len(), encoded);
+        eprintln!(
+            "Array<Float64> APER encoded ({} bytes): {:02x?}",
+            encoded.len(),
+            encoded
+        );
         let decoded: Data = rasn::aper::decode(&encoded).expect("APER decode");
         assert_eq!(orig, decoded, "Array<Float64> APER roundtrip failed");
     }
@@ -216,7 +240,11 @@ mod tests {
         let d3 = Data::float64(Float64(FixedOctetString::<8usize>::new(float64_bytes)));
         let orig = Data::array(vec![d1, d2, d3]);
         let encoded = rasn::aper::encode(&orig).expect("APER encode");
-        eprintln!("Array mixed APER encoded ({} bytes): {:02x?}", encoded.len(), encoded);
+        eprintln!(
+            "Array mixed APER encoded ({} bytes): {:02x?}",
+            encoded.len(),
+            encoded
+        );
         let decoded: Data = rasn::aper::decode(&encoded).expect("APER decode");
         assert_eq!(orig, decoded, "Array mixed APER roundtrip failed");
     }
@@ -260,11 +288,18 @@ mod tests {
             let mut map: serde_json::Map<String, serde_json::Value> =
                 serde_json::from_str(json.trim()).expect("valid JSON");
             map.remove("_choice");
-            assert_eq!(map.len(), 1, "After removing _choice, should have 1 key, got: {map:?}");
+            assert_eq!(
+                map.len(),
+                1,
+                "After removing _choice, should have 1 key, got: {map:?}"
+            );
             serde_json::to_string(&map).expect("serialize map")
         };
         eprintln!("Unwrapped JSON: {unwrapped}");
-        assert_eq!(unwrapped, r#"{"float32":"4048F5C3"}"#, "unwrap should strip _choice");
+        assert_eq!(
+            unwrapped, r#"{"float32":"4048F5C3"}"#,
+            "unwrap should strip _choice"
+        );
 
         // Now try JER decode + APER encode
         let v: Data = rasn::jer::decode(&unwrapped).expect("JER decode");
@@ -275,12 +310,24 @@ mod tests {
         // Now APER decode + JER encode
         let decoded: Data = rasn::aper::decode(&encoded).expect("APER decode");
         let roundtrip_jer = rasn::jer::encode(&decoded).expect("JER encode");
-        eprintln!("Roundtrip JER: {}", String::from_utf8_lossy(&roundtrip_jer.as_bytes()));
+        eprintln!(
+            "Roundtrip JER: {}",
+            String::from_utf8_lossy(&roundtrip_jer.as_bytes())
+        );
         // wrap_in_jackson (reproducing the logic)
-        let t = String::from_utf8_lossy(&roundtrip_jer.as_bytes()).trim().to_string();
-        let wrapped = if t.starts_with('{') { t } else { format!("{{\"value\":{t}}}") };
+        let t = String::from_utf8_lossy(&roundtrip_jer.as_bytes())
+            .trim()
+            .to_string();
+        let wrapped = if t.starts_with('{') {
+            t
+        } else {
+            format!("{{\"value\":{t}}}")
+        };
         eprintln!("Wrapped: {wrapped}");
-        assert!(wrapped.contains("4048F5C3"), "Missing expected hex in decoded JSON");
+        assert!(
+            wrapped.contains("4048F5C3"),
+            "Missing expected hex in decoded JSON"
+        );
     }
 
     /// URCB 的 JER 输出（"上帝格式"），查看 Rust JER 编码后的 JSON 长什么样子。
@@ -290,19 +337,19 @@ mod tests {
 
         let urcb = URCB {
             rpt_id: VisibleString::from_iso646_bytes(b"report1").unwrap(),
-            rpt_ena: Boolean(1),                                    // true
-            dat_set: ObjectReference(VisibleString::from_iso646_bytes(b"PROT/LLN0.RPIT.Ena").unwrap()),
+            rpt_ena: Boolean(1), // true
+            dat_set: ObjectReference(
+                VisibleString::from_iso646_bytes(b"PROT/LLN0.RPIT.Ena").unwrap(),
+            ),
             conf_rev: Int32U(1),
-            opt_flds: RcbOptFlds(FixedBitString::<10>::new([
-                0x68, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            ])), // bits 1,2,4 set
+            opt_flds: RcbOptFlds(FixedBitString::<10>::new([0x68, 0, 0, 0, 0, 0, 0, 0, 0, 0])), // bits 1,2,4 set
             buf_tm: Int32U(1000),
             sq_num: Int16U(1),
             trg_ops: TriggerConditions(FixedBitString::<6>::new([0x01, 0, 0, 0, 0, 0])),
             intg_pd: Int32U(5000),
-            gi: Boolean(0),                                          // false
-            resv: Boolean(0),                                        // false
-            owner: Some(OctetString::from(vec![0x01, 0x02, 0x03])),  // OPTIONAL
+            gi: Boolean(0),                                         // false
+            resv: Boolean(0),                                       // false
+            owner: Some(OctetString::from(vec![0x01, 0x02, 0x03])), // OPTIONAL
         };
 
         let jer = rasn::jer::encode(&urcb).expect("JER encode URCB");
@@ -350,9 +397,7 @@ mod tests {
         use rasn::prelude::*;
         let v_int32 = Data::int32(Int32(42));
         let v_bool = Data::Boolean(Boolean(1));
-        let v_str = Data::visible_string(
-            VisibleString::from_iso646_bytes(b"hello").unwrap()
-        );
+        let v_str = Data::visible_string(VisibleString::from_iso646_bytes(b"hello").unwrap());
         let v_bit = Data::bit_string(BitString::from_vec(vec![0xAA, 0xBB]));
         let v_null = Data::int8(Int8(0)); // int8 is NULL type — just () in ASN.1
         let jer_int32 = rasn::jer::encode(&v_int32).expect("JER encode Data::int32");
@@ -360,10 +405,22 @@ mod tests {
         let jer_str = rasn::jer::encode(&v_str).expect("JER encode Data::visible_string");
         let jer_bit = rasn::jer::encode(&v_bit).expect("JER encode Data::bit_string");
         eprintln!("=== Data CHOICE 上帝格式 (JER) ===");
-        eprintln!("int32(42): {}", String::from_utf8_lossy(&jer_int32.as_bytes()));
-        eprintln!("Boolean(1): {}", String::from_utf8_lossy(&jer_bool.as_bytes()));
-        eprintln!("visible_string: {}", String::from_utf8_lossy(&jer_str.as_bytes()));
-        eprintln!("bit_string: {}", String::from_utf8_lossy(&jer_bit.as_bytes()));
+        eprintln!(
+            "int32(42): {}",
+            String::from_utf8_lossy(&jer_int32.as_bytes())
+        );
+        eprintln!(
+            "Boolean(1): {}",
+            String::from_utf8_lossy(&jer_bool.as_bytes())
+        );
+        eprintln!(
+            "visible_string: {}",
+            String::from_utf8_lossy(&jer_str.as_bytes())
+        );
+        eprintln!(
+            "bit_string: {}",
+            String::from_utf8_lossy(&jer_bit.as_bytes())
+        );
         eprintln!("=== END ===");
     }
 
@@ -383,7 +440,9 @@ mod tests {
         let brcb = BRCB {
             rpt_id: VisibleString::from_iso646_bytes(b"report1").unwrap(),
             rpt_ena: Boolean(1),
-            dat_set: ObjectReference(VisibleString::from_iso646_bytes(b"PROT/LLN0.RPIT.Ena").unwrap()),
+            dat_set: ObjectReference(
+                VisibleString::from_iso646_bytes(b"PROT/LLN0.RPIT.Ena").unwrap(),
+            ),
             conf_rev: Int32U(1),
             opt_flds: RcbOptFlds(FixedBitString::<10>::new([0x68, 0, 0, 0, 0, 0, 0, 0, 0, 0])),
             buf_tm: Int32U(1000),
@@ -393,7 +452,9 @@ mod tests {
             gi: Boolean(0),
             purge_buf: Boolean(0),
             entry_id: EntryID(FixedOctetString::<8>::new([0, 0, 0, 0, 0, 0, 0, 1])),
-            time_of_entry: EntryTime(BinaryTime(FixedOctetString::<6>::new([0x01, 0x02, 0x03, 0x04, 0x05, 0x06]))),
+            time_of_entry: EntryTime(BinaryTime(FixedOctetString::<6>::new([
+                0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+            ]))),
             resv_tms: None,
             owner: None,
         };
@@ -426,9 +487,16 @@ mod tests {
             owner: None,
         };
         let encoded = rasn::aper::encode(&brcb).expect("APER encode BRCB");
-        eprintln!("BRCB APER encoded ({} bytes): {:02x?}", encoded.len(), encoded);
+        eprintln!(
+            "BRCB APER encoded ({} bytes): {:02x?}",
+            encoded.len(),
+            encoded
+        );
         let decoded: BRCB = rasn::aper::decode(&encoded).expect("APER decode BRCB");
         eprintln!("decoded: {:?}", decoded);
-        assert_eq!(brcb, decoded, "BRCB APER roundtrip failed (entryID/timeOfEntry?)");
+        assert_eq!(
+            brcb, decoded,
+            "BRCB APER roundtrip failed (entryID/timeOfEntry?)"
+        );
     }
 }

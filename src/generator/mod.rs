@@ -1,15 +1,21 @@
 use std::collections::HashMap;
-use syn::{Item, Type, Fields};
-use quote::ToTokens;
+use syn::{Fields, Type};
 
 pub mod java;
 pub mod python;
 
 #[derive(Debug)]
 pub enum TypeKind {
-    Newtype { inner_type: String, size_from_attr: Option<usize> },
-    Struct { fields: Vec<FieldInfo> },
-    Choice { variants: Vec<VariantInfo> },
+    Newtype {
+        inner_type: String,
+        size_from_attr: Option<usize>,
+    },
+    Struct {
+        fields: Vec<FieldInfo>,
+    },
+    Choice {
+        variants: Vec<VariantInfo>,
+    },
 }
 
 #[derive(Debug)]
@@ -40,7 +46,7 @@ pub struct TypeInfo {
 }
 
 pub fn prompt(msg: &str, default: &str) -> String {
-    use std::io::{Write, BufRead};
+    use std::io::{BufRead, Write};
     let full = if default.is_empty() {
         format!("{}: ", msg)
     } else {
@@ -61,97 +67,138 @@ pub fn prompt(msg: &str, default: &str) -> String {
 pub fn extract_types(ast: &syn::File) -> Vec<TypeInfo> {
     let mut types = Vec::new();
 
-    // Build a map of default function name → function body expression
-    // by regex-searching the original source text of generated.rs.
+    // Build a map of default function name → function body expression.
+    // The format is: fn <name> () -> <Type> { <body> }
     let mut default_fns: HashMap<String, String> = HashMap::new();
-    // Read the raw source text from the file that `ast` was parsed from.
-    // We can't get the original file path from `ast`, so we search `ast`'s
-    // token-stream output.  The format is: fn <name> () -> <Type> { <body> }
-    let source_text = ast.into_token_stream().to_string();
-    let mut search_pos = 0;
-    while let Some(fn_start) = source_text[search_pos..].find("fn ") {
-        let fn_abs = search_pos + fn_start;
-        let after_fn = &source_text[fn_abs + 3..];
-        // Find the end of the function name (before '(')
-        let paren_pos = after_fn.find(|c: char| c == '(' || c == '<').unwrap_or(0);
-        let name = after_fn[..paren_pos].trim();
-        if !name.ends_with("_default") {
-            search_pos = fn_abs + 3;
-            continue;
-        }
-        // Find the return type and body
-        if let Some(body_start) = after_fn[paren_pos..].find('{') {
-            let body_abs = fn_abs + 3 + paren_pos + body_start;
-            let after_open = &source_text[body_abs + 1..];
-            if let Some(body_end) = after_open.find('}') {
-                let expr = after_open[..body_end].trim();
-                default_fns.insert(name.to_string(), expr.to_string());
-                search_pos = body_abs + 1 + body_end + 1;
-                continue;
+
+    let Some(syn::Item::Mod(module)) = ast.items.iter().find(|i| matches!(i, syn::Item::Mod(_)))
+    else {
+        return types;
+    };
+    let Some((_, items)) = &module.content else {
+        return types;
+    };
+
+    // 第一遍：收集 `*_default` 函数的函数体表达式
+    for inner in items {
+        if let syn::Item::Fn(func) = inner {
+            let name = func.sig.ident.to_string();
+            if name.ends_with("_default") {
+                default_fns.insert(name, block_expr(&func.block));
             }
         }
-        search_pos = fn_abs + 3;
     }
 
-    // Extract types from the module items
-    if let Some(syn::Item::Mod(m)) = ast.items.first() {
-        if let Some((_, items)) = &m.content {
-            for inner in items {
-                match inner {
-                    Item::Struct(s) => types.push(TypeInfo {
-                        name: s.ident.to_string(),
-                        kind: analyze_struct(s, &default_fns),
-                    }),
-                    Item::Enum(e) => types.push(TypeInfo {
-                        name: e.ident.to_string(),
-                        kind: analyze_enum(e),
-                    }),
-                    _ => {}
-                }
-            }
+    // 第二遍：收集结构体 / 枚举类型
+    for inner in items {
+        match inner {
+            syn::Item::Struct(s) => types.push(TypeInfo {
+                name: s.ident.to_string(),
+                kind: analyze_struct(s, &default_fns),
+            }),
+            syn::Item::Enum(e) => types.push(TypeInfo {
+                name: e.ident.to_string(),
+                kind: analyze_enum(e),
+            }),
+            _ => {}
         }
     }
     types
 }
 
+/// 提取函数体的表达式字符串（去掉外层 `{` `}` 及首尾空白）。
+fn block_expr(block: &syn::Block) -> String {
+    let s = quote::quote!(#block).to_string();
+    let s = s.trim();
+    let s = s.strip_prefix('{').unwrap_or(s);
+    let s = s.strip_suffix('}').unwrap_or(s);
+    s.trim().to_string()
+}
+
+/// 遍历 `#[rasn(...)]` 里的所有顶层 meta，用闭包处理。
+/// 兼容 `tag(context, 0)` 这种嵌套括号形式（`parse_nested_meta` 不支持）。
+fn for_each_rasn_meta(attrs: &[syn::Attribute], mut f: impl FnMut(&syn::Meta) -> bool) -> bool {
+    for attr in attrs {
+        if !attr.path().is_ident("rasn") {
+            continue;
+        }
+        let Ok(list) = attr.parse_args_with(
+            syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated,
+        ) else {
+            continue;
+        };
+        for meta in list {
+            if f(&meta) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// 判断 `#[rasn(...)]` 属性里是否包含某个标记（如 `delegate`）。
 fn attr_contains(attrs: &[syn::Attribute], pat: &str) -> bool {
-    use quote::ToTokens;
-    attrs
-        .iter()
-        .any(|a| a.into_token_stream().to_string().contains(pat))
+    for_each_rasn_meta(attrs, |meta| meta.path().is_ident(pat))
+}
+
+/// 提取 `#[rasn(name = "value")]` 里的字符串值，例如 `identifier = "xxx"` → "xxx"。
+fn rasn_str_value(attrs: &[syn::Attribute], name: &str) -> Option<String> {
+    let mut result = None;
+    for_each_rasn_meta(attrs, |meta| {
+        if meta.path().is_ident(name) {
+            if let syn::Meta::NameValue(nv) = meta {
+                if let syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(s),
+                    ..
+                }) = &nv.value
+                {
+                    result = Some(s.value());
+                }
+            }
+            return true;
+        }
+        false
+    });
+    result
+}
+
+/// 提取 `#[rasn(size("..."))]` 里的字符串值。
+fn rasn_size_str(attrs: &[syn::Attribute]) -> Option<String> {
+    let mut result = None;
+    for_each_rasn_meta(attrs, |meta| {
+        if meta.path().is_ident("size") {
+            if let syn::Meta::List(list) = meta {
+                if let Ok(expr) = list.parse_args::<syn::Expr>() {
+                    if let syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(s),
+                        ..
+                    }) = expr
+                    {
+                        result = Some(s.value());
+                    }
+                }
+            }
+            return true;
+        }
+        false
+    });
+    result
+}
+
+/// 解析 size 字符串（`"N"` 或 `"min..=max"`）为上限值。
+fn parse_size_value(val: &str) -> Option<usize> {
+    if let Ok(n) = val.parse::<usize>() {
+        return Some(n);
+    }
+    val.find("..=")
+        .and_then(|eq_pos| val[eq_pos + 3..].trim().parse::<usize>().ok())
 }
 
 /// Extract size attributes from a list of syn attributes (works for both struct-level and field-level).
 fn extract_size_from_attrs(attrs: &[syn::Attribute]) -> (Option<usize>, Option<String>) {
-    let size_from_attr = attrs.iter().find_map(|attr| {
-        let ts = attr.to_token_stream().to_string();
-        if let Some(pos) = ts.find("size (\"") {
-            let after = &ts[pos + 7..];
-            let end = after.find('"')?;
-            let val = &after[..end];
-            if let Ok(n) = val.parse::<usize>() {
-                return Some(n);
-            }
-            if let Some(eq_pos) = val.find("..=") {
-                let max_str = val[eq_pos + 3..].trim();
-                return max_str.parse::<usize>().ok();
-            }
-            None
-        } else {
-            None
-        }
-    });
-    let size_attr_raw = attrs.iter().find_map(|attr| {
-        let ts = attr.to_token_stream().to_string();
-        if let Some(pos) = ts.find("size (\"") {
-            let after = &ts[pos + 7..];
-            let end = after.find('"')?;
-            Some(after[..end].to_string())
-        } else {
-            None
-        }
-    });
-    (size_from_attr, size_attr_raw)
+    let raw = rasn_size_str(attrs);
+    let size = raw.as_deref().and_then(parse_size_value);
+    (size, raw)
 }
 
 fn analyze_struct(s: &syn::ItemStruct, default_fns: &HashMap<String, String>) -> TypeKind {
@@ -178,37 +225,14 @@ fn analyze_struct(s: &syn::ItemStruct, default_fns: &HashMap<String, String>) ->
         let is_list = rt.contains("Vec <") || rt.contains("SequenceOf <");
 
         // Extract ASN.1 identifier from rasn attribute: identifier = "xxx"
-        let identifier = f.attrs.iter().find_map(|attr| {
-            let ts = attr.to_token_stream().to_string();
-            // Look for `identifier = "xxx"` pattern
-            if let Some(pos) = ts.find("identifier =") {
-                let after = &ts[pos + 12..]; // skip "identifier ="
-                let after = after.trim();
-                if let Some(start) = after.find('"') {
-                    let rest = &after[start + 1..];
-                    if let Some(end) = rest.find('"') {
-                        return Some(rest[..end].to_string());
-                    }
-                }
-            }
-            None
-        });
+        let identifier = rasn_str_value(&f.attrs, "identifier");
 
         // Extract size from rasn attribute: size ("N") or size ("min..=max")
         let (size_from_attr, size_attr_raw) = extract_size_from_attrs(&f.attrs);
 
         // Extract default value from rasn attribute: default = "fn_name"
-        let default_value = f.attrs.iter().find_map(|attr| {
-            let ts = attr.to_token_stream().to_string();
-            if let Some(pos) = ts.find("default = \"") {
-                let after = &ts[pos + 11..];
-                let end = after.find('"')?;
-                let fn_name = &after[..end];
-                default_fns.get(fn_name).cloned()
-            } else {
-                None
-            }
-        });
+        let default_value = rasn_str_value(&f.attrs, "default")
+            .and_then(|fn_name| default_fns.get(&fn_name).cloned());
 
         fields.push(FieldInfo {
             name,
@@ -232,19 +256,7 @@ fn analyze_enum(e: &syn::ItemEnum) -> TypeKind {
             if let Fields::Unnamed(ref u) = v.fields {
                 u.unnamed.first().map(|f| {
                     // Extract ASN.1 identifier from rasn attribute: identifier = "xxx"
-                    let identifier = v.attrs.iter().find_map(|attr| {
-                        let ts = attr.to_token_stream().to_string();
-                        if let Some(pos) = ts.find("identifier =") {
-                            let after = &ts[pos + 12..].trim();
-                            if let Some(start) = after.find('"') {
-                                let rest = &after[start + 1..];
-                                if let Some(end) = rest.find('"') {
-                                    return Some(rest[..end].to_string());
-                                }
-                            }
-                        }
-                        None
-                    });
+                    let identifier = rasn_str_value(&v.attrs, "identifier");
                     VariantInfo {
                         name: v.ident.to_string(),
                         inner_type: type_str(&f.ty),
@@ -306,15 +318,21 @@ pub fn extract_asn1_definitions(spec_path: &str, type_names: &[&str]) -> HashMap
                     let code = l.split("--").next().unwrap_or("");
                     let mut stop = false;
                     for ch in code.chars() {
-                        if ch == '{' { depth += 1; }
-                        else if ch == '}' {
+                        if ch == '{' {
+                            depth += 1;
+                        } else if ch == '}' {
                             depth -= 1;
-                            if depth == 0 { stop = true; break; }
+                            if depth == 0 {
+                                stop = true;
+                                break;
+                            }
                         }
                     }
                     def_text.push_str(l);
                     def_text.push('\n');
-                    if stop { break; }
+                    if stop {
+                        break;
+                    }
                 }
             }
 
@@ -346,10 +364,19 @@ pub fn extract_asn1_definitions(spec_path: &str, type_names: &[&str]) -> HashMap
         if tn.starts_with("Anonymous") {
             for parent in &sorted_names {
                 if tn.contains(parent) {
-                    defs.insert(tn.to_string(), format!(
-                        "(inline type within {})",
-                        all_defs.get(*parent).unwrap().1.lines().next().unwrap_or("")
-                    ));
+                    defs.insert(
+                        tn.to_string(),
+                        format!(
+                            "(inline type within {})",
+                            all_defs
+                                .get(*parent)
+                                .unwrap()
+                                .1
+                                .lines()
+                                .next()
+                                .unwrap_or("")
+                        ),
+                    );
                     break;
                 }
             }
@@ -381,7 +408,9 @@ pub fn extract_asn1_named_constants(spec_path: &str) -> HashMap<String, Vec<(Str
         if let Some(before_brace) = trimmed.split('{').next() {
             let before_eq = before_brace.split("::=").next().unwrap_or("").trim();
             let after_eq = before_brace.split("::=").nth(1).unwrap_or("").trim();
-            if before_eq.is_empty() || !after_eq.contains("BIT STRING") && !after_eq.contains("ENUMERATED") {
+            if before_eq.is_empty()
+                || !after_eq.contains("BIT STRING") && !after_eq.contains("ENUMERATED")
+            {
                 i += 1;
                 continue;
             }

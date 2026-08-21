@@ -1,10 +1,15 @@
-use std::collections::HashMap;
 use super::super::*;
 use super::helpers;
+use std::collections::HashMap;
 
 /// Generate a complete Python class for each ASN.1 type
-pub fn gen_type_class(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &str,
-                      asn_defs: &HashMap<String, String>) -> String {
+pub fn gen_type_class(
+    ti: &TypeInfo,
+    all: &[TypeInfo],
+    prefix: &str,
+    _package: &str,
+    asn_defs: &HashMap<String, String>,
+) -> String {
     let cn = format!("{}{}", prefix, ti.name);
     let mut c = String::new();
 
@@ -34,9 +39,14 @@ pub fn gen_type_class(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &
                 if let Ok(size) = size_str.parse::<usize>() {
                     if size > 0 {
                         c.push_str(&format!("    value: bytes = b\"\\x00\" * {}\n", size));
-                    } else { c.push_str("    value: bytes = b\"\"\n"); }
+                    } else {
+                        c.push_str("    value: bytes = b\"\"\n");
+                    }
                 } else {
-                    eprintln!("WARN: cannot parse FixedOctetString size from '{}'", inner_type);
+                    eprintln!(
+                        "WARN: cannot parse FixedOctetString size from '{}'",
+                        inner_type
+                    );
                     c.push_str(&format!("    value: {} = {}\n", py_type, default));
                 }
             } else if inner_type.starts_with("FixedBitString") {
@@ -45,18 +55,37 @@ pub fn gen_type_class(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &
                 if bit_count > 0 {
                     c.push_str(&format!("    value: {} = {}\n", py_type, default));
                     c.push_str(&format!("    _bit_count: int = {}\n", bit_count));
-                } else { c.push_str(&format!("    value: {} = {}\n", py_type, default)); }
+                } else {
+                    c.push_str(&format!("    value: {} = {}\n", py_type, default));
+                }
             } else if py_type == "str" {
-                let fixed_size = asn_defs.get(&ti.name)
+                let fixed_size = asn_defs
+                    .get(&ti.name)
                     .and_then(|def| super::super::java::helpers::parse_asn1_size(def))
-                    .and_then(|(min, max)| if min == max && min.is_some() { min } else { None })
+                    .and_then(|(min, max)| {
+                        if min == max && min.is_some() {
+                            min
+                        } else {
+                            None
+                        }
+                    })
                     .unwrap_or(0);
                 if fixed_size > 0 {
-                    c.push_str(&format!("    value: {} = \"x\" * {}\n", py_type, fixed_size));
-                } else { c.push_str(&format!("    value: {} = {}\n", py_type, default)); }
+                    c.push_str(&format!(
+                        "    value: {} = \"x\" * {}\n",
+                        py_type, fixed_size
+                    ));
+                } else {
+                    c.push_str(&format!("    value: {} = {}\n", py_type, default));
+                }
             } else if default == "None" && py_type != "Any" {
-                c.push_str(&format!("    value: {} = field(default_factory=lambda: {}())\n", py_type, py_type));
-            } else { c.push_str(&format!("    value: {} = {}\n", py_type, default)); }
+                c.push_str(&format!(
+                    "    value: {} = field(default_factory=lambda: {}())\n",
+                    py_type, py_type
+                ));
+            } else {
+                c.push_str(&format!("    value: {} = {}\n", py_type, default));
+            }
         }
         TypeKind::Struct { fields } => {
             has_optional = fields.iter().any(|f| f.optional);
@@ -68,7 +97,9 @@ pub fn gen_type_class(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &
                 c.push('\n');
             }
             if has_optional {
-                c.push_str("    _set: set[str] = field(default_factory=set, repr=False, compare=False)\n");
+                c.push_str(
+                    "    _set: set[str] = field(default_factory=set, repr=False, compare=False)\n",
+                );
             }
         }
         TypeKind::Choice { variants } => {
@@ -78,8 +109,16 @@ pub fn gen_type_class(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &
                 let first_default = helpers::py_default(&first_type);
                 c.push_str(&format!("    _choice: str = \"{}\"\n", first_name));
                 if first_default == "None" && first_type != "Any" {
-                    c.push_str(&format!("    {}: {} = field(default_factory=lambda: {}())\n", first_name, first_type, first_type));
-                } else { c.push_str(&format!("    {}: {} = {}\n", first_name, first_type, first_default)); }
+                    c.push_str(&format!(
+                        "    {}: {} = field(default_factory=lambda: {}())\n",
+                        first_name, first_type, first_type
+                    ));
+                } else {
+                    c.push_str(&format!(
+                        "    {}: {} = {}\n",
+                        first_name, first_type, first_default
+                    ));
+                }
             }
             for v in variants.iter().skip(1) {
                 let name = helpers::py_safe_name(&v.name);
@@ -103,31 +142,57 @@ pub fn gen_type_class(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &
     // Encode/Decode methods
     if bit_count > 0 {
         c.push_str("\n    def encode(self) -> bytes:\n");
-        c.push_str(&format!("        return encode(json.dumps(bit_string_hex(self.value, {})), \"{}\")\n", bit_count, ti.name));
+        c.push_str(&format!(
+            "        return encode(json.dumps(bit_string_hex(self.value, {})), \"{}\")\n",
+            bit_count, ti.name
+        ));
         c.push_str("\n    def encode_test(self) -> bytes:\n");
-        c.push_str(&format!("        return encode(json.dumps(bit_string_hex(self.value, {})), \"{}\")\n", bit_count, ti.name));
+        c.push_str(&format!(
+            "        return encode(json.dumps(bit_string_hex(self.value, {})), \"{}\")\n",
+            bit_count, ti.name
+        ));
         c.push_str(&format!("\n    @classmethod\n"));
         c.push_str(&format!("    def decode(cls, data: bytes) -> \"{cn}\":\n"));
         c.push_str(&format!("        return cls(value=parse_bit_string_hex(json.loads(decode_raw(data, \"{}\")).get(\"value\", \"0\"), {}))\n", ti.name, bit_count));
     } else {
         c.push_str("\n    def encode(self) -> bytes:\n");
         if has_optional && !field_names.is_empty() {
-            let required: Vec<&str> = field_names.iter()
+            let required: Vec<&str> = field_names
+                .iter()
                 .filter(|(_, opt)| !opt)
-                .map(|(n, _)| n.as_str()).collect();
+                .map(|(n, _)| n.as_str())
+                .collect();
             if !required.is_empty() {
-                c.push_str(&format!("        _required = {{{}}}\n", required.iter().map(|n| format!("\"{}\"", n)).collect::<Vec<_>>().join(", ")));
+                c.push_str(&format!(
+                    "        _required = {{{}}}\n",
+                    required
+                        .iter()
+                        .map(|n| format!("\"{}\"", n))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
                 c.push_str("        _missing = _required - self._set\n");
                 c.push_str("        if _missing:\n");
-                c.push_str("            raise ValueError(f\"Required fields not set: {_missing}\")\n");
+                c.push_str(
+                    "            raise ValueError(f\"Required fields not set: {_missing}\")\n",
+                );
             }
         }
-        c.push_str(&format!("        return encode(to_json_strict(self), \"{}\")\n", ti.name));
+        c.push_str(&format!(
+            "        return encode(to_json_strict(self), \"{}\")\n",
+            ti.name
+        ));
         c.push_str("\n    def encode_test(self) -> bytes:\n");
-        c.push_str(&format!("        return encode(to_json(self), \"{}\")\n", ti.name));
+        c.push_str(&format!(
+            "        return encode(to_json(self), \"{}\")\n",
+            ti.name
+        ));
         c.push_str(&format!("\n    @classmethod\n"));
         c.push_str(&format!("    def decode(cls, data: bytes) -> \"{cn}\":\n"));
-        c.push_str(&format!("        return from_json(decode_raw(data, \"{}\"), cls)\n", ti.name));
+        c.push_str(&format!(
+            "        return from_json(decode_raw(data, \"{}\"), cls)\n",
+            ti.name
+        ));
     }
 
     c

@@ -1,10 +1,15 @@
-use std::collections::HashMap;
 use super::super::*;
 use super::helpers;
+use std::collections::HashMap;
 
 /// Generate test class for a single type
-pub fn gen_test(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &str,
-                asn_defs: &HashMap<String, String>) -> String {
+pub fn gen_test(
+    ti: &TypeInfo,
+    all: &[TypeInfo],
+    prefix: &str,
+    _package: &str,
+    asn_defs: &HashMap<String, String>,
+) -> String {
     let cn = format!("{}{}", prefix, ti.name);
     let mut c = String::new();
     c.push_str(&format!("class Test{cn}:\n"));
@@ -13,7 +18,11 @@ pub fn gen_test(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &str,
 
     /// Extract size digits from a type string like "FixedOctetString < 6usize >"
     fn extract_size(s: &str) -> usize {
-        s.chars().filter(|c| c.is_ascii_digit()).collect::<String>().parse().unwrap_or(0)
+        s.chars()
+            .filter(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .parse()
+            .unwrap_or(0)
     }
 
     match &ti.kind {
@@ -65,7 +74,10 @@ pub fn gen_test(ti: &TypeInfo, all: &[TypeInfo], prefix: &str, _package: &str,
                     }
                     "list" => c.push_str(&format!("        obj.{} = []\n", name)),
                     _ => {
-                        if all.iter().any(|t| format!("{}{}", prefix, t.name) == py_type) {
+                        if all
+                            .iter()
+                            .any(|t| format!("{}{}", prefix, t.name) == py_type)
+                        {
                             c.push_str(&format!("        obj.{} = {}()\n", name, py_type));
                         }
                     }

@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use super::super::*;
-use super::type_map::resolve_wrapper_type;
 use super::helpers;
+use super::type_map::resolve_wrapper_type;
+use std::collections::HashMap;
 
 pub fn generate(
     ti: &TypeInfo,
@@ -14,13 +14,18 @@ pub fn generate(
 ) -> String {
     let mut c = String::new();
     let base = format!("{}Base", prefix);
-    if let Some(doc) = asn_doc { c.push_str(doc); }
+    if let Some(doc) = asn_doc {
+        c.push_str(doc);
+    }
     c.push_str("@JsonIgnoreProperties(ignoreUnknown = true)\n");
     c.push_str("@JsonInclude(JsonInclude.Include.NON_NULL)\n");
     c.push_str(&format!("public class {} extends {}Base {{\n", cn, prefix));
     if let Some(entries) = named_consts.get(&ti.name) {
         for (name, val) in entries {
-            c.push_str(&helpers::ln(1, &format!("public static final int {} = {};", name, val)));
+            c.push_str(&helpers::ln(
+                1,
+                &format!("public static final int {} = {};", name, val),
+            ));
         }
     }
 
@@ -54,15 +59,24 @@ pub fn generate(
             init_val.to_string()
         };
         c.push_str(&helpers::ln(1, &format!("public {}() {{", cn)));
-        c.push_str(&helpers::ln(2, &format!("_v.put(\"_choice\", \"{}\");", json_key)));
-        c.push_str(&helpers::ln(2, &format!("_v.put(\"{}\", {});", "_", init_val)));
+        c.push_str(&helpers::ln(
+            2,
+            &format!("_v.put(\"_choice\", \"{}\");", json_key),
+        ));
+        c.push_str(&helpers::ln(
+            2,
+            &format!("_v.put(\"{}\", {});", "_", init_val),
+        ));
         c.push_str(&helpers::ln(1, "}"));
     }
 
     // Defensive guard: encode() throws if "_choice" is missing (e.g. after an
     // explicit _v.clear()), instead of silently emitting an empty CHOICE.
     c.push_str(&helpers::ln(1, "@Override"));
-    c.push_str(&helpers::ln(1, "protected boolean isChoice() { return true; }"));
+    c.push_str(&helpers::ln(
+        1,
+        "protected boolean isChoice() { return true; }",
+    ));
 
     // Typesafe setters — set _choice + variant value in _v
     for v in variants {
@@ -71,8 +85,14 @@ pub fn generate(
         // Use Object for all setter params — Jackson passes the raw JSON value,
         // and _setValue wraps non-Map values in {"_": v} so _v is always consistent.
         c.push_str(&helpers::ln(1, &format!("@JsonSetter(\"{}\")", json_key)));
-        c.push_str(&helpers::ln(1, &format!("public void {}(Object v) {{", setter_name)));
-        c.push_str(&helpers::ln(2, &format!("_v.put(\"_choice\", \"{}\");", json_key)));
+        c.push_str(&helpers::ln(
+            1,
+            &format!("public void {}(Object v) {{", setter_name),
+        ));
+        c.push_str(&helpers::ln(
+            2,
+            &format!("_v.put(\"_choice\", \"{}\");", json_key),
+        ));
         c.push_str(&helpers::ln(2, "_setValue(v);"));
         c.push_str(&helpers::ln(1, "}"));
     }
@@ -82,11 +102,23 @@ pub fn generate(
 
     // typeName — ASN.1 dispatch name for native encode/decode
     c.push_str(&helpers::ln(1, "@Override"));
-    c.push_str(&helpers::ln(1, &format!("protected String typeName() {{ return \"{}\"; }}", ti.name)));
+    c.push_str(&helpers::ln(
+        1,
+        &format!("protected String typeName() {{ return \"{}\"; }}", ti.name),
+    ));
 
     // decode
-    c.push_str(&helpers::ln(1, &format!("public static {} decode(byte[] data) {{", cn)));
-    c.push_str(&helpers::ln(2, &format!("return {}.decode({}.class, \"{}\", data);", base, cn, ti.name)));
+    c.push_str(&helpers::ln(
+        1,
+        &format!("public static {} decode(byte[] data) {{", cn),
+    ));
+    c.push_str(&helpers::ln(
+        2,
+        &format!(
+            "return {}.decode({}.class, \"{}\", data);",
+            base, cn, ti.name
+        ),
+    ));
     c.push_str(&helpers::ln(1, "}"));
     c.push_str("}\n");
     c

@@ -1,19 +1,19 @@
+use super::*;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use super::*;
 
-pub mod type_map;
-pub mod native_gen;
-pub mod helpers;
 mod class_gen;
-mod test_gen;
+pub(crate) mod gen_choice;
 pub(crate) mod gen_newtype;
 pub(crate) mod gen_struct;
-pub(crate) mod gen_choice;
+pub mod helpers;
+pub mod native_gen;
+pub(crate) mod test_choice;
+mod test_gen;
 pub(crate) mod test_newtype;
 pub(crate) mod test_struct;
-pub(crate) mod test_choice;
+pub mod type_map;
 
 /// Default Java class name prefix
 const DEFAULT_PREFIX: &str = "Asn";
@@ -57,7 +57,15 @@ pub fn generate(
 
     // —— Java source files ——————————————————————————
     for t in types {
-        let code = class_gen::gen_class(t, types, &cfg.prefix, &cfg.default_enc, &cfg.package, asn_defs, named_consts);
+        let code = class_gen::gen_class(
+            t,
+            types,
+            &cfg.prefix,
+            &cfg.default_enc,
+            &cfg.package,
+            asn_defs,
+            named_consts,
+        );
         fs::write(
             main_dir.join(format!("{}{}.java", cfg.prefix, t.name)),
             &code,
@@ -95,7 +103,8 @@ pub fn generate(
     for (name, jtype, init) in defaults {
         let (body, ctor_param) = match *jtype {
             "byte[]" => {
-                let body = format!(r#"    @JsonValue
+                let body = format!(
+                    r#"    @JsonValue
     public Object toJsonValue() {{ Object v = _v.get("_"); if (v instanceof byte[]) return InnerBase.hex((byte[]) v); return v != null ? v : ""; }}
     @SuppressWarnings("unchecked")
     @JsonCreator
@@ -106,11 +115,14 @@ pub fn generate(
             return new {name}();
         }}
         return new {name}(v instanceof String ? InnerBase.unhex((String) v) : new byte[0]);
-    }}"#, name = name);
+    }}"#,
+                    name = name
+                );
                 (body, "byte[] value".to_string())
             }
             _ => {
-                let body = format!(r#"    @JsonValue
+                let body = format!(
+                    r#"    @JsonValue
     public Object toJsonValue() {{ return _v.get("_"); }}
     @SuppressWarnings("unchecked")
     @JsonCreator
@@ -120,7 +132,9 @@ pub fn generate(
             return new {name}(s instanceof String ? (String) s : "x");
         }}
         return new {name}(v instanceof String ? (String) v : "x");
-    }}"#, name = name);
+    }}"#,
+                    name = name
+                );
                 (body, "String value".to_string())
             }
         };
@@ -166,24 +180,23 @@ public class InnerEmpty extends InnerBase {{
     fs::write(main_dir.join("InnerEmpty.java"), &empty_code).unwrap();
 
     // V — semantic helpers for the _v unified data store
-    fs::write(
-        main_dir.join("V.java"),
-        &native_gen::gen_v(&cfg.package),
-    )
-    .unwrap();
+    fs::write(main_dir.join("V.java"), &native_gen::gen_v(&cfg.package)).unwrap();
 
     // —— Maven pom.xml ———————————————————————————————
     let pom_path = project_root.join("pom.xml");
     if !pom_path.exists() {
-        fs::write(&pom_path, &gen_pom(&cfg.prefix, &cfg.package))
-            .expect("failed to write pom.xml");
+        fs::write(&pom_path, &gen_pom(&cfg.prefix, &cfg.package)).expect("failed to write pom.xml");
         println!("  wrote pom.xml");
     }
 
     // —— Copy DLL to resources ——————————————————————
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            let dll_name = if cfg!(target_os = "windows") { "asn1.dll" } else { "libasn1.so" };
+            let dll_name = if cfg!(target_os = "windows") {
+                "asn1.dll"
+            } else {
+                "libasn1.so"
+            };
             let dll_src = exe_dir.join(dll_name);
             if dll_src.exists() {
                 fs::copy(&dll_src, res_dir.join(dll_name))
@@ -199,11 +212,15 @@ public class InnerEmpty extends InnerBase {{
 
     println!(
         "✓ generated {} Java classes (incl. {}Native.java, {}Base.java) in {:?}",
-        types.len(), cfg.prefix, cfg.prefix, main_dir
+        types.len(),
+        cfg.prefix,
+        cfg.prefix,
+        main_dir
     );
     println!(
         "✓ generated {} Java test classes in {:?}",
-        types.len(), test_dir
+        types.len(),
+        test_dir
     );
 }
 
