@@ -521,7 +521,7 @@ Associate-ResponsePDU ::= SEQUENCE {
 Associate-ErrorPDU ::= ServiceError
 
 -- ====================================================================== --
--- 8.2.2 Release (Service Code 0x02) --
+-- 8.2.2 Release (Service Code 0x03) --
 -- ====================================================================== --
 
 -- Release-RequestPDU: associationId --
@@ -540,7 +540,7 @@ Release-ResponsePDU ::= SEQUENCE {
 Release-ErrorPDU ::= ServiceError
 
 -- ====================================================================== --
--- 8.2.3 Abort (Service Code 0x03) --
+-- 8.2.3 Abort (Service Code 0x02) --
 -- ====================================================================== --
 
 Abort-RequestPDU ::= SEQUENCE {
