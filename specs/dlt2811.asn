@@ -1327,6 +1327,31 @@ GetGOOSEElementNumber-ResponsePDU ::= SEQUENCE {
 GetGOOSEElementNumber-ErrorPDU ::= ServiceError
 
 -- ====================================================================== --
+-- GSE Management PDU (IEC 61850-8-1 tagIMPLIED, carried over 0x88-B9) --
+-- Wraps 8.9.2 GetGoReference / 8.9.3 GetGOOSEElementNumber APDUs.      --
+-- ====================================================================== --
+
+GSEMngtRequestResp ::= CHOICE {
+    requests    [0] IMPLICIT GSEMngtRequests,
+    responses   [1] IMPLICIT GSEMngtResponses
+}
+
+GSEMngtRequests ::= CHOICE {
+    getGoReference        [0] IMPLICIT GetGoReference-RequestPDU,
+    getGOOSEElementNumber [1] IMPLICIT GetGOOSEElementNumber-RequestPDU
+}
+
+GSEMngtResponses ::= CHOICE {
+    getGoReference        [0] IMPLICIT GetGoReference-ResponsePDU,
+    getGOOSEElementNumber [1] IMPLICIT GetGOOSEElementNumber-ResponsePDU
+}
+
+GSEMngtPdu ::= SEQUENCE {
+    stateID     [0] IMPLICIT Int32U,
+    requestResp [1] IMPLICIT GSEMngtRequestResp
+}
+
+-- ====================================================================== --
 -- 8.9.4 GetGoCBValues (Service Code 0x82) --
 -- ====================================================================== --
 
