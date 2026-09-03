@@ -316,30 +316,10 @@ pub fn generate(
         c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
         c.push_str(&helpers::ln(2, "}"));
         c.push_str(&helpers::ln(1, "}"));
-        c.push_str(&helpers::ln(1, "public byte[] encodeTest() {"));
-        c.push_str(&helpers::ln(2, "try {"));
-        c.push_str(&helpers::ln(
-            3,
-            &format!(
-                "return {}.encode(\"{}\", DEFAULT_ENCODING, {});",
-                native, ti.name, encode_arg
-            ),
-        ));
-        c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
-        c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
-        c.push_str(&helpers::ln(2, "}"));
-        c.push_str(&helpers::ln(1, "}"));
+        // encodeTest() is NOT overridden — the base class version prints the
+        // intermediate _v JSON to stderr and delegates to this encode().
     } else {
         c.push_str(&helpers::ln(1, "public byte[] encode() {"));
-        c.push_str(&helpers::ln(
-            2,
-            &format!(
-                "return {}.encode(\"{}\", DEFAULT_ENCODING, {});",
-                native, ti.name, encode_arg
-            ),
-        ));
-        c.push_str(&helpers::ln(1, "}"));
-        c.push_str(&helpers::ln(1, "public byte[] encodeTest() {"));
         c.push_str(&helpers::ln(
             2,
             &format!(

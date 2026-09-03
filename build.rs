@@ -124,7 +124,7 @@ fn generate_ffi_dispatch(
     fn encode_dispatch(_t: &str) -> String {
         format!(
             "match enc.as_str() {{\n\
-             \"ber\" | \"\" | \"per\" => rasn::ber::encode(&v)\n\
+             \"ber\" | \"\" => rasn::ber::encode(&v)\n\
              .map_err(|e| format!(\"BER encode {{type_name}}: {{e:?}}\")),\n\
              \"der\" => rasn::der::encode(&v)\n\
              .map_err(|e| format!(\"DER encode {{type_name}}: {{e:?}}\")),\n\
@@ -184,7 +184,7 @@ fn generate_ffi_dispatch(
         code.push_str(&format!(
             "        \"{t}\" => {{\n\
              let v: {t} = match enc.as_str() {{\n\
-             \"ber\" | \"\" | \"per\" => rasn::ber::decode(data)\n\
+             \"ber\" | \"\" => rasn::ber::decode(data)\n\
              .map_err(|e| format!(\"BER decode {{type_name}}: {{e:?}}\"))?,\n\
              \"der\" => rasn::der::decode(data)\n\
              .map_err(|e| format!(\"DER decode {{type_name}}: {{e:?}}\"))?,\n\

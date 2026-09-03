@@ -170,7 +170,7 @@ public class {name} extends InnerBase {{
 package {pkg};
 
 public class InnerEmpty extends InnerBase {{
-    public byte[] encode() {{ throw new UnsupportedOperationException("InnerEmpty has no ASN.1 definition"); }}
+    public byte[] encode() {{ return new byte[0]; }}
     public static InnerEmpty decode(byte[] data) {{ return new InnerEmpty(); }}
 }}
 "#,

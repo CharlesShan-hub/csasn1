@@ -123,31 +123,3 @@ pub fn resolve_wrapper_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String 
     };
     base.to_string()
 }
-
-/// Generate a type literal for Jackson convertValue.
-/// Uses TypeReference for List<T>, .class for everything else.
-#[allow(dead_code)]
-pub fn java_type_ref(jt: &str) -> String {
-    if jt.starts_with("java.util.List<") {
-        let inner = jt
-            .trim_start_matches("java.util.List<")
-            .trim_end_matches('>')
-            .trim();
-        format!(
-            "new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}}",
-            inner
-        )
-    } else {
-        match jt {
-            "int" | "Integer" => "Integer.class",
-            "long" | "Long" => "Long.class",
-            "boolean" | "Boolean" => "Boolean.class",
-            "float" | "Float" => "Float.class",
-            "double" | "Double" => "Double.class",
-            "byte[]" => "byte[].class",
-            "String" => "String.class",
-            _ => return format!("{}.class", jt),
-        }
-        .to_string()
-    }
-}
