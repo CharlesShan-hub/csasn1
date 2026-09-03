@@ -1,4 +1,5 @@
 use super::super::*;
+use super::gen_newtype_common::{build_encode_arg, build_decode_puts, default_val_for};
 use super::helpers;
 use std::collections::HashMap;
 
@@ -125,46 +126,7 @@ pub fn generate(
                 ),
             ));
         } else {
-            let default_val = match jt {
-                "String" => {
-                    let sz = size;
-                    if sz > 0 {
-                        format!("\"{}\"", "x".repeat(sz))
-                    } else {
-                        "\"\"".to_string()
-                    }
-                }
-                "byte[]" => {
-                    let sz = size;
-                    if sz > 0 {
-                        format!("new byte[{}]", sz)
-                    } else {
-                        "new byte[0]".to_string()
-                    }
-                }
-                _ if jt.starts_with("java.util.List<") => "new java.util.ArrayList<>()".to_string(),
-                "int" | "Integer" => "1".to_string(),
-                "long" | "Long" => "1L".to_string(),
-                "float" | "Float" => "1.5f".to_string(),
-                "double" | "Double" => "2.5".to_string(),
-                "boolean" | "Boolean" => "true".to_string(),
-                "Object" => "null".to_string(),
-                _ if jt.starts_with("DefaultInner") => {
-                    let sz = size;
-                    if sz > 0 && jt == "DefaultInnerOctetString" {
-                        let bytes: Vec<String> =
-                            std::iter::repeat("1".to_string()).take(sz).collect();
-                        format!("new byte[] {{ {} }}", bytes.join(", "))
-                    } else if sz > 0
-                        && (jt == "DefaultInnerVisibleString" || jt == "DefaultInnerUtf8String")
-                    {
-                        format!("\"{}\"", "x".repeat(sz))
-                    } else {
-                        format!("new {}()", jt)
-                    }
-                }
-                _ => format!("new {}()", jt),
-            };
+            let default_val = default_val_for(jt, size);
             if default_val.is_empty() {
                 c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
             } else {
@@ -244,63 +206,9 @@ pub fn generate(
         }
         _ => false,
     };
-    let (encode_arg, wrap_try): (String, bool) = if jt.starts_with("java.util.List<") {
-        (
-            format!(
-                "{}.MAPPER.writeValueAsString({}.toJson(_v.get(\"_\")))",
-                base, base
-            ),
-            true,
-        )
-    } else if jt == "byte[]" {
-        (
-            format!(
-                "{}.MAPPER.writeValueAsString({}.hex((byte[]) _v.get(\"_\")))",
-                base, base
-            ),
-            true,
-        )
-    } else if hex_digits > 0 {
-        (
-            format!("{}.MAPPER.writeValueAsString(_v.get(\"_\"))", base),
-            true,
-        )
-    } else if jt == "String" {
-        (
-            format!("{}.MAPPER.writeValueAsString(_v.get(\"_\"))", base),
-            true,
-        )
-    } else if jt == "Object" {
-        ("\"null\"".into(), false)
-    } else if jt.starts_with(prefix) {
-        (
-            format!(
-                "{}.MAPPER.writeValueAsString({}.toJson(_v.get(\"_\")))",
-                base, base
-            ),
-            true,
-        )
-    } else if jt == "DefaultInnerOctetString" {
-        (
-            format!(
-                "{}.MAPPER.writeValueAsString({}.hex((byte[]) _v.get(\"_\")))",
-                base, base
-            ),
-            true,
-        )
-    } else if jt.starts_with("DefaultInner") {
-        (
-            format!("{}.MAPPER.writeValueAsString(_v.get(\"_\"))", base),
-            true,
-        )
-    } else if inner_unsigned_int {
-        (
-            "String.valueOf(Integer.toUnsignedLong((int) _v.get(\"_\")))".into(),
-            false,
-        )
-    } else {
-        ("String.valueOf(_v.get(\"_\"))".into(), false)
-    };
+    let (encode_arg, wrap_try) = build_encode_arg(
+        jt, &base, hex_digits, inner_unsigned_int, prefix,
+    );
 
     if wrap_try {
         c.push_str(&helpers::ln(1, "public byte[] encode() {"));
@@ -356,50 +264,9 @@ pub fn generate(
         3,
         "if (_node.isObject() && _node.has(\"value\")) _node = _node.get(\"value\");",
     ));
-    if jt.starts_with("java.util.List<") {
-        let inner = jt
-            .trim_start_matches("java.util.List<")
-            .trim_end_matches('>')
-            .trim();
-        c.push_str(&helpers::ln(3, &format!(
-            "r._v.put(\"_\", {}.MAPPER.convertValue(_node, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<{}>>() {{}}));",
-            base, inner
-        )));
-    } else if jt == "byte[]" {
-        c.push_str(&helpers::ln(
-            3,
-            &format!("r._v.put(\"_\", {}.unhex(_node.asText()));", base),
-        ));
-    } else if jt == "String" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asText());"));
-    } else if hex_digits > 0 {
-        // BIT STRING stores hex string in _v (same shape as constructor)
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asText());"));
-    } else if jt == "int" || jt == "Integer" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asInt());"));
-    } else if jt == "long" || jt == "Long" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asLong());"));
-    } else if jt == "boolean" || jt == "Boolean" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asBoolean());"));
-    } else if jt == "float" || jt == "Float" {
-        c.push_str(&helpers::ln(
-            3,
-            "r._v.put(\"_\", (float) _node.asDouble());",
-        ));
-    } else if jt == "double" || jt == "Double" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", _node.asDouble());"));
-    } else if jt == "Object" {
-        c.push_str(&helpers::ln(3, "r._v.put(\"_\", null);"));
-    } else if inner_octet_string {
-        c.push_str(&helpers::ln(3, &format!("r._v.put(\"_\", _node.asText().isEmpty() ? new byte[0] : {}.unhex(_node.asText()));", base)));
-    } else {
-        c.push_str(&helpers::ln(
-            3,
-            &format!(
-                "r._v.put(\"_\", {}.MAPPER.readValue(_node.toString(), {}.class));",
-                base, jt
-            ),
-        ));
+    let put_lines = build_decode_puts(jt, &base, hex_digits, inner_octet_string);
+    for line in put_lines {
+        c.push_str(&helpers::ln(3, &line));
     }
     c.push_str(&helpers::ln(3, "return r;"));
     c.push_str(&helpers::ln(2, "} catch (Exception e) {"));

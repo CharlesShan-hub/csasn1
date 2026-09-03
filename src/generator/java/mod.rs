@@ -6,6 +6,7 @@ use std::path::PathBuf;
 mod class_gen;
 pub(crate) mod gen_choice;
 pub(crate) mod gen_newtype;
+pub(crate) mod gen_newtype_common;
 pub(crate) mod gen_struct;
 pub mod helpers;
 pub mod native_gen;
