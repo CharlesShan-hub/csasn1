@@ -156,6 +156,8 @@ csasn1/
 
 - `sample`：`sample()` 测试工厂的**非零、SIZE 合规**填充（FixedBitString 铺满 `1`、长度取 SIZE）。
 
+- **模板侧**：`ctor_bitstring` / `ctor_unsigned` = 特殊构造器块；`encode_plain`（无 try/catch） vs `encode_wrapped`（try/catch 兜 MAPPER 异常）；`decode` = 静态 decode 骨架；`sample_factory`（单值）/ `sample_factory_puts`（多字段）/ `sample_factory_choice`（带 `_choice`）三种 sample 工厂。
+
 **type\_map.json 的 exact / prefix** —— `exact` 表映射简单内建类型（bool/u8/i32/String/()…），`prefix` 表按**最长前缀**匹配带约束的容器类型（Empty/VisibleString/OctetString/FixedBitString/Integer…）。把固定映射抽成数据，改映射不必重编译 Rust。
 
 ### 2.5 生成产物 - Python（`generator/python/`）

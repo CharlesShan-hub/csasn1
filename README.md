@@ -156,6 +156,8 @@ Each type gets a `<Prefix>*` POJO (data kept in `_v`) + `<Prefix>Base` (base cla
 
 - `sample`: the **non-zero, SIZE-compliant** fill used by the `sample()` test factory (FixedBitString filled with `1`, length taken from SIZE).
 
+- **Template side**: `ctor_bitstring` / `ctor_unsigned` = special constructor blocks; `encode_plain` (no try/catch) vs `encode_wrapped` (try/catch to shield MAPPER errors); `decode` = static decode skeleton; `sample_factory` (single value) / `sample_factory_puts` (multiple fields) / `sample_factory_choice` (with `_choice`) — three sample factories.
+
 **type\_map.json exact / prefix** — the `exact` table maps simple built-in types (bool/u8/i32/String/()…); the `prefix` table matches constrained container types by **longest prefix** (Empty/VisibleString/OctetString/FixedBitString/Integer…). Extracting fixed mappings into data means changing a mapping doesn't require recompiling Rust.
 
 ### 2.5 Generated output — Python (`generator/python/`)
