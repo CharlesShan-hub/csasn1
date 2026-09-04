@@ -1,0 +1,3 @@
+    public byte[] encode() {
+        return __NATIVE__.encode("__TYPE_NAME__", DEFAULT_ENCODING, __ENCODE_ARG__);
+    }

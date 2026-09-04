@@ -1,0 +1,7 @@
+    /** Sample instance with non-zero test values (first variant selected). */
+    public static __CLASS__ sample() {
+        __CLASS__ r = new __CLASS__();
+        r._v.put("_choice", "__VARIANT__");
+        r._v.put("_", __SAMPLE__);
+        return r;
+    }

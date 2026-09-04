@@ -32,7 +32,7 @@ pub fn gen_test_class(
 
     match &ti.kind {
         TypeKind::Newtype { .. } => {
-            c.push_str(&test_newtype::generate(ti, all, prefix, &cn, asn_defs));
+            c.push_str(&test_newtype::generate(&cn));
         }
         TypeKind::Struct { fields } => {
             c.push_str(&test_struct::generate(

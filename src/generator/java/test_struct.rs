@@ -12,16 +12,16 @@ pub fn generate(
 ) -> String {
     let mut c = String::new();
 
-    // NOTE: no decode/assert here — default-constructed SEQUENCEs often violate
-    // ASN.1 constraints (empty SEQUENCE OF, zero-length fixed strings), so a
-    // roundtrip decode would fail. newtype/choice generators do assert because
-    // their default values are valid.
+    // NOTE: no decode/assert here — sample() fills every field, but empty
+    // SEQUENCE OF lists can still violate ASN.1 constraints, so a roundtrip
+    // decode would fail. newtype/choice generators do assert because their
+    // values are fully valid.
     c.push_str(&helpers::ln(1, "@Test"));
     c.push_str(&helpers::ln(
         1,
         "public void testEncodeDecodeAper() throws Exception {",
     ));
-    c.push_str(&helpers::ln(2, &format!("{} obj = new {}();", cn, cn)));
+    c.push_str(&helpers::ln(2, &format!("{} obj = {}.sample();", cn, cn)));
     c.push_str(&helpers::ln(2, "obj.encodeTest();"));
     c.push_str(&helpers::ln(1, "}"));
     c

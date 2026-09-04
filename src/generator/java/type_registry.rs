@@ -7,13 +7,16 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 
 /// Full type spec: Rust type → Java type + encode/decode/default strategies.
+///
+/// `default` = clean "unset" state for the no-arg constructor (Jackson-safe).
+/// `sample`  = non-zero, SIZE-compliant test filler (used by the `sample()` factory).
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct TypeSpec {
     pub java:    String,
     pub encode:  String,
     pub decode:  String,
     pub default: String,
+    pub sample:  String,
     pub creator: String,
     pub ctor:    String,
 }
@@ -58,6 +61,13 @@ impl TypeMap {
             encode:  obj.get("encode")?.as_str()?.to_string(),
             decode:  obj.get("decode")?.as_str()?.to_string(),
             default: obj.get("default")?.as_str()?.to_string(),
+            // Fall back to `default` when a sample entry is missing ( transitional tolerance)
+            sample:  obj
+                .get("sample")
+                .and_then(|s| s.as_str())
+                .or_else(|| obj.get("default").and_then(|s| s.as_str()))
+                .unwrap_or("")
+                .to_string(),
             creator: obj.get("creator")?.as_str()?.to_string(),
             ctor:    obj.get("ctor")?.as_str()?.to_string(),
         })

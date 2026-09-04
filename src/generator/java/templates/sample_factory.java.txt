@@ -1,0 +1,6 @@
+    /** Sample instance with non-zero, SIZE-compliant test values (for roundtrip tests). */
+    public static __CLASS__ sample() {
+        __CLASS__ r = new __CLASS__();
+        r._v.put("_", __SAMPLE__);
+        return r;
+    }

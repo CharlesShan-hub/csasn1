@@ -1,6 +1,7 @@
 use super::super::*;
 use super::gen_choice;
 use super::gen_newtype;
+use super::gen_newtype_common::recursive_type_names;
 use super::gen_struct;
 use super::type_map::resolve_java_type;
 use std::collections::HashMap;
@@ -14,6 +15,7 @@ pub fn gen_class(
     package: &str,
     asn_defs: &HashMap<String, String>,
     named_consts: &HashMap<String, Vec<(String, i32)>>,
+    recursive: &std::collections::HashSet<String>,
 ) -> String {
     let cn = format!("{}{}", prefix, ti.name);
     let mut c = String::new();
@@ -76,6 +78,7 @@ pub fn gen_class(
                 named_consts,
                 fields,
                 asn_defs,
+                recursive,
             ));
         }
         TypeKind::Choice { variants } => {
@@ -87,6 +90,7 @@ pub fn gen_class(
                 &asn_doc,
                 named_consts,
                 variants,
+                recursive,
             ));
         }
     }

@@ -23,25 +23,6 @@ pub fn jdefault_with_value(jt: &str, rust_expr: &str) -> String {
     }
 }
 
-/// Default value for a Java type (used in field initialization).
-pub fn jdefault(jt: &str, is_list: bool) -> String {
-    if is_list {
-        return "new java.util.ArrayList<>()".to_string();
-    }
-    match jt {
-        "int" => "1".to_string(),
-        "long" => "1L".to_string(),
-        "boolean" => "true".to_string(),
-        "float" => "1.5f".to_string(),
-        "double" => "2.5".to_string(),
-        "Integer" | "Long" | "Boolean" | "Float" | "Double" => "null".to_string(),
-        "String" => "\"x\"".to_string(),
-        "byte[]" => "new byte[]{ 1 }".to_string(),
-        // Wrapper types (user-defined ASN.1 types) — create new instance for non-null default
-        _ => format!("new {}()", jt),
-    }
-}
-
 /// Convert Java package name to a relative directory path.
 /// e.g. "com.example.csasn1" → "com/example/csasn1"
 pub fn package_to_path(pkg: &str) -> PathBuf {

@@ -1,0 +1,8 @@
+    public __CLASS__() { _v.put("_", "__HEX__"); }
+    public __CLASS__(__JT__ v) { this(); _v.put("_", __BASE__.bitStringHex(v, __BITS__)); }
+    @JsonValue
+    @Override
+    public Object toJsonValue() { return _v.get("_"); }
+    @JsonCreator
+    public static __CLASS__ fromJson(String hex) { return new __CLASS__(hex); }
+    public __CLASS__(String hex) { this(); _v.put("_", hex); }

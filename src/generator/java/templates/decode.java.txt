@@ -1,0 +1,12 @@
+    public static __CLASS__ decode(byte[] data) {
+        try {
+            String json = __NATIVE__.decode("__TYPE_NAME__", DEFAULT_ENCODING, data);
+            __CLASS__ r = new __CLASS__();
+            com.fasterxml.jackson.databind.JsonNode _node = __BASE__.MAPPER.readTree(json);
+            if (_node.isObject() && _node.has("value")) _node = _node.get("value");
+__DECODE_PUTS__
+            return r;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }

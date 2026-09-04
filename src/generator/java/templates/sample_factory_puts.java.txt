@@ -1,0 +1,6 @@
+    /** Sample instance with non-zero, SIZE-compliant test values (all fields, incl. OPTIONAL). */
+    public static __CLASS__ sample() {
+        __CLASS__ r = new __CLASS__();
+__SAMPLE_PUTS__
+        return r;
+    }

@@ -58,6 +58,7 @@ pub fn generate(
     fs::create_dir_all(&res_dir).expect("failed to create resources dir");
 
     // —— Java source files ——————————————————————————
+    let recursive = gen_newtype_common::recursive_type_names(types, &cfg.prefix);
     for t in types {
         let code = class_gen::gen_class(
             t,
@@ -67,6 +68,7 @@ pub fn generate(
             &cfg.package,
             asn_defs,
             named_consts,
+            &recursive,
         );
         fs::write(
             main_dir.join(format!("{}{}.java", cfg.prefix, t.name)),
@@ -98,9 +100,9 @@ pub fn generate(
     // Data lives only in _v (no Lombok `value` field, no Lombok @Data):
     // getters/setters must not shadow InnerBase.getValue()/setValue().
     let defaults: &[(&str, &str, &str)] = &[
-        ("DefaultInnerVisibleString", "String", "\"x\""),
-        ("DefaultInnerUtf8String", "String", "\"x\""),
-        ("DefaultInnerOctetString", "byte[]", "new byte[]{ 1 }"),
+        ("DefaultInnerVisibleString", "String", "\"\""),
+        ("DefaultInnerUtf8String", "String", "\"\""),
+        ("DefaultInnerOctetString", "byte[]", "new byte[0]"),
     ];
     for (name, jtype, init) in defaults {
         let (body, ctor_param) = match *jtype {
@@ -131,9 +133,9 @@ pub fn generate(
     public static {name} fromJson(Object v) {{
         if (v instanceof java.util.Map) {{
             Object s = ((java.util.Map<String, Object>) v).get("value");
-            return new {name}(s instanceof String ? (String) s : "x");
+            return new {name}(s instanceof String ? (String) s : "");
         }}
-        return new {name}(v instanceof String ? (String) v : "x");
+        return new {name}(v instanceof String ? (String) v : "");
     }}"#,
                     name = name
                 );

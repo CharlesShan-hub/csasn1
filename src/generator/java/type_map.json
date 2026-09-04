@@ -1,26 +1,26 @@
 {
   "exact": {
-    "bool":    { "java": "boolean", "encode": "plain",    "decode": "as_boolean", "default": "static:true",       "creator": "boolean", "ctor": "boolean" },
-    "u8":      { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:1",         "creator": "int",     "ctor": "Integer" },
-    "i8":      { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:1",         "creator": "int",     "ctor": "Integer" },
-    "u16":     { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:1",         "creator": "int",     "ctor": "Integer" },
-    "i16":     { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:1",         "creator": "int",     "ctor": "Integer" },
-    "u32":     { "java": "int",     "encode": "unsigned", "decode": "as_int",     "default": "static:0",         "creator": "long",    "ctor": "Integer" },
-    "i32":     { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:1",         "creator": "int",     "ctor": "Integer" },
-    "u64":     { "java": "long",    "encode": "plain",    "decode": "as_long",    "default": "static:1L",        "creator": "long",    "ctor": "Long" },
-    "i64":     { "java": "long",    "encode": "plain",    "decode": "as_long",    "default": "static:1L",        "creator": "long",    "ctor": "Long" },
-    "f32":     { "java": "float",   "encode": "plain",    "decode": "as_float",   "default": "static:1.5f",      "creator": "double",  "ctor": "Float" },
-    "f64":     { "java": "double",  "encode": "plain",    "decode": "as_double",  "default": "static:2.5",       "creator": "double",  "ctor": "Double" },
-    "String":  { "java": "String",  "encode": "mapper",   "decode": "as_text",    "default": "size_string",      "creator": "String",  "ctor": "String" },
-    "()":      { "java": "Object",  "encode": "null_lit", "decode": "null",       "default": "static:null",      "creator": "Object",  "ctor": "Object" }
+    "bool":    { "java": "boolean", "encode": "plain",    "decode": "as_boolean", "default": "static:false",      "sample": "static:true",  "creator": "boolean", "ctor": "boolean" },
+    "u8":      { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:0",         "sample": "static:1",     "creator": "int",     "ctor": "Integer" },
+    "i8":      { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:0",         "sample": "static:1",     "creator": "int",     "ctor": "Integer" },
+    "u16":     { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:0",         "sample": "static:1",     "creator": "int",     "ctor": "Integer" },
+    "i16":     { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:0",         "sample": "static:1",     "creator": "int",     "ctor": "Integer" },
+    "u32":     { "java": "int",     "encode": "unsigned", "decode": "as_int",     "default": "static:0",         "sample": "static:1",     "creator": "long",    "ctor": "Integer" },
+    "i32":     { "java": "int",     "encode": "plain",    "decode": "as_int",     "default": "static:0",         "sample": "static:1",     "creator": "int",     "ctor": "Integer" },
+    "u64":     { "java": "long",    "encode": "plain",    "decode": "as_long",    "default": "static:0L",        "sample": "static:1L",    "creator": "long",    "ctor": "Long" },
+    "i64":     { "java": "long",    "encode": "plain",    "decode": "as_long",    "default": "static:0L",        "sample": "static:1L",    "creator": "long",    "ctor": "Long" },
+    "f32":     { "java": "float",   "encode": "plain",    "decode": "as_float",   "default": "static:0f",        "sample": "static:1.5f",  "creator": "double",  "ctor": "Float" },
+    "f64":     { "java": "double",  "encode": "plain",    "decode": "as_double",  "default": "static:0",         "sample": "static:2.5",   "creator": "double",  "ctor": "Double" },
+    "String":  { "java": "String",  "encode": "mapper",   "decode": "as_text",    "default": "empty_string",     "sample": "size_string",  "creator": "String",  "ctor": "String" },
+    "()":      { "java": "Object",  "encode": "null_lit", "decode": "null",       "default": "static:null",      "sample": "static:null",  "creator": "Object",  "ctor": "Object" }
   },
   "prefix": {
-    "VisibleString":      { "java": "DefaultInnerVisibleString", "encode": "mapper",    "decode": "as_text",   "default": "size_string",     "creator": "String", "ctor": "DefaultInnerVisibleString" },
-    "Utf8String":         { "java": "DefaultInnerUtf8String",    "encode": "mapper",    "decode": "as_text",   "default": "size_string",     "creator": "String", "ctor": "DefaultInnerUtf8String" },
-    "OctetString":        { "java": "DefaultInnerOctetString",   "encode": "mapper_hex","decode": "unhex",     "default": "size_bytes_vals", "creator": "String", "ctor": "DefaultInnerOctetString" },
-    "FixedOctetString":   { "java": "DefaultInnerOctetString",   "encode": "mapper_hex","decode": "unhex",     "default": "size_bytes_vals", "creator": "String", "ctor": "DefaultInnerOctetString" },
-    "Integer":            { "java": "int",                        "encode": "plain",     "decode": "as_int",    "default": "static:1",        "creator": "int",    "ctor": "Integer" },
-    "FixedBitString":     { "java": "int",                        "encode": "plain",     "decode": "as_int",    "default": "static:1",        "creator": "int",    "ctor": "Integer" },
-    "BitString":          { "java": "byte[]",                    "encode": "mapper_hex","decode": "unhex",     "default": "size_bytes",      "creator": "String", "ctor": "byte[]" }
+    "VisibleString":      { "java": "DefaultInnerVisibleString", "encode": "mapper",    "decode": "as_text",   "default": "empty_string",    "sample": "size_string",     "creator": "String", "ctor": "DefaultInnerVisibleString" },
+    "Utf8String":         { "java": "DefaultInnerUtf8String",    "encode": "mapper",    "decode": "as_text",   "default": "empty_string",    "sample": "size_string",     "creator": "String", "ctor": "DefaultInnerUtf8String" },
+    "OctetString":        { "java": "DefaultInnerOctetString",   "encode": "mapper_hex","decode": "unhex",     "default": "empty_bytes",     "sample": "size_bytes_vals", "creator": "String", "ctor": "DefaultInnerOctetString" },
+    "FixedOctetString":   { "java": "DefaultInnerOctetString",   "encode": "mapper_hex","decode": "unhex",     "default": "empty_bytes",     "sample": "size_bytes_vals", "creator": "String", "ctor": "DefaultInnerOctetString" },
+    "Integer":            { "java": "int",                        "encode": "plain",     "decode": "as_int",    "default": "static:0",        "sample": "static:1",        "creator": "int",    "ctor": "Integer" },
+    "FixedBitString":     { "java": "int",                        "encode": "plain",     "decode": "as_int",    "default": "static:0",        "sample": "static:1",        "creator": "int",    "ctor": "Integer" },
+    "BitString":          { "java": "byte[]",                    "encode": "mapper_hex","decode": "unhex",     "default": "empty_bytes",     "sample": "size_bytes_vals", "creator": "String", "ctor": "byte[]" }
   }
 }

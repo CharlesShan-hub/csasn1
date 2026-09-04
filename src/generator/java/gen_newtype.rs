@@ -1,5 +1,9 @@
 use super::super::*;
-use super::gen_newtype_common::{build_encode_arg, build_decode_puts, default_val_for};
+use super::gen_newtype_common::{
+    build_decode_puts, build_encode_arg, default_val_for, render_ctor_bitstring,
+    render_ctor_unsigned, render_decode, render_encode_plain, render_encode_wrapped,
+    render_sample_factory, sample_value_for,
+};
 use super::helpers;
 use std::collections::HashMap;
 
@@ -40,9 +44,14 @@ pub fn generate(
     let base = format!("{}Base", prefix);
     let native = format!("{}Native", prefix);
 
-    // Get strategy spec for this Java type (JSON-driven). Fallback to defaults.
-    let spec = crate::generator::java::type_registry::lookup("dummy"); // TODO: use correct rt
-    let _ = spec; // suppress unused for now
+    // ── Resolve TypeSpec for Rust inner type (JSON-driven strategies) ──
+    let rust_inner = match &ti.kind {
+        TypeKind::Newtype { inner_type, .. } => {
+            inner_type.split('<').next().unwrap_or(inner_type).to_string()
+        }
+        _ => String::new(),
+    };
+    let spec = crate::generator::java::type_registry::lookup(&rust_inner);
 
     let mut c = String::new();
     if let Some(doc) = asn_doc {
@@ -55,36 +64,13 @@ pub fn generate(
         }
     }
 
-    // Extract Rust inner type name for JSON lookup (stripped of generic params like <4>)
-    let rust_inner = match &ti.kind {
-        TypeKind::Newtype { inner_type, .. } => {
-            inner_type.split('<').next().unwrap_or(inner_type).to_string()
-        }
-        _ => String::new(),
-    };
-    let spec = crate::generator::java::type_registry::lookup(&rust_inner);
-
-    // ... constructor block unchanged for now, then:
+    // ── Constructor block ──
     if hex_digits > 0 {
-        let default_hex = "0".repeat(hex_digits);
-        c.push_str(&helpers::ln(1, &format!("public {}() {{ _v.put(\"_\", \"{}\"); }}", cn, default_hex)));
-        c.push_str(&helpers::ln(1, &format!("public {}({} v) {{ this(); _v.put(\"_\", {}.bitStringHex(v, {})); }}", cn, jt, base, bit_count)));
-        c.push_str(&helpers::ln(1, "@JsonValue"));
-        c.push_str(&helpers::ln(1, "@Override"));
-        c.push_str(&helpers::ln(1, "public Object toJsonValue() { return _v.get(\"_\"); }"));
-        c.push_str(&helpers::ln(1, "@JsonCreator"));
-        c.push_str(&helpers::ln(1, &format!("public static {} fromJson(String hex) {{ return new {}(hex); }}", cn, cn)));
-        c.push_str(&helpers::ln(1, &format!("public {}(String hex) {{ this(); _v.put(\"_\", hex); }}", cn)));
+        c.push_str(&render_ctor_bitstring(cn, jt, &base, hex_digits, bit_count));
     } else if inner_unsigned_int {
-        c.push_str(&helpers::ln(1, &format!("public {}() {{ _v.put(\"_\", 0); }}", cn)));
-        c.push_str(&helpers::ln(1, "@JsonValue"));
-        c.push_str(&helpers::ln(1, "@Override"));
-        c.push_str(&helpers::ln(1, "public Object toJsonValue() { return Integer.toUnsignedLong((int) _v.get(\"_\")); }"));
-        c.push_str(&helpers::ln(1, &format!("public {}(long v) {{ this(); _v.put(\"_\", (int) v); }}", cn)));
-        c.push_str(&helpers::ln(1, "@JsonCreator"));
-        c.push_str(&helpers::ln(1, &format!("public static {} fromJson(long v) {{ return new {}(v); }}", cn, cn)));
+        c.push_str(&render_ctor_unsigned(cn));
     } else {
-        let default_val = default_val_for(jt, size);
+        let default_val = default_val_for(jt, size, spec, prefix);
         if default_val.is_empty() {
             c.push_str(&helpers::ln(1, &format!("public {}() {{}}", cn)));
         } else {
@@ -137,39 +123,40 @@ pub fn generate(
     }
 
     // ── Encode / decode ──
+    // typeName — ASN.1 dispatch name (kept in sync with struct/choice classes)
+    c.push_str(&helpers::ln(1, "@Override"));
+    c.push_str(&helpers::ln(
+        1,
+        &format!("protected String typeName() {{ return \"{}\"; }}", ti.name),
+    ));
+
     let inner_octet_string = matches!(&ti.kind,
         TypeKind::Newtype { inner_type, .. }
             if inner_type.starts_with("OctetString") || inner_type.starts_with("FixedOctetString"));
 
-    let (encode_arg, wrap_try) = build_encode_arg(jt, &base, hex_digits, inner_unsigned_int, prefix);
+    let (encode_arg, wrap_try) = build_encode_arg(jt, &base, hex_digits, inner_unsigned_int, prefix, spec);
     if wrap_try {
-        c.push_str(&helpers::ln(1, "public byte[] encode() {"));
-        c.push_str(&helpers::ln(2, "try {"));
-        c.push_str(&helpers::ln(3, &format!("return {}.encode(\"{}\", DEFAULT_ENCODING, {});", native, ti.name, encode_arg)));
-        c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
-        c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
-        c.push_str(&helpers::ln(2, "}"));
-        c.push_str(&helpers::ln(1, "}"));
+        c.push_str(&render_encode_wrapped(&native, &ti.name, &encode_arg));
     } else {
-        c.push_str(&helpers::ln(1, "public byte[] encode() {"));
-        c.push_str(&helpers::ln(2, &format!("return {}.encode(\"{}\", DEFAULT_ENCODING, {});", native, ti.name, encode_arg)));
-        c.push_str(&helpers::ln(1, "}"));
+        c.push_str(&render_encode_plain(&native, &ti.name, &encode_arg));
     }
 
-    c.push_str(&helpers::ln(1, &format!("public static {} decode(byte[] data) {{", cn)));
-    c.push_str(&helpers::ln(2, "try {"));
-    c.push_str(&helpers::ln(3, &format!("String json = {}.decode(\"{}\", DEFAULT_ENCODING, data);", native, ti.name)));
-    c.push_str(&helpers::ln(3, &format!("{} r = new {}();", cn, cn)));
-    c.push_str(&helpers::ln(3, &format!("com.fasterxml.jackson.databind.JsonNode _node = {}.MAPPER.readTree(json);", base)));
-    c.push_str(&helpers::ln(3, "if (_node.isObject() && _node.has(\"value\")) _node = _node.get(\"value\");"));
-    for line in build_decode_puts(jt, &base, hex_digits, inner_octet_string) {
-        c.push_str(&helpers::ln(3, &line));
-    }
-    c.push_str(&helpers::ln(3, "return r;"));
-    c.push_str(&helpers::ln(2, "} catch (Exception e) {"));
-    c.push_str(&helpers::ln(3, "throw new RuntimeException(e);"));
-    c.push_str(&helpers::ln(2, "}"));
-    c.push_str(&helpers::ln(1, "}"));
+    let put_lines: Vec<String> = build_decode_puts(jt, &base, hex_digits, inner_octet_string, spec)
+        .iter()
+        .map(|l| helpers::ln(3, l))
+        .collect();
+    c.push_str(&render_decode(cn, &native, &ti.name, &base, &put_lines));
+
+    // ── sample() test-filler factory ──
+    let sample_expr = if hex_digits > 0 {
+        format!("\"{}\"", "0".repeat(hex_digits))
+    } else if inner_unsigned_int {
+        "1".to_string()
+    } else {
+        sample_value_for(jt, size, spec, prefix)
+    };
+    c.push_str(&render_sample_factory(cn, &sample_expr));
+
     c.push_str("}\n");
     c
 }

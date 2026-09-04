@@ -1,6 +1,8 @@
 use super::super::*;
+use super::gen_newtype_common::sample_value_for;
 use super::helpers;
 use super::type_map::resolve_wrapper_type;
+use super::type_registry;
 use std::collections::HashMap;
 
 pub fn generate(
@@ -9,7 +11,7 @@ pub fn generate(
     prefix: &str,
     cn: &str,
     variants: &[VariantInfo],
-    _asn_defs: &HashMap<String, String>,
+    asn_defs: &HashMap<String, String>,
 ) -> String {
     let mut c = String::new();
 
@@ -79,17 +81,20 @@ pub fn generate(
                 ));
             }
             s if s.starts_with(prefix) && !s.starts_with("DefaultInner") => {
-                // User-defined Inner* type: store its _v map
+                // User-defined Inner* type: nested sample instance (SIZE-compliant)
                 c.push_str(&helpers::ln(
                     2,
-                    &format!("obj._v.put(\"_\", new {}()._v);", s),
+                    &format!("obj._v.put(\"_\", {}.sample()._v);", s),
                 ));
             }
             _ => {
-                // DefaultInner* or other — create instance directly
+                // DefaultInner* or other — SIZE-compliant sample fill
+                let size = helpers::resolve_size(&v.inner_type, asn_defs);
+                let spec = type_registry::lookup(&v.inner_type);
+                let val = sample_value_for(&jt, size, spec, prefix);
                 c.push_str(&helpers::ln(
                     2,
-                    &format!("obj._v.put(\"_\", new {}());", jt),
+                    &format!("obj._v.put(\"_\", {});", val),
                 ));
             }
         }

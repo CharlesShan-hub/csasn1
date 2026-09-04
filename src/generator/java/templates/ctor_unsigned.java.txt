@@ -1,0 +1,7 @@
+    public __CLASS__() { _v.put("_", 0); }
+    @JsonValue
+    @Override
+    public Object toJsonValue() { return Integer.toUnsignedLong((int) _v.get("_")); }
+    public __CLASS__(long v) { this(); _v.put("_", (int) v); }
+    @JsonCreator
+    public static __CLASS__ fromJson(long v) { return new __CLASS__(v); }

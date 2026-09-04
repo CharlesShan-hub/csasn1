@@ -1,0 +1,7 @@
+    public byte[] encode() {
+        try {
+            return __NATIVE__.encode("__TYPE_NAME__", DEFAULT_ENCODING, __ENCODE_ARG__);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
