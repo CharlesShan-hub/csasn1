@@ -31,6 +31,20 @@ fn field_value_expr(
     sample: bool,
     recursive: &std::collections::HashSet<String>,
 ) -> String {
+    // ASN.1 DEFAULT wins in default mode — the field is semantically "set"
+    // (e.g. `moreFollows Boolean DEFAULT 1` must construct as 1, not empty 0).
+    // Sample mode keeps the non-zero filler so DEFAULT-0 fields still test loudly.
+    // Wrapper types use the same `new X(v)._v` map form as the prefix branch,
+    // so rebind() aliases the map instead of storing an InnerBase instance.
+    if !sample {
+        if let Some(ref dv) = f.default_value {
+            let v = helpers::jdefault_with_value(jt, dv);
+            if jt.starts_with(prefix) && !jt.starts_with("DefaultInner") {
+                return format!("{}._v", v);
+            }
+            return v;
+        }
+    }
     match jt {
         "DefaultInnerOctetString" => {
             // default: empty; sample: SIZE-compliant bytes filled with 1
@@ -61,8 +75,6 @@ fn field_value_expr(
                 }
             } else if jt.starts_with("java.util.List<") {
                 "new java.util.ArrayList<>()".to_string()
-            } else if let Some(ref dv) = f.default_value {
-                helpers::jdefault_with_value(jt, dv)
             } else {
                 match jt {
                     "int" => if sample { "1".to_string() } else { "0".to_string() },
