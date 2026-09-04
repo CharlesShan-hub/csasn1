@@ -1,12 +1,16 @@
 # Charles Shan's ASN.1 Generator (csasn1)
 
-> ASN.1 → Java / Python Bean 代码生成器
+> # csasn1 — ASN.1 → Java / Python Bean 代码生成器
+
+![Rust](https://img.shields.io/badge/Rust-ASN.1%20codec-orange)
+![Java](https://img.shields.io/badge/generates-Java%20%26%20Python-blue)
+![runtime](https://img.shields.io/badge/runtime-Native%20FFI%20%26%20JSON-interchange-lightgrey)
 
 从一份 ASN.1 规约自动产出 **Rust 编解码动态库（`asn1.dll`** **/** **`libasn1.so`）** 及 **Java / Python 的 Bean 类**。所有语言通过统一 JSON 中间表示与原生库交换数据，业务侧完全不碰位操作。
 
 - 生成引擎：`rasn` + `rasn-compiler`
 
-- 支持编码方式：`ber`（默认）/ `der` / `aper` / `uper`
+- 支持编码方式：![ber](https://img.shields.io/badge/ber-Basic%20Encoding%20Rules-orange) ![der](https://img.shields.io/badge/der-Distinguished%20Encoding%20Rules-violet) ![aper](https://img.shields.io/badge/aper-Aligned%20Packed%20Encoding-green) ![uper](https://img.shields.io/badge/uper-Unaligned%20Packed%20Encoding-red)
 
 ***
 
@@ -138,7 +142,7 @@ csasn1/
 
 ### Java（`generator/java/`）
 
-每个类型一个 `<前缀>*` POJO（数据统一存 `_v`）+ `<前缀>Base`（基类，`encode()`/`decode()`）+ `<前缀>Native`（JNA 调 DLL）+ `V`（`_v` 助手）+ 内建默认包装类 + 自动 JUnit 测试 + `pom.xml`。`encode()` 严格（只编码 `_set` 标记的 OPTIONAL），`encodeTest()` 宽松（全字段）。运行依赖 Jackson + JNA（可选 Lombok）。
+每个类型一个 `<前缀>*` POJO（数据统一存 `_v`）+ `<前缀>Base`（基类，`encode()`/`decode()`）+ `<前缀>Native`（JNA 调 DLL）+ `V`（`_v` 助手）+ 内建默认包装类 + 自动 JUnit 测试 + `pom.xml`。`encode()` 全量编码 `_v`，`encodeTest()` 打印中间 JSON 供调试。运行依赖 Jackson + JNA。
 
 > 生成器本身由「单文件派发」重构为「**顶层派发 → 按类型生成器 → 共享复用层 + JSON 驱动 + 模板化**」：
 
@@ -244,15 +248,19 @@ cd assets/python && pixi install && pixi run test
 
 ## TODO / 改进方向
 
-**Java 类**
+**Java 生成产物（`Inner*`）**
 
-- [x] 精确 OPTIONAL presence 控制（`encode()` 严格 / `encodeTest()` 宽松）
-
-- [x] Fluent setter（链式调用）
+> **设计说明**：`_v` 是唯一数据仓（single source of truth）——数据与存在性全部由树本身表达，不做第二份字段状态。两个推论：
+>
+> - **fluent setter** 由宿主 `Cms*` wrapper 层承载，生成器刻意不提供，保持 `Inner*` 轻量（data-only）。
+>
+> - **OPTIONAL presence** 靠 `_v` 的 key 存在性天然表达，不引入独立 `_set`；如遇个别字段"present 但 = DEFAULT"导致编解码不对称，按需局部增强即可。
 
 - [ ] 泛化编解码接口（`Codec.aper().encode(obj)` 代替每类静态方法）
 
-- [ ] 生成 `@JsonProperty` / `@JsonInclude` 注解
+- [x] 生成 `@JsonInclude(NON_NULL)`（已全面生成）
+
+- [ ] 生成 `@JsonProperty` 注解
 
 **Python 生成器**
 
@@ -268,5 +276,5 @@ cd assets/python && pixi install && pixi run test
 
 - [ ] 约束感知的随机数据生成、边界值用例
 
-- [x] 生成版本标记（每个生成文件含 `csasn1 vX.Y.Z` 时间戳）
+- [x] 生成版本标记（每个生成文件含 `csasn1 vX.Y.Z`；**刻意不含时间戳**，避免每次重生成产生 diff 噪音）
 
