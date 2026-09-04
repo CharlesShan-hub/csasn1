@@ -1,4 +1,5 @@
 use super::super::*;
+use super::type_registry;
 
 fn boxed(jt: &str) -> String {
     match jt {
@@ -42,36 +43,21 @@ pub fn resolve_java_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
         return resolve_java_type(&inner, all, prefix);
     }
 
-    let base = match rt {
-        "bool" => "boolean".to_string(),
-        "u8" | "i8" | "u16" | "i16" | "u32" | "i32" => "int".to_string(),
-        "u64" | "i64" => "long".to_string(),
-        "f32" => "float".to_string(),
-        "f64" => "double".to_string(),
-        s if s == "String" => "String".to_string(),
-        s if s.starts_with("VisibleString") => "DefaultInnerVisibleString".to_string(),
-        s if s.starts_with("Utf8String") => "DefaultInnerUtf8String".to_string(),
-        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => {
-            "DefaultInnerOctetString".to_string()
+    // Try JSON registry first (exact → prefix)
+    if let Some(java) = type_registry::lookup_java(rt) {
+        return java.to_string();
+    }
+
+    // User-defined type: if it's a Newtype, recurse into inner_type
+    if let Some(ti) = all.iter().find(|t| t.name == rt) {
+        if let TypeKind::Newtype { ref inner_type, .. } = ti.kind {
+            return resolve_java_type(inner_type, all, prefix);
         }
-        s if s.starts_with("Integer") => "int".to_string(),
-        s if s.starts_with("FixedBitString") => "int".to_string(),
-        s if s.starts_with("BitString") => "byte[]".to_string(),
-        "()" => "Object".to_string(),
-        s => {
-            if let Some(ti) = all.iter().find(|t| t.name == s) {
-                if let TypeKind::Newtype { ref inner_type, .. } = ti.kind {
-                    return resolve_java_type(inner_type, all, prefix);
-                }
-            }
-            return format!("{}{}", prefix, s);
-        }
-    };
-    base.to_string()
+    }
+    format!("{}{}", prefix, rt)
 }
 
 /// Resolve a Rust type to its Java wrapper type (does NOT unwrap newtypes).
-/// e.g. "Boolean" → "CmsBoolean" instead of "int"
 pub fn resolve_wrapper_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String {
     let rt = rt.trim();
     if rt.starts_with("Option <") {
@@ -101,25 +87,11 @@ pub fn resolve_wrapper_type(rt: &str, all: &[TypeInfo], prefix: &str) -> String 
         return resolve_wrapper_type(&inner, all, prefix);
     }
 
-    let base = match rt {
-        "bool" => boxed("boolean"),
-        "u8" | "i8" | "u16" | "i16" | "u32" | "i32" => boxed("int"),
-        "u64" | "i64" => boxed("long"),
-        "f32" => boxed("float"),
-        "f64" => boxed("double"),
-        s if s == "String" => "String".to_string(),
-        s if s.starts_with("VisibleString") => "DefaultInnerVisibleString".to_string(),
-        s if s.starts_with("Utf8String") => "DefaultInnerUtf8String".to_string(),
-        s if s.starts_with("OctetString") || s.starts_with("FixedOctetString") => {
-            "DefaultInnerOctetString".to_string()
-        }
-        s if s.starts_with("Integer") => boxed("int"),
-        s if s.starts_with("FixedBitString") => boxed("int"),
-        s if s.starts_with("BitString") => "byte[]".to_string(),
-        "()" => "Object".to_string(),
-        // For any user-defined type (including newtypes), return the wrapper name.
-        // Unlike resolve_java_type, we do NOT recurse into newtypes here.
-        s => return format!("{}{}", prefix, s),
-    };
-    base.to_string()
+    // Try JSON registry
+    if let Some(java) = type_registry::lookup_java(rt) {
+        return if java != "Object" { boxed(java) } else { java.to_string() };
+    }
+
+    // User-defined type → wrapper name
+    format!("{}{}", prefix, rt)
 }

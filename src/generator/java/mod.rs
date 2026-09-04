@@ -15,6 +15,7 @@ mod test_gen;
 pub(crate) mod test_newtype;
 pub(crate) mod test_struct;
 pub mod type_map;
+pub(crate) mod type_registry;
 
 /// Default Java class name prefix
 const DEFAULT_PREFIX: &str = "Asn";
