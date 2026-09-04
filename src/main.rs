@@ -8,10 +8,10 @@ use generator::*;
 fn main() {
     let mut spec_path = "specs/dlt2811.asn".to_string();
     let mut out_dir = PathBuf::from("java/src");
-    let mut target_lang = "java".to_string();
+    let mut target_lang = String::new();
 
     // Generator-specific config
-    let mut prefix = "Cms".to_string();
+    let mut prefix = "Inner".to_string();
     let mut default_enc = "ber".to_string();
     let mut package = String::new();
 
@@ -23,7 +23,7 @@ fn main() {
         println!("── csasn1 interactive mode ──");
         spec_path = prompt("ASN.1 spec file", &spec_path);
         out_dir = PathBuf::from(prompt("Output directory", &out_dir.to_string_lossy()));
-        target_lang = prompt("Target language (java)", &target_lang);
+        target_lang = prompt("Target language (java/python)", "");
         prefix = prompt("Class prefix", &prefix);
         default_enc = prompt("Default encoding (ber/der/aper/uper)", &default_enc);
         package = prompt("Java package (empty = none)", "");

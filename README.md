@@ -1,4 +1,4 @@
-# csasn1 — ASN.1 → Java / Python Bean 代码生成器
+# Charles Shan's ASN.1 Generator (csasn1)
 
 ![ber](https://img.shields.io/badge/ber-Basic%20Encoding%20Rules-orange) ![der](https://img.shields.io/badge/der-Distinguished%20Encoding%20Rules-violet) ![aper](https://img.shields.io/badge/aper-Aligned%20Packed%20Encoding-green) ![uper](https://img.shields.io/badge/uper-Unaligned%20Packed%20Encoding-red)
 
@@ -24,8 +24,8 @@ just gen-all        # build + 生成全部语言
 ## 命令行
 
 ```powershell
-# Java（默认）
-cargo run --release -- --src specs/dlt2811.asn --dest assets/java --prefix Cms --enc aper --package com.example
+# Java（需指定 --lang java）
+cargo run --release -- --lang java --src specs/dlt2811.asn --dest assets/java --prefix Cms --enc aper --package com.example
 
 # Python
 cargo run --release -- --lang python --src specs/dlt2811.asn --dest assets/python --prefix Cms --enc aper --package com.example
@@ -40,7 +40,7 @@ cargo run --release -- --lang python --src specs/dlt2811.asn --dest assets/pytho
 | `--lang`    | `java`              | 目标语言：`java` / `python`（别名 `--bin`）           |
 | `--src`     | `specs/dlt2811.asn` | ASN.1 规约路径；传 `.asn` 自动映射到 `src/generated.rs` |
 | `--dest`    | `java/src`          | 输出目录（别名 `--out`）                             |
-| `--prefix`  | `Cms`               | 生成类名前缀                                       |
+| `--prefix`  | `Inner`             | 生成类名前缀                                       |
 | `--enc`     | `ber`               | 固化进生成代码的编码方式（`ber`/`der`/`aper`/`uper`）      |
 | `--package` | 空                   | Java 包名                                      |
 
@@ -68,9 +68,14 @@ cargo run --release -- --lang python --src specs/dlt2811.asn --dest assets/pytho
 ### 数据流
 
 ```
-specs/xxx.asn ──build.rs① rasn-compiler──▶ src/generated.rs（Rust 类型）
-      ──build.rs② 扫描类型名──▶ src/ffi_auto.rs（FFI 分发）──▶ asn1.dll
-      ──main.rs③ 代码生成器（syn 解析 AST）──▶ Java / Python Bean 类
+specs/dlt2811.asn ────────────────────（唯一输入，只改这个）
+        │ ① build.rs · rasn-compiler
+        ▼
+src/generated.rs ─────────────────────（Rust 类型，公共产物）
+        │
+        ├── ② build.rs · 扫描类型名 ────▶ src/ffi_auto.rs ──▶ asn1.dll
+        │
+        └── ③ main.rs · syn 解析 AST ────▶ Java / Python Bean 类
 ```
 
 运行时（以 Java 为例）：编码 = Java 对象 → JSON → `csasn1_encode` → ASN.1 二进制；解码相反。**所有语言通过 JSON 作为中间表示交换数据，完全不碰位操作。**
