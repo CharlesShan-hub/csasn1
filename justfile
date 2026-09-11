@@ -13,7 +13,7 @@ build:
 # Generate Java classes from ASN.1 spec (standalone test project)
 gen-java:
     rm -rf assets/java
-    cargo run --release -- --src specs/dlt2811.asn --dest assets/java --prefix Inner --enc aper --package com.ysh.jcms.data
+    cargo run --release -- --lang java --src specs/dlt2811.asn --dest assets/java --prefix Inner --enc aper --package com.ysh.jcms.data
 
 # Build + generate + run Java standalone tests
 test-java: gen-java
@@ -22,7 +22,7 @@ test-java: gen-java
 # Generate Java classes directly into the jcms-data Maven module
 gen-jcms-data:
     rm -rf {{jcms_root}}/jcms/jcms-data
-    cargo run --release -- --src specs/dlt2811.asn --dest {{jcms_root}}/jcms/jcms-data --prefix Inner --enc aper --package com.ysh.jcms.data
+    cargo run --release -- --lang java --src specs/dlt2811.asn --dest {{jcms_root}}/jcms/jcms-data --prefix Inner --enc aper --package com.ysh.jcms.data
 
 # Run a single Java test by class name (e.g. just test-java-one CmsObjectNameTest)
 test-java-one cls:

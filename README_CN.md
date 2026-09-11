@@ -20,7 +20,7 @@
 
 ### 1.1 快速开始
 
-在 `csasn1/` 目录内，把要用的规约放到 `specs/`（默认是 `specs/dlt2811.asn`）：
+在 `csasn1/` 目录内，把要用的规约放到 `specs/`（默认是 `specs/dlt2811.asn`；本项目把规约放在生成器身边——说明见 `docs/asn1.md`）：
 
 ```powershell
 just build          # 编译 Rust：DLL + CLI（构建期自动生成 Rust 类型 + FFI 分发）

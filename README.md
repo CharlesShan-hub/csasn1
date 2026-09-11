@@ -20,7 +20,7 @@ Generate a Rust encode/decode dynamic library (`asn1.dll` / `libasn1.so`) and Ja
 
 ### 1.1 Quick start
 
-Inside the `csasn1/` directory, put your spec in `specs/` (default `specs/dlt2811.asn`):
+Inside the `csasn1/` directory, put your spec in `specs/` (default `specs/dlt2811.asn`; this project keeps the spec beside the generator — see `docs/asn1.md`):
 
 ```powershell
 just build          # build Rust: DLL + CLI (generates Rust types + FFI dispatch at build time)
