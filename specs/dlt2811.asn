@@ -1252,7 +1252,10 @@ SendGOOSEMessage-PDU ::= SEQUENCE {
 }
 
 -- ====================================================================== --
--- 8.9.2 GetGoReference (Service Code 0x00) --
+-- 8.9.2 GetGoReference (Service Code 0x64) --
+-- NOTE: DL/T 2811 表 1 未分配本服务码（十进制 100 空缺），0x64 为 implementation- --
+-- defined 推定值（紧邻 0x66 GetGoCBValues / 0x67 SetGoCBValues）。服务端默认不   --
+-- 注册（配置开关 protocol.gooseExtServices 控制，默认关闭，保证负向测试合规）。  --
 -- ====================================================================== --
 
 GetGoReference-RequestPDU ::= SEQUENCE {
@@ -1273,7 +1276,8 @@ GetGoReference-ResponsePDU ::= SEQUENCE {
 GetGoReference-ErrorPDU ::= ServiceError
 
 -- ====================================================================== --
--- 8.9.3 GetGooseElementNumber (Service Code 0x00) --
+-- 8.9.3 GetGooseElementNumber (Service Code 0x65) --
+-- NOTE: 表 1 十进制 101 空缺，0x65 为 implementation-defined 推定值，默认不注册。 --
 -- ====================================================================== --
 
 GetGOOSEElementNumber-RequestPDU ::= SEQUENCE {
@@ -1292,31 +1296,6 @@ GetGOOSEElementNumber-ResponsePDU ::= SEQUENCE {
 }
 
 GetGOOSEElementNumber-ErrorPDU ::= ServiceError
-
--- ====================================================================== --
--- GSE Management PDU (IEC 61850-8-1 tagIMPLIED, carried over 0x88-B9) --
--- Wraps 8.9.2 GetGoReference / 8.9.3 GetGOOSEElementNumber APDUs.      --
--- ====================================================================== --
-
-GSEMngtRequestResp ::= CHOICE {
-    requests    [0] IMPLICIT GSEMngtRequests,
-    responses   [1] IMPLICIT GSEMngtResponses
-}
-
-GSEMngtRequests ::= CHOICE {
-    getGoReference        [0] IMPLICIT GetGoReference-RequestPDU,
-    getGOOSEElementNumber [1] IMPLICIT GetGOOSEElementNumber-RequestPDU
-}
-
-GSEMngtResponses ::= CHOICE {
-    getGoReference        [0] IMPLICIT GetGoReference-ResponsePDU,
-    getGOOSEElementNumber [1] IMPLICIT GetGOOSEElementNumber-ResponsePDU
-}
-
-GSEMngtPdu ::= SEQUENCE {
-    stateID     [0] IMPLICIT Int32U,
-    requestResp [1] IMPLICIT GSEMngtRequestResp
-}
 
 -- ====================================================================== --
 -- 8.9.4 GetGoCBValues (Service Code 0x66) --

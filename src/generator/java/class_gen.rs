@@ -1,7 +1,6 @@
 use super::super::*;
 use super::gen_choice;
 use super::gen_newtype;
-use super::gen_newtype_common::recursive_type_names;
 use super::gen_struct;
 use super::type_map::resolve_java_type;
 use std::collections::HashMap;
