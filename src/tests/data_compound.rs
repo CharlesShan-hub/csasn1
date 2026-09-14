@@ -29,7 +29,7 @@ fn data_array_float64_aper() {
 #[test]
 fn data_array_mixed_aper() {
     let d1 = Data::int32(Int32(12345));
-    let d2 = Data::Boolean(Boolean(1));
+    let d2 = Data::boolean(Boolean(1));
     let float64_bytes = [0x40, 0x09, 0x21, 0xFB, 0x54, 0x44, 0x2D, 0x18];
     let d3 = Data::float64(Float64(FixedOctetString::<8usize>::new(float64_bytes)));
     let orig = Data::array(vec![d1, d2, d3]);

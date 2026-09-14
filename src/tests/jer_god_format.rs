@@ -25,7 +25,7 @@ fn serviceerror_jer() {
 #[test]
 fn data_choice_jer() {
     let jer_int32 = rasn::jer::encode(&Data::int32(Int32(42))).expect("JER");
-    let jer_bool = rasn::jer::encode(&Data::Boolean(Boolean(1))).expect("JER");
+    let jer_bool = rasn::jer::encode(&Data::boolean(Boolean(1))).expect("JER");
     let jer_str = rasn::jer::encode(&Data::visible_string(VisibleString::from_iso646_bytes(b"hello").unwrap())).expect("JER");
     let jer_bit = rasn::jer::encode(&Data::bit_string(BitString::from_vec(vec![0xAA, 0xBB]))).expect("JER");
     eprintln!("int32(42): {}", String::from_utf8_lossy(&jer_int32.as_bytes()));

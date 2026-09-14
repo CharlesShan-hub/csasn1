@@ -393,7 +393,7 @@ Data ::= CHOICE {
     error              [0] IMPLICIT ServiceError,
     array              [1] IMPLICIT SEQUENCE OF Data,
     structure          [2] IMPLICIT SEQUENCE OF Data,
-    Boolean            [3] IMPLICIT BOOLEAN,
+    boolean            [3] IMPLICIT BOOLEAN,
     int8               [4] IMPLICIT Int8,
     int16              [5] IMPLICIT Int16,
     int32              [6] IMPLICIT Int32,
@@ -431,7 +431,7 @@ DataDefinition ::= CHOICE {
         fc               [1] IMPLICIT FunctionalConstraint OPTIONAL,
         type             [2] DataDefinition
     },
-    Boolean            [3] IMPLICIT NULL,
+    boolean            [3] IMPLICIT NULL,
     int8               [4] IMPLICIT NULL,
     int16              [5] IMPLICIT NULL,
     int32              [6] IMPLICIT NULL,
@@ -1076,7 +1076,7 @@ SetBRCBValues-ErrorPDU ::= SEQUENCE {
         gi          [10] IMPLICIT ServiceError OPTIONAL,
         purgeBuf    [11] IMPLICIT ServiceError OPTIONAL,
         entryID     [12] IMPLICIT ServiceError OPTIONAL,
-        resvTms     [14] IMPLICIT ServiceError OPTIONAL
+        resvTms     [13] IMPLICIT ServiceError OPTIONAL -- this 14 in dlt2811 maybe error --
     }
 }
 

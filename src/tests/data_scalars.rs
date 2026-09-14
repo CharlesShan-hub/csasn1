@@ -70,7 +70,7 @@ fn data_bit_string_aper() {
 
 #[test]
 fn data_boolean_aper() {
-    let orig = Data::Boolean(Boolean(1));
+    let orig = Data::boolean(Boolean(1));
     let encoded = rasn::aper::encode(&orig).expect("APER encode");
     let decoded: Data = rasn::aper::decode(&encoded).expect("APER decode");
     assert_eq!(orig, decoded);

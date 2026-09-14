@@ -144,7 +144,7 @@ public abstract class __PFX__Base {
         SimpleModule mod = new SimpleModule();
         // MapSerializer's null handling is influenced by the @JsonInclude(NON_NULL)
         // on generated classes (which wins over the mapper-wide inclusion above),
-        // so plain-Map nulls (e.g. NULL choice variants {"Boolean": null}) would be
+        // so plain-Map nulls (e.g. NULL choice variants {"boolean": null}) would be
         // silently dropped. Force them out as real JSON null instead.
         mod.addSerializer(java.util.LinkedHashMap.class, new JsonSerializer<Object>() {
             @Override
@@ -262,7 +262,7 @@ public abstract class __PFX__Base {
         if (val instanceof InnerBase) {
             // toJsonValue() already runs toJson() recursively — do NOT re-run
             // toJson() on its result. On a second pass a CHOICE NULL variant map
-            // {"Boolean": null} is treated as a plain map and the null value is
+            // {"boolean": null} is treated as a plain map and the null value is
             // dropped again (plain-map branch skips nulls), emitting {} which the
             // native decoder rejects (NoValidChoice).
             return ((InnerBase) val).toJsonValue();
