@@ -1329,7 +1329,7 @@ GetGoCbValues-ErrorPDU ::= ServiceError
 -- ====================================================================== --
 
 SetGoCBValues-RequestPDU ::= SEQUENCE {
-    gocb            [0] IMPLICIT SEQUENCE OF SEQUENCE {
+    gocb        [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
         goEna       [1] IMPLICIT BOOLEAN OPTIONAL,
         goID        [2] IMPLICIT VisibleString (SIZE (0..129)) OPTIONAL,
@@ -1340,7 +1340,7 @@ SetGoCBValues-RequestPDU ::= SEQUENCE {
 SetGoCBValues-ResponsePDU ::= NULL
 
 SetGoCBValues-ErrorPDU ::= SEQUENCE {
-    result          [0] IMPLICIT SEQUENCE OF SEQUENCE {
+    result      [0] IMPLICIT SEQUENCE OF SEQUENCE {
         error       [0] IMPLICIT ServiceError OPTIONAL,
         goEna       [1] IMPLICIT ServiceError OPTIONAL,
         goID        [2] IMPLICIT ServiceError OPTIONAL,
@@ -1494,7 +1494,13 @@ Operate-RequestPDU ::= SEQUENCE {
 }
 
 Operate-ResponsePDU ::= SEQUENCE {
-    reference       [0] IMPLICIT ObjectReference
+    reference       [0] IMPLICIT ObjectReference,
+    ctlVal          [1] IMPLICIT Data,
+    origin          [3] IMPLICIT Originator,
+    ctlNum          [4] IMPLICIT Int8U,
+    t               [5] IMPLICIT TimeStamp,
+    test            [6] IMPLICIT BOOLEAN,
+    check           [7] IMPLICIT Check
 }
 
 Operate-ErrorPDU ::= SEQUENCE {
