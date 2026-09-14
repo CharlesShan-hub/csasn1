@@ -11,15 +11,17 @@
 ## asn文件
 
 ### 0. 全局决策（影响所有 BOOLEAN 相关条目）
+
 - [x] 方向已明确：原文 7.1.1 白纸黑字"布尔型映射到 BOOLEAN 类型" → 全文恢复内置 `BOOLEAN` / `DEFAULT TRUE` / `DEFAULT FALSE`（asn 已改完）
 - [x] csasn1 生成管线适配：rasn 把内置 BOOLEAN 生成为 Rust `bool` → jcms-data 重新生成后 BOOLEAN 字段直接用裸 `Boolean` 对象（无 Inner/DefaultInner 包装类）；jcms-core 的 CmsBoolean 内核改用 InnerEmpty 占位 + `_v["_"]=true/false`，门面 API 不变，61 个使用类零改动；CmsBooleanTest 改为 CmsData Boolean 变体 roundtrip + 值语义；jcms-core 全量测试（100 类）通过
 - [ ] 核对原文 7.7 Data CHOICE 中 `boolean [3]` 的写法并对齐（预期为内置 BOOLEAN）
 - [ ] 文件头来源注释（如 "GB/T 45906.3" 等声明）一律当作未核实声明，随各章核对逐条验证
 
 ### 7.1 基本类型
+
 - [x] 7.1.1 已核实：原文只说"布尔型…映射到 BOOLEAN 类型"，**没有**定义 `Boolean ::= INTEGER (0..1)` —— 本文件该行系虚构，确认删除
 - [x] 删除 `Boolean ::= INTEGER (0..1)` 定义（改为注释：使用内置 BOOLEAN，取值 TRUE / FALSE）；全文 69 处类型引用 → `BOOLEAN`，26 处 `DEFAULT 1` → `DEFAULT TRUE`，2 处 `DEFAULT 0` → `DEFAULT FALSE`；Data CHOICE 变体名 `Boolean`（行 382/420 标识符）保留不动
-- [ ] 7.1.2 核对 Int8 / Int8U / Int16 / Int16U / Int24U / Int32 / Int32U / Int64 / Int64U 的取值范围
+- [x] 7.1.2 核对 Int8 / Int8U / Int16 / Int16U / Int24U / Int32 / Int32U / Int64 / Int64U 的取值范围
 - [ ] 7.1.4 核对 Float32 / Float64 的 SIZE(4) / SIZE(8)
 - [ ] 核对章节编号：本文件缺 7.1.3，确认原文编号并补齐或修正注释
 

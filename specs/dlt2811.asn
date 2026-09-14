@@ -11,10 +11,7 @@ DLT2811-DataTypes { 1 2 156 2811 1 } DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 -- 7.1.1 BOOLEAN --
 -- ====================================================================== --
 
--- Standard text 7.1.1: The Boolean type has only two values: TRUE and FALSE; when the GB/T 16263.2 (PER) encoding rules are used,
--- the Boolean type is mapped to the built-in BOOLEAN type. The standard never defines Boolean ::= INTEGER (0..1),
--- and the previous definition (including the above "PER encoding" comment) was fabricated during generation and has been deleted.
--- All Boolean fields throughout the text use the built-in BOOLEAN, with values TRUE / FALSE.
+-- Standard text 7.1.1: BOOLEAN maps to the built-in BOOLEAN type (TRUE / FALSE);
 
 -- ====================================================================== --
 -- 7.1.2 Integer Types --
@@ -46,6 +43,8 @@ Int64  ::= INTEGER (-9223372036854775808..9223372036854775807)
 
 -- PER encoding: length determinant + content bytes --
 Int64U ::= INTEGER (0..18446744073709551615)
+
+--Int128 is desprecated and replaced by Int64 (iec61850-7-2)--
 
 -- ====================================================================== --
 -- 7.1.4 Floating-Point Types
@@ -94,15 +93,30 @@ Float64 ::= OCTET STRING (SIZE (8))
 
 -- ====================================================================== --
 -- 7.2.1 UtcTime --
+-- [7] TimeQuality (Table 7): bit0 leap-second-known, bit1 clock-failure, bit2 clock-not-synchronized, --
+-- bits 3..7 fractional-second precision value (00000..11000 valid, 11001..11110 illegal, 11111 unspecified). --
 -- ====================================================================== --
 
 UtcTime ::= OCTET STRING (SIZE(8))
 
+-- Rejected alternative: the standard defines only the byte layout above, no ASN.1
+-- syntax for a whole-UtcTime SEQUENCE. Kept for reference.
+-- UtcTime ::= SEQUENCE { --
+--     SecondSinceEpoch Int32U, --
+--     FractionOfSecond Int24U, --
+--     TimeQuality TimeQuality, --
+-- } --
+
+-- TimeQuality is likewise absent from the standard text (Table 7 gives only the
+-- bit layout), but it is kept as a real type: the generated Inner class is the
+-- APER BIT STRING carrier for the Rust FFI codec (bit strings cannot be
+-- encoded/decoded by hand).
 TimeQuality ::= BIT STRING {
     leap-second-known            (0),
     clock-failure                (1),
     clock-not-synchronized       (2)
 } (SIZE(8))
+-- (Named bits cannot express bits 3..7 — a 5-bit precision value, see Table 7) --
 
 -- ====================================================================== --
 -- 7.2.2 BinaryTime / EntryTime --
