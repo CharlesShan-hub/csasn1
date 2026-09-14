@@ -1027,7 +1027,7 @@ SetBRCBValues-ErrorPDU ::= SEQUENCE {
         gi          [10] IMPLICIT ServiceError OPTIONAL,
         purgeBuf    [11] IMPLICIT ServiceError OPTIONAL,
         entryID     [12] IMPLICIT ServiceError OPTIONAL,
-        resvTms     [13] IMPLICIT ServiceError OPTIONAL -- this 14 in dlt2811 maybe error --
+        resvTms     [14] IMPLICIT ServiceError OPTIONAL -- this 14 in dlt2811 maybe error --
     }
 }
 
@@ -1079,7 +1079,7 @@ SetURCBValues-RequestPDU ::= SEQUENCE {
         trgOps      [8] IMPLICIT TriggerConditions OPTIONAL,
         intgPd      [9] IMPLICIT Int32U OPTIONAL,
         gi          [10] IMPLICIT BOOLEAN OPTIONAL,
-        resv        [13] IMPLICIT BOOLEAN OPTIONAL
+        resv        [13] IMPLICIT BOOLEAN OPTIONAL -- this 13 in dlt2811 maybe error --
     }
 }
 
@@ -1096,7 +1096,7 @@ SetURCBValues-ErrorPDU ::= SEQUENCE {
         trgOps      [8] IMPLICIT ServiceError OPTIONAL,
         intgPd      [9] IMPLICIT ServiceError OPTIONAL,
         gi          [10] IMPLICIT ServiceError OPTIONAL,
-        resv        [13] IMPLICIT ServiceError OPTIONAL
+        resv        [13] IMPLICIT ServiceError OPTIONAL -- this 13 in dlt2811 maybe error --
     }
 }
 
@@ -1135,11 +1135,11 @@ GetLCBValues-RequestPDU ::= SEQUENCE {
 }
 
 GetLCBValues-ResponsePDU ::= SEQUENCE {
-    lcb             [0] IMPLICIT SEQUENCE OF CHOICE {
+    lcb           [0] IMPLICIT SEQUENCE OF CHOICE {
         error       [0] IMPLICIT ServiceError,
         value       [1] IMPLICIT LCB
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows   [1] IMPLICIT BOOLEAN DEFAULT TRUE
 }
 
 GetLCBValues-ErrorPDU ::= ServiceError
@@ -1149,7 +1149,7 @@ GetLCBValues-ErrorPDU ::= ServiceError
 -- ====================================================================== --
 
 SetLCBValues-RequestPDU ::= SEQUENCE {
-    lcb             [0] IMPLICIT SEQUENCE OF SEQUENCE {
+    lcb           [0] IMPLICIT SEQUENCE OF SEQUENCE {
         reference   [0] IMPLICIT ObjectReference,
         logEna      [1] IMPLICIT BOOLEAN OPTIONAL,
         datSet      [2] IMPLICIT ObjectReference OPTIONAL,
@@ -1164,7 +1164,7 @@ SetLCBValues-RequestPDU ::= SEQUENCE {
 SetLCBValues-ResponsePDU ::= NULL
 
 SetLCBValues-ErrorPDU ::= SEQUENCE {
-    result          [0] IMPLICIT SEQUENCE OF SEQUENCE {
+    result        [0] IMPLICIT SEQUENCE OF SEQUENCE {
         error       [0] IMPLICIT ServiceError OPTIONAL,
         logEna      [1] IMPLICIT ServiceError OPTIONAL,
         datSet      [2] IMPLICIT ServiceError OPTIONAL,
@@ -1220,7 +1220,7 @@ GetLogStatusValues-RequestPDU ::= SEQUENCE {
 }
 
 GetLogStatusValues-ResponsePDU ::= SEQUENCE {
-    log             [0] IMPLICIT SEQUENCE OF CHOICE {
+    log         [0] IMPLICIT SEQUENCE OF CHOICE {
         error       [0] IMPLICIT ServiceError,
         value       [1] IMPLICIT SEQUENCE {
             oldEntrTm   [0] IMPLICIT EntryTime,
@@ -1229,7 +1229,7 @@ GetLogStatusValues-ResponsePDU ::= SEQUENCE {
             newEntr     [3] IMPLICIT EntryID
         }
     },
-    moreFollows     [1] IMPLICIT BOOLEAN DEFAULT TRUE
+    moreFollows [1] IMPLICIT BOOLEAN DEFAULT TRUE
 }
 
 GetLogStatusValues-ErrorPDU ::= ServiceError
